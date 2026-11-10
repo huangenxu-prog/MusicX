@@ -64,6 +64,7 @@ struct ContentView: View {
     @State private var songs: [AppSong] = []
     @State private var isLoadingHomeSongs = false
     @State private var homeLoadError: String?
+    @State private var discoveryRoute: MusicDiscoveryRoute?
 
     private var filteredSongs: [AppSong] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -103,6 +104,11 @@ struct ContentView: View {
         }
         .preferredColorScheme(.dark)
         .fullScreenCover(isPresented: $isPlayerPresented) { nowPlayingPage }
+        .fullScreenCover(item: $discoveryRoute) { route in
+            MusicDiscoveryPage(route: route, onClose: { discoveryRoute = nil },
+                onPlay: { playDiscoverySong($0) },
+                onOpenPlaylist: { discoveryRoute = .playlist($0) })
+        }
         .task { await loadHomeSongs() }
     }
 
@@ -149,14 +155,14 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 16) {
             sectionTitle("为你推荐", detail: "每日精选")
             HStack(spacing: 14) {
-                recommendationCard(title: "每日推荐", subtitle: "发现今天的好音乐", colors: [Color(red: 0.18, green: 0.38, blue: 0.61), Color(red: 0.13, green: 0.18, blue: 0.35)], icon: "sparkles", query: "陈奕迅")
-                recommendationCard(title: "精选歌单", subtitle: "按心情聆听", colors: [Color(red: 0.39, green: 0.25, blue: 0.48), Color(red: 0.18, green: 0.15, blue: 0.31)], icon: "square.stack.fill", query: "周杰伦")
+                recommendationCard(title: "每日推荐", subtitle: "发现今天的好音乐", colors: [Color(red: 0.18, green: 0.38, blue: 0.61), Color(red: 0.13, green: 0.18, blue: 0.35)], icon: "sparkles", route: .daily)
+                recommendationCard(title: "精选歌单", subtitle: "按心情聆听", colors: [Color(red: 0.39, green: 0.25, blue: 0.48), Color(red: 0.18, green: 0.15, blue: 0.31)], icon: "square.stack.fill", route: .playlists)
             }
         }.padding(.horizontal, 20)
     }
 
-    private func recommendationCard(title: String, subtitle: String, colors: [Color], icon: String, query: String) -> some View {
-        Button { openSearch(query: query) } label: {
+    private func recommendationCard(title: String, subtitle: String, colors: [Color], icon: String, route: MusicDiscoveryRoute) -> some View {
+        Button { discoveryRoute = route } label: {
         VStack(alignment: .leading, spacing: 10) {
             Image(systemName: icon).font(.system(size: 28, weight: .light)).foregroundStyle(.white.opacity(0.9))
             Spacer(minLength: 12)
@@ -187,8 +193,7 @@ struct ContentView: View {
             sectionTitle("热门专辑", detail: "精选推荐")
             HStack(spacing: 14) {
                 ForEach(Array(songs.prefix(3))) { song in
-                    albumTile(title: song.album.isEmpty ? song.title : song.album,
-                              artist: song.artist, color: song.tint)
+                    if let onlineSong = song.onlineSong { albumTile(song: onlineSong) }
                 }
             }
         }.padding(.horizontal, 20)
@@ -196,11 +201,13 @@ struct ContentView: View {
 
     private var chartSection: some View {
         VStack(alignment: .leading, spacing: 15) {
-            sectionTitle("排行榜", detail: "在线曲目")
+            Button { discoveryRoute = .charts } label: {
+                sectionTitle("排行榜", detail: "查看全部")
+            }.buttonStyle(.plain)
             HStack(spacing: 12) {
-                chartTile("热歌榜", subtitle: "热门歌曲", icon: "flame.fill", color: .orange, query: "陈奕迅")
-                chartTile("新歌榜", subtitle: "最新发行", icon: "sparkles", color: MusicXTheme.blue, query: "周杰伦")
-                chartTile("飙升榜", subtitle: "正在上升", icon: "chart.line.uptrend.xyaxis", color: .mint, query: "薛之谦")
+                chartTile("热歌榜", subtitle: "热门歌曲", icon: "flame.fill", color: .orange)
+                chartTile("新歌榜", subtitle: "最新发行", icon: "sparkles", color: MusicXTheme.blue)
+                chartTile("飙升榜", subtitle: "正在上升", icon: "chart.line.uptrend.xyaxis", color: .mint)
             }
         }.padding(.horizontal, 20)
     }
@@ -352,18 +359,20 @@ struct ContentView: View {
         }
     }
 
-    private func albumTile(title: String, artist: String, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            RoundedRectangle(cornerRadius: 15).fill(LinearGradient(colors: [color, color.opacity(0.4)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                .aspectRatio(1, contentMode: .fit)
-                .overlay(Image(systemName: "waveform").font(.system(size: 28, weight: .light)).foregroundStyle(.white.opacity(0.75)))
-            Text(title).font(.system(size: 14, weight: .semibold)).lineLimit(1)
-            Text(artist).font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
-        }.frame(maxWidth: .infinity, alignment: .leading)
+    private func albumTile(song: MusicSong) -> some View {
+        Button { discoveryRoute = .album(song) } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                RoundedRectangle(cornerRadius: 15).fill(LinearGradient(colors: [MusicXTheme.blue, MusicXTheme.blue.opacity(0.4)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .aspectRatio(1, contentMode: .fit)
+                    .overlay(Image(systemName: "waveform").font(.system(size: 28, weight: .light)).foregroundStyle(.white.opacity(0.75)))
+                Text(song.album?.isEmpty == false ? song.album! : song.title).font(.system(size: 14, weight: .semibold)).lineLimit(1)
+                Text(song.artist).font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
+            }.frame(maxWidth: .infinity, alignment: .leading)
+        }.buttonStyle(.plain)
     }
 
-    private func chartTile(_ title: String, subtitle: String, icon: String, color: Color, query: String) -> some View {
-        Button { openSearch(query: query) } label: {
+    private func chartTile(_ title: String, subtitle: String, icon: String, color: Color) -> some View {
+        Button { discoveryRoute = .charts } label: {
         VStack(alignment: .leading, spacing: 9) {
             Image(systemName: icon).font(.system(size: 21)).foregroundStyle(color)
             Text(title).font(.system(size: 15, weight: .bold))
@@ -468,6 +477,13 @@ struct ContentView: View {
                 }
             }
         }.padding(.horizontal, 12).background(MusicXTheme.background.opacity(0.98))
+    }
+
+    private func playDiscoverySong(_ song: MusicSong) {
+        let appSong = AppSong(id: stableSongID(song), title: song.title, artist: song.artist,
+                              album: song.album ?? "", tint: MusicXTheme.blue, onlineSong: song)
+        select(appSong)
+        discoveryRoute = nil
     }
 
     private func select(_ song: AppSong) {
