@@ -485,7 +485,7 @@ struct ContentView: View {
 
             let localSong = DemoSong(id: 999, title: sourceURL.deletingPathExtension().lastPathComponent, artist: "本地音频", album: "本地导入", tint: MusicXTheme.blue)
             currentSong = localSong
-            player.play(url: destination)
+            player.play(url: destination, title: localSong.title, artist: localSong.artist)
             isPlayerPresented = true
         } catch {
             player.stop()
