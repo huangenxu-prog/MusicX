@@ -417,7 +417,7 @@ struct ContentView: View {
 
     private var nowPlayingPage: some View {
         GeometryReader { geometry in
-            let artworkSize = min(geometry.size.width - 64, geometry.size.height * 0.39)
+            let artworkSize = min(geometry.size.width - 64, geometry.size.height * 0.31)
             ZStack {
                 playerArtwork
                     .frame(width: geometry.size.width + 100, height: geometry.size.height + 100)
@@ -442,12 +442,14 @@ struct ContentView: View {
                     .padding(.horizontal, 26)
                     .padding(.top, 8)
 
-                    Spacer(minLength: 18)
+                    Spacer(minLength: 8)
 
-                    playerArtwork
+                    playerVisualContent
                         .frame(width: artworkSize, height: artworkSize)
                         .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
                         .shadow(color: (currentSong?.tint ?? MusicXTheme.blue).opacity(0.28), radius: 30, y: 14)
+                        .contentShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
+                        .onTapGesture { isLyricsPresented.toggle() }
 
                     HStack(alignment: .center, spacing: 14) {
                         VStack(alignment: .leading, spacing: 7) {
@@ -484,7 +486,7 @@ struct ContentView: View {
                         .disabled(currentSong == nil)
                     }
                     .padding(.horizontal, 28)
-                    .padding(.top, 24)
+                    .padding(.top, 16)
 
                     VStack(spacing: 5) {
                         Slider(value: Binding(
@@ -502,7 +504,7 @@ struct ContentView: View {
                         .foregroundStyle(MusicXTheme.muted)
                     }
                     .padding(.horizontal, 28)
-                    .padding(.top, 18)
+                    .padding(.top, 12)
 
                     HStack(spacing: 0) {
                         Button { stepSong(by: -1) } label: {
@@ -511,8 +513,8 @@ struct ContentView: View {
                         }
                         Button { if currentSong != nil { playerStore.togglePlayback() } } label: {
                             Image(systemName: playerStore.isPlaying ? "pause.fill" : "play.fill")
-                                .font(.system(size: 30, weight: .bold)).foregroundStyle(MusicXTheme.background)
-                                .frame(width: 82, height: 82).background(.white, in: Circle())
+                                .font(.system(size: 28, weight: .bold)).foregroundStyle(MusicXTheme.background)
+                                .frame(width: 74, height: 74).background(.white, in: Circle())
                         }
                         .frame(maxWidth: .infinity)
                         Button { stepSong(by: 1) } label: {
@@ -520,8 +522,8 @@ struct ContentView: View {
                                 .foregroundStyle(.white).frame(maxWidth: .infinity)
                         }
                     }
-                    .padding(.horizontal, 42)
-                    .padding(.top, 18)
+                    .padding(.horizontal, 28)
+                    .padding(.top, 12)
 
                     HStack {
                         Button { isShuffleEnabled.toggle() } label: {
@@ -529,7 +531,7 @@ struct ContentView: View {
                                 .foregroundStyle(isShuffleEnabled ? MusicXTheme.blue : .white.opacity(0.65))
                         }
                         Spacer()
-                        Button { isLyricsPresented = true } label: {
+                        Button { isLyricsPresented.toggle() } label: {
                             Label("歌词", systemImage: "quote.bubble")
                                 .foregroundStyle(.white.opacity(0.78))
                         }
@@ -546,16 +548,15 @@ struct ContentView: View {
                     }
                     .font(.system(size: 13, weight: .medium))
                     .padding(.horizontal, 34)
-                    .padding(.top, 22)
+                    .padding(.top, 16)
 
-                    Spacer(minLength: 20)
+                    Spacer(minLength: 8)
                 }
             }
         }
         .preferredColorScheme(.dark)
         .task(id: currentSong?.id) { await loadPlayerMetadata() }
         .sheet(isPresented: $isQueuePresented) { playbackQueueSheet }
-        .sheet(isPresented: $isLyricsPresented) { lyricsSheet }
     }
 
     private var lyricsSheet: some View {
@@ -644,6 +645,38 @@ struct ContentView: View {
             guard !text.isEmpty else { return nil }
             return PlayerLyricLine(time: minutes * 60 + seconds, text: text)
         }.sorted { $0.time < $1.time }
+    }
+
+    @ViewBuilder
+    private var playerVisualContent: some View {
+        if isLyricsPresented {
+            if lyricLines.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "quote.bubble").font(.system(size: 34, weight: .light)).foregroundStyle(MusicXTheme.blue)
+                    Text(lyricsUnavailable ? "暂时没有找到歌词" : "正在获取歌词").font(.system(size: 18, weight: .semibold)).foregroundStyle(.white)
+                    Text(lyricsUnavailable ? "当前音源没有提供可用的歌词数据。" : "请稍候，正在读取歌词。").font(.system(size: 12)).foregroundStyle(MusicXTheme.muted).multilineTextAlignment(.center)
+                }.padding(22).frame(maxWidth: .infinity, maxHeight: .infinity).background(MusicXTheme.surface.opacity(0.42))
+            } else {
+                ScrollViewReader { proxy in
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 18) {
+                            ForEach(Array(lyricLines.enumerated()), id: \\.element.id) { index, line in
+                                Text(line.text).font(.system(size: index == activeLyricIndex ? 19 : 14, weight: index == activeLyricIndex ? .bold : .medium))
+                                    .foregroundStyle(index == activeLyricIndex ? .white : MusicXTheme.muted).multilineTextAlignment(.center).frame(maxWidth: .infinity).id(line.id)
+                            }
+                        }.padding(.horizontal, 18).padding(.vertical, 24)
+                    }
+                    .onChange(of: activeLyricIndex) { _, index in
+                        guard lyricLines.indices.contains(index) else { return }
+                        withAnimation(.easeInOut(duration: 0.25)) { proxy.scrollTo(lyricLines[index].id, anchor: .center) }
+                    }
+                    .onAppear {
+                        guard lyricLines.indices.contains(activeLyricIndex) else { return }
+                        proxy.scrollTo(lyricLines[activeLyricIndex].id, anchor: .center)
+                    }
+                }.frame(maxWidth: .infinity, maxHeight: .infinity).background(MusicXTheme.surface.opacity(0.42)).clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
+            }
+        } else { playerArtwork }
     }
 
     @ViewBuilder
@@ -739,10 +772,10 @@ struct ContentView: View {
     }
 
     private func playDiscoverySong(_ song: MusicSong) {
+        // Keep the discovery route mounted while playback starts.
         let appSong = AppSong(id: stableSongID(song), title: song.title, artist: song.artist,
                               album: song.album ?? "", tint: MusicXTheme.blue, onlineSong: song)
         select(appSong)
-        discoveryRoute = nil
     }
 
     private func select(_ song: AppSong) {
