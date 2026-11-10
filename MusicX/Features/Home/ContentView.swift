@@ -601,10 +601,19 @@ struct ContentView: View {
             .overlay(Image(systemName: "waveform").font(.system(size: 76, weight: .ultraLight)).foregroundStyle(.white.opacity(0.85)))
     }
 
+    private var playbackQueue: [AppSong] {
+        var items = songs + onlineResults
+        if let currentSong, !items.contains(where: { $0.id == currentSong.id }) {
+            items.insert(currentSong, at: 0)
+        }
+        var seen = Set<Int>()
+        return items.filter { seen.insert($0.id).inserted }
+    }
+
     private var playbackQueueSheet: some View {
         NavigationStack {
             List {
-                ForEach(songs) { song in
+                ForEach(playbackQueue) { song in
                     Button {
                         select(song)
                         isQueuePresented = false
