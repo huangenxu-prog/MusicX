@@ -582,7 +582,7 @@ struct ContentView: View {
                         Text(song.artist).font(.system(size: 12)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
                         if let source = song.onlineSong?.source {
                             Text("·").foregroundStyle(MusicXTheme.muted)
-                            Text(source.shortLabel)
+                            Text(sourceShortLabel(source))
                                 .font(.system(size: 10, weight: .semibold))
                                 .foregroundStyle(song.tint)
                         }
@@ -1266,6 +1266,20 @@ struct ContentView: View {
         onlineResults = []
         selectedTab = .search
         searchFieldFocused = false
+    }
+
+    private func sourceShortLabel(_ source: MusicSource) -> String {
+        switch source {
+        case .netease: "网易云"
+        case .qq: "QQ"
+        case .kuwo: "酷我"
+        case .kugou: "酷狗"
+        case .migu: "咪咕"
+        case .qishui: "汽水"
+        case .youtubeMusic: "YTM"
+        case .youtube: "YT"
+        case .spotify: "SP"
+        }
     }
 
     private func normalizedSearchKey(_ value: String) -> String {
