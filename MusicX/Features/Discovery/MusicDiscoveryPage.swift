@@ -23,7 +23,6 @@ struct MusicDiscoveryPage: View {
     let isPlaying: Bool
     let onTogglePlayback: () -> Void
     let onOpenPlayer: () -> Void
-    let onNowPlayingVisibilityChanged: (Bool) -> Void
     let onOpenPlaylist: (String) -> Void
 
     @State private var songs: [MusicSong] = []
@@ -83,8 +82,6 @@ struct MusicDiscoveryPage: View {
                 miniPlayerBar(song: currentSong)
             }
         }
-        .onAppear { onNowPlayingVisibilityChanged(false) }
-        .onDisappear { onNowPlayingVisibilityChanged(true) }
         .task(id: query) { await loadSongs() }
     }
 
