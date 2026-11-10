@@ -407,55 +407,205 @@ struct ContentView: View {
         .onTapGesture { if currentSong != nil { isPlayerPresented = true } }
     }
 
+    @State private var isQueuePresented = false
+    @State private var isShuffleEnabled = false
+    @State private var repeatMode = 0
+
     private var nowPlayingPage: some View {
-        VStack(spacing: 28) {
-            HStack {
-                Button { isPlayerPresented = false } label: {
-                    Image(systemName: "chevron.down").font(.system(size: 19, weight: .semibold))
+        GeometryReader { geometry in
+            VStack(spacing: 0) {
+                HStack {
+                    Button { isPlayerPresented = false } label: {
+                        Image(systemName: "chevron.down").font(.system(size: 19, weight: .semibold))
+                    }
+                    Spacer()
+                    Text("正在播放").font(.system(size: 16, weight: .semibold))
+                    Spacer()
+                    Image(systemName: "ellipsis").font(.system(size: 19))
                 }
-                Spacer()
-                Text("正在播放").font(.system(size: 13, weight: .semibold))
-                Spacer()
-                Image(systemName: "ellipsis").font(.system(size: 19))
-            }
-            .foregroundStyle(.white)
-            .padding(.horizontal, 24)
-            .padding(.top, 16)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 26)
+                .padding(.top, 12)
 
-            Spacer(minLength: 12)
+                Spacer(minLength: 22)
 
-            RoundedRectangle(cornerRadius: 28)
-                .fill(LinearGradient(colors: [currentSong?.tint ?? MusicXTheme.blue, Color.black.opacity(0.75)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                .aspectRatio(1, contentMode: .fit)
-                .overlay(Image(systemName: "waveform").font(.system(size: 76, weight: .ultraLight)).foregroundStyle(.white.opacity(0.85)))
+                playerArtwork
+                    .frame(width: min(geometry.size.width - 64, geometry.size.height * 0.48),
+                           height: min(geometry.size.width - 64, geometry.size.height * 0.48))
+                    .clipShape(RoundedRectangle(cornerRadius: 34, style: .continuous))
+                    .shadow(color: (currentSong?.tint ?? MusicXTheme.blue).opacity(0.16), radius: 28, y: 12)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(alignment: .center, spacing: 14) {
+                        VStack(alignment: .leading, spacing: 7) {
+                            Text(currentSong?.title ?? "尚未选择歌曲")
+                                .font(.system(size: 27, weight: .bold))
+                                .foregroundStyle(.white)
+                                .lineLimit(1)
+                            Text(currentSong?.artist ?? "选择一首歌曲开始聆听")
+                                .font(.system(size: 16))
+                                .foregroundStyle(MusicXTheme.muted)
+                                .lineLimit(1)
+                            if let album = currentSong?.album, !album.isEmpty {
+                                Text(album).font(.system(size: 12)).foregroundStyle(.white.opacity(0.42)).lineLimit(1)
+                            }
+                        }
+                        Spacer(minLength: 4)
+                        Button { if let currentSong { toggleFavorite(currentSong) } } label: {
+                            Image(systemName: currentSong.map { favorites.contains($0.id) } == true ? "heart.fill" : "heart")
+                                .font(.system(size: 23, weight: .medium))
+                                .foregroundStyle(currentSong.map { favorites.contains($0.id) } == true ? MusicXTheme.blue : .white.opacity(0.82))
+                        }
+                        .disabled(currentSong == nil)
+                    }
+                }
+                .padding(.horizontal, 28)
+                .padding(.top, 28)
+
+                VStack(spacing: 8) {
+                    Slider(value: Binding(
+                        get: { playerStore.duration > 0 ? min(playerStore.currentTime, playerStore.duration) : 0 },
+                        set: { playerStore.seek(to: $0) }
+                    ), in: 0...max(playerStore.duration, 1))
+                    .tint(MusicXTheme.blue)
+                    .disabled(playerStore.duration <= 0)
+                    HStack {
+                        Text(playerTime(playerStore.currentTime))
+                        Spacer()
+                        Text("-" + playerTime(max(0, playerStore.duration - playerStore.currentTime)))
+                    }
+                    .font(.system(size: 12, weight: .medium, design: .rounded))
+                    .foregroundStyle(MusicXTheme.muted)
+                }
+                .padding(.horizontal, 28)
+                .padding(.top, 28)
+
+                HStack(spacing: 0) {
+                    Button { isShuffleEnabled.toggle() } label: {
+                        Image(systemName: "shuffle")
+                            .font(.system(size: 19, weight: .semibold))
+                            .foregroundStyle(isShuffleEnabled ? MusicXTheme.blue : .white.opacity(0.55))
+                            .frame(maxWidth: .infinity)
+                    }
+                    Button { stepSong(by: -1) } label: {
+                        Image(systemName: "backward.end.fill").font(.system(size: 27))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                    }
+                    Button { if currentSong != nil { playerStore.togglePlayback() } } label: {
+                        Image(systemName: playerStore.isPlaying ? "pause.fill" : "play.fill")
+                            .font(.system(size: 30, weight: .bold))
+                            .foregroundStyle(MusicXTheme.background)
+                            .frame(width: 82, height: 82)
+                            .background(.white, in: Circle())
+                    }
+                    .frame(maxWidth: .infinity)
+                    Button { stepSong(by: 1) } label: {
+                        Image(systemName: "forward.end.fill").font(.system(size: 27))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                    }
+                    Button { repeatMode = (repeatMode + 1) % 3 } label: {
+                        Image(systemName: repeatMode == 2 ? "repeat.1" : "repeat")
+                            .font(.system(size: 19, weight: .semibold))
+                            .foregroundStyle(repeatMode == 0 ? .white.opacity(0.55) : MusicXTheme.blue)
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+                .padding(.horizontal, 18)
+                .padding(.top, 32)
+
+                HStack {
+                    Button {} label: {
+                        Label("歌词", systemImage: "quote.bubble")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.68))
+                    }
+                    Spacer()
+                    Button { isQueuePresented = true } label: {
+                        Label("播放队列", systemImage: "list.bullet")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.68))
+                    }
+                }
                 .padding(.horizontal, 30)
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text(currentSong?.title ?? "尚未选择歌曲").font(.system(size: 25, weight: .bold))
-                Text(currentSong?.artist ?? "选择一首歌曲开始聆听").font(.system(size: 14)).foregroundStyle(MusicXTheme.muted)
+                .padding(.top, 24)
+                Spacer(minLength: 18)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 28)
-
-            Capsule().fill(.white.opacity(0.16)).frame(height: 4).padding(.horizontal, 28)
-            HStack(spacing: 42) {
-                Button { stepSong(by: -1) } label: { Image(systemName: "backward.end.fill") }
-                Button { if currentSong != nil { playerStore.togglePlayback() } } label: {
-                    Image(systemName: playerStore.isPlaying ? "pause.circle.fill" : "play.circle.fill").font(.system(size: 66, weight: .light))
-                }
-                Button { stepSong(by: 1) } label: { Image(systemName: "forward.end.fill") }
-            }
-            .font(.system(size: 25))
-            .foregroundStyle(.white)
-            Spacer(minLength: 24)
-        }
-        .padding(.vertical, 12)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background {
-            LinearGradient(colors: [currentSong?.tint.opacity(0.45) ?? MusicXTheme.blue.opacity(0.3), MusicXTheme.background, MusicXTheme.background], startPoint: .top, endPoint: .bottom)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background {
+                LinearGradient(colors: [
+                    (currentSong?.tint ?? MusicXTheme.blue).opacity(0.34),
+                    Color(red: 0.035, green: 0.065, blue: 0.11),
+                    MusicXTheme.background
+                ], startPoint: .top, endPoint: .bottom)
                 .ignoresSafeArea()
+            }
         }
         .preferredColorScheme(.dark)
+        .sheet(isPresented: $isQueuePresented) { playbackQueueSheet }
+    }
+
+    @ViewBuilder
+    private var playerArtwork: some View {
+        if let url = currentSong?.onlineSong?.artworkURL {
+            AsyncImage(url: url) { phase in
+                if let image = phase.image {
+                    image.resizable().scaledToFill()
+                } else {
+                    artworkPlaceholder
+                }
+            }
+        } else {
+            artworkPlaceholder
+        }
+    }
+
+    private var artworkPlaceholder: some View {
+        RoundedRectangle(cornerRadius: 34, style: .continuous)
+            .fill(LinearGradient(
+                colors: [currentSong?.tint ?? MusicXTheme.blue, Color(red: 0.025, green: 0.045, blue: 0.075)],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            ))
+            .overlay(Image(systemName: "waveform").font(.system(size: 76, weight: .ultraLight)).foregroundStyle(.white.opacity(0.85)))
+    }
+
+    private var playbackQueueSheet: some View {
+        NavigationStack {
+            List {
+                ForEach(songs) { song in
+                    Button {
+                        select(song)
+                        isQueuePresented = false
+                    } label: {
+                        HStack(spacing: 12) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(song.title).foregroundStyle(.primary).lineLimit(1)
+                                Text(song.artist).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                            }
+                            Spacer()
+                            if song.id == currentSong?.id {
+                                Image(systemName: "waveform").foregroundStyle(MusicXTheme.blue)
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("播放队列")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("完成") { isQueuePresented = false }
+                }
+            }
+        }
+        .preferredColorScheme(.dark)
+    }
+
+    private func playerTime(_ time: TimeInterval) -> String {
+        guard time.isFinite, time >= 0 else { return "0:00" }
+        let seconds = Int(time)
+        return String(format: "%d:%02d", seconds / 60, seconds % 60)
     }
 
     private func stepSong(by offset: Int) {
