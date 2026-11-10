@@ -20,7 +20,16 @@ private struct DemoSong: Identifiable, Equatable {
     let artist: String
     let album: String
     let tint: Color
-    let onlineSong: MusicSong? = nil
+    let onlineSong: MusicSong?
+
+    init(id: Int, title: String, artist: String, album: String, tint: Color, onlineSong: MusicSong? = nil) {
+        self.id = id
+        self.title = title
+        self.artist = artist
+        self.album = album
+        self.tint = tint
+        self.onlineSong = onlineSong
+    }
 }
 
 private enum LibraryFilter: String, CaseIterable {
@@ -351,8 +360,8 @@ struct ContentView: View {
                 Text(currentSong?.artist ?? "选择一首歌曲开始聆听").font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
             }
             Spacer()
-            Button { if currentSong != nil { isPlaying.toggle() } } label: {
-                Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+            Button { if currentSong != nil { playerStore.togglePlayback() } } label: {
+                Image(systemName: playerStore.isPlaying ? "pause.fill" : "play.fill")
                     .font(.system(size: 19, weight: .semibold)).foregroundStyle(.white)
             }
             .disabled(currentSong == nil)
@@ -396,8 +405,8 @@ struct ContentView: View {
             Capsule().fill(.white.opacity(0.16)).frame(height: 4).padding(.horizontal, 28)
             HStack(spacing: 42) {
                 Button { stepSong(by: -1) } label: { Image(systemName: "backward.end.fill") }
-                Button { if currentSong != nil { isPlaying.toggle() } } label: {
-                    Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill").font(.system(size: 66, weight: .light))
+                Button { if currentSong != nil { playerStore.togglePlayback() } } label: {
+                    Image(systemName: playerStore.isPlaying ? "pause.circle.fill" : "play.circle.fill").font(.system(size: 66, weight: .light))
                 }
                 Button { stepSong(by: 1) } label: { Image(systemName: "forward.end.fill") }
             }
