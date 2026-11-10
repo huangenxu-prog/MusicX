@@ -94,6 +94,11 @@ struct ContentView: View {
         }
     }
 
+    private var isCurrentSongDownloaded: Bool {
+        guard let currentSong else { return false }
+        return downloadedSongs.contains { downloaded in downloaded.id == currentSong.id }
+    }
+
     private var downloadsDirectory: URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("MusicXDownloads", isDirectory: true)
@@ -654,10 +659,10 @@ struct ContentView: View {
                             Button {
                                 downloadCurrentSong()
                             } label: {
-                                Label(isDownloading ? "正在下载…" : (currentSong.map { downloadedSongs.contains(where: { $0.id == $0.id }) } == true ? "下载歌曲" : "下载歌曲"),
+                                Label(isDownloading ? "正在下载…" : (isCurrentSongDownloaded ? "已下载" : "下载歌曲"),
                                       systemImage: "arrow.down.to.line")
                             }
-                            .disabled(currentSong?.onlineSong == nil || isDownloading || currentSong?.localFileURL != nil)
+                            .disabled(currentSong?.onlineSong == nil || isDownloading || isCurrentSongDownloaded)
                             Menu {
                                 Button("查看专辑") {
                                     if let song = currentSong?.onlineSong {
