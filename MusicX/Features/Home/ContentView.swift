@@ -69,7 +69,6 @@ struct ContentView: View {
     @State private var isLoadingHomeSongs = false
     @State private var homeLoadError: String?
     @State private var discoveryRoute: MusicDiscoveryRoute?
-    @State private var featuredIndex = 0
     @State private var isSettingsAlertPresented = false
 
     private var filteredSongs: [AppSong] {
@@ -147,55 +146,83 @@ struct ContentView: View {
 
     private var heroHeader: some View {
         ZStack(alignment: .bottomLeading) {
-            MountainBackdrop(variant: 0)
+            LinearGradient(
+                colors: [Color(red: 0.10, green: 0.20, blue: 0.39), Color(red: 0.06, green: 0.10, blue: 0.19), MusicXTheme.background],
+                startPoint: .topTrailing, endPoint: .bottomLeading
+            )
             VStack(alignment: .leading, spacing: 5) {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text("发现音乐")
-                            .font(.system(size: 38, weight: .bold, design: .rounded))
-                            .foregroundStyle(.white)
-                        Text("好音乐，总在这里")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(.white.opacity(0.72))
-                    }
+                HStack {
                     Spacer()
                     Button { isSettingsAlertPresented = true } label: {
-                        Image(systemName: "gearshape.fill")
-                            .font(.system(size: 25, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .frame(width: 46, height: 46)
+                        Image(systemName: "waveform")
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.9))
+                            .frame(width: 44, height: 44)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("设置")
                 }
-                Spacer(minLength: 0)
+                Spacer()
+                Text("发现音乐")
+                    .font(.system(size: 38, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                Text("好音乐，总在这里")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.62))
             }
             .padding(.horizontal, 24)
-            .padding(.top, 64)
-            .padding(.bottom, 14)
+            .padding(.top, 54)
+            .padding(.bottom, 22)
         }
-        .frame(height: 190)
+        .frame(height: 250)
         .clipped()
     }
 
     private var recommendationSection: some View {
-        VStack(spacing: 10) {
-            TabView(selection: $featuredIndex) {
-                featuredCard(title: "每日推荐", subtitle: "为你精选的好音乐", route: .daily, variant: 0).tag(0)
-                featuredCard(title: "精选歌单", subtitle: "收藏此刻喜欢的旋律", route: .playlists, variant: 1).tag(1)
-                featuredCard(title: "排行榜", subtitle: "发现正在流行的歌曲", route: .charts, variant: 2).tag(2)
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("为你推荐").font(.system(size: 25, weight: .bold)).foregroundStyle(.white)
+                Spacer()
+                Text("每日精选").font(.system(size: 13, weight: .medium)).foregroundStyle(MusicXTheme.muted)
             }
-            .tabViewStyle(.page(indexDisplayMode: .never))
-            .frame(height: 138)
-            HStack(spacing: 8) {
-                ForEach(0..<3, id: \.self) { index in
-                    Capsule()
-                        .fill(featuredIndex == index ? MusicXTheme.blue : Color.white.opacity(0.22))
-                        .frame(width: featuredIndex == index ? 17 : 8, height: 8)
-                }
+            HStack(spacing: 14) {
+                recommendationTile(
+                    title: "每日推荐", subtitle: "发现今天的好音乐",
+                    icon: "sparkles",
+                    colors: [Color(red: 0.20, green: 0.43, blue: 0.70), Color(red: 0.10, green: 0.19, blue: 0.36)],
+                    route: .daily
+                )
+                recommendationTile(
+                    title: "精选歌单", subtitle: "按心情聆听",
+                    icon: "square.stack.fill",
+                    colors: [Color(red: 0.39, green: 0.23, blue: 0.49), Color(red: 0.20, green: 0.13, blue: 0.31)],
+                    route: .playlists
+                )
             }
         }
         .padding(.horizontal, 20)
+    }
+
+    private func recommendationTile(title: String, subtitle: String, icon: String, colors: [Color], route: MusicDiscoveryRoute) -> some View {
+        Button { discoveryRoute = route } label: {
+            ZStack(alignment: .topLeading) {
+                LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
+                VStack(alignment: .leading, spacing: 0) {
+                    Image(systemName: icon)
+                        .font(.system(size: 28, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.92))
+                    Spacer(minLength: 12)
+                    Text(title).font(.system(size: 21, weight: .bold)).foregroundStyle(.white)
+                    Text(subtitle).font(.system(size: 13, weight: .medium)).foregroundStyle(.white.opacity(0.68)).lineLimit(1)
+                        .padding(.top, 7)
+                }
+                .padding(18)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 188)
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        }
+        .buttonStyle(.plain)
     }
 
     private func featuredCard(title: String, subtitle: String, route: MusicDiscoveryRoute, variant: Int) -> some View {
@@ -523,44 +550,32 @@ struct ContentView: View {
 
     private var miniPlayer: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 11) {
+            HStack(spacing: 12) {
                 Button { if currentSong != nil { isPlayerPresented = true } } label: {
                     HStack(spacing: 11) {
                         songArtwork(currentSong?.onlineSong, tint: currentSong?.tint ?? MusicXTheme.blue, size: 42)
-                        VStack(alignment: .leading, spacing: 3) {
+                        VStack(alignment: .leading, spacing: 4) {
                             Text(currentSong?.title ?? "尚未播放").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
-                            Text(currentSong?.artist ?? "选择一首歌曲开始聆听").font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
+                            Text(currentSong?.artist ?? "选择一首歌曲开始聆听").font(.system(size: 12)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 Button { if currentSong != nil { playerStore.togglePlayback() } } label: {
                     Image(systemName: playerStore.isPlaying ? "pause.fill" : "play.fill")
                         .font(.system(size: 19, weight: .semibold)).foregroundStyle(.white)
-                        .frame(width: 34, height: 42)
+                        .frame(width: 42, height: 44)
                 }
+                .buttonStyle(.plain)
                 .disabled(currentSong == nil)
-                Button { isQueuePresented = true } label: {
-                    Image(systemName: "text.line.first.and.arrowtriangle.forward")
-                        .font(.system(size: 20, weight: .semibold)).foregroundStyle(.white.opacity(0.9))
-                        .frame(width: 34, height: 42)
-                }
             }
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(.white.opacity(0.13))
-                    Capsule().fill(MusicXTheme.blue)
-                        .frame(width: geometry.size.width * progressFraction)
-                }
-            }
-            .frame(height: 3)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 9)
         }
-        .padding(.horizontal, 14).padding(.top, 9).padding(.bottom, 0)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 17, style: .continuous))
-        .padding(.horizontal, 14)
-        .padding(.top, 8)
+        .background(Color(red: 0.075, green: 0.085, blue: 0.13).opacity(0.98))
+        .overlay(alignment: .top) { Rectangle().fill(.white.opacity(0.06)).frame(height: 0.5) }
     }
 
     private var progressFraction: CGFloat {
@@ -578,7 +593,7 @@ struct ContentView: View {
 
     private var nowPlayingPage: some View {
         GeometryReader { geometry in
-            let artworkSize = min(geometry.size.width - 36, geometry.size.height * 0.45)
+            let artworkSize = min(geometry.size.width - 56, geometry.size.height * 0.36)
             ZStack {
                 playerArtwork
                     .frame(width: geometry.size.width + 100, height: geometry.size.height + 100)

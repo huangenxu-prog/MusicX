@@ -165,13 +165,13 @@ struct MusicDiscoveryPage: View {
     }
 
     private func miniPlayerBar(song: MusicSong?) -> some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 5) {
             HStack(spacing: 12) {
                 Button(action: onOpenPlayer) {
                     HStack(spacing: 11) {
                         RoundedRectangle(cornerRadius: 9)
                             .fill(LinearGradient(colors: [MusicXTheme.blue, MusicXTheme.blue.opacity(0.42)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                            .frame(width: 42, height: 42)
+                            .frame(width: 40, height: 40)
                             .overlay(Image(systemName: song == nil ? "music.note" : "waveform").foregroundStyle(.white))
                         VStack(alignment: .leading, spacing: 3) {
                             Text(song?.title ?? "尚未播放").font(.system(size: 13, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
@@ -179,32 +179,29 @@ struct MusicDiscoveryPage: View {
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                }.buttonStyle(.plain)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
                 Button(action: onTogglePlayback) {
                     Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: 19, weight: .semibold)).foregroundStyle(.white)
-                        .frame(width: 42, height: 42)
+                        .font(.system(size: 18, weight: .semibold)).foregroundStyle(.white)
+                        .frame(width: 42, height: 40)
+                        .contentShape(Rectangle())
                 }
-                .disabled(song == nil)
-                Button(action: onOpenPlayer) {
-                    Image(systemName: "arrow.up.left.and.arrow.down.right")
-                        .font(.system(size: 14, weight: .semibold)).foregroundStyle(MusicXTheme.muted)
-                        .frame(width: 32, height: 42)
-                }
+                .buttonStyle(.plain)
                 .disabled(song == nil)
             }
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
-                    Capsule().fill(.white.opacity(0.12))
-                    Capsule().fill(MusicXTheme.blue)
-                        .frame(width: geometry.size.width * progressFraction)
+                    Capsule().fill(.white.opacity(0.10))
+                    Capsule().fill(MusicXTheme.blue).frame(width: geometry.size.width * progressFraction)
                 }
             }
-            .frame(height: 3)
+            .frame(height: 2)
         }
-        .padding(.horizontal, 16).padding(.vertical, 8)
-        .background(.ultraThinMaterial)
-        .overlay(alignment: .top) { Rectangle().fill(.white.opacity(0.08)).frame(height: 0.5) }
+        .padding(.horizontal, 16).padding(.top, 7).padding(.bottom, 5)
+        .background(MusicXTheme.background.opacity(0.98))
+        .overlay(alignment: .top) { Rectangle().fill(.white.opacity(0.07)).frame(height: 0.5) }
     }
 
     private var progressFraction: CGFloat {
@@ -254,7 +251,7 @@ struct MusicDiscoveryPage: View {
     }
 
     private var trackList: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 10) {
             if isLoading {
                 ProgressView().tint(MusicXTheme.blue).frame(maxWidth: .infinity).padding(.vertical, 28)
             } else if let errorMessage, songs.isEmpty {
@@ -264,41 +261,39 @@ struct MusicDiscoveryPage: View {
             } else {
                 ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
                     let isCurrent = currentSong?.id == song.id
-                    HStack(spacing: 12) {
-                        if case .charts = route {
-                            Text(String(index + 1)).font(.system(size: 16, weight: .bold, design: .rounded))
-                                .foregroundStyle(isCurrent ? MusicXTheme.blue : (index < 3 ? MusicXTheme.blue : MusicXTheme.muted)).frame(width: 22)
-                        }
-                        Button { onPlay(song) } label: {
-                            HStack(spacing: 12) {
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(LinearGradient(colors: index.isMultiple(of: 2) ? [Color(red: 0.20, green: 0.42, blue: 0.68), Color(red: 0.10, green: 0.16, blue: 0.30)] : [Color(red: 0.40, green: 0.25, blue: 0.49), Color(red: 0.17, green: 0.14, blue: 0.30)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                                    .frame(width: 48, height: 48).overlay(Image(systemName: isCurrent && isPlaying ? "waveform" : "music.note").foregroundStyle(isCurrent ? MusicXTheme.blue : .white.opacity(0.8)))
-                                VStack(alignment: .leading, spacing: 5) {
-                                    Text(song.title).font(.system(size: 15, weight: .semibold)).foregroundStyle(isCurrent ? MusicXTheme.blue : .white).lineLimit(1)
-                                    Text(song.artist).font(.system(size: 12)).foregroundStyle(isCurrent ? .white.opacity(0.78) : MusicXTheme.muted).lineLimit(1)
-                                }
-                                Spacer(minLength: 0)
-                                if isCurrent {
-                                    Text(isPlaying ? "正在播放" : "已暂停")
-                                        .font(.system(size: 10, weight: .semibold))
-                                        .foregroundStyle(MusicXTheme.blue)
-                                }
+                    Button { onPlay(song) } label: {
+                        HStack(spacing: 12) {
+                            if case .charts = route {
+                                Text(String(index + 1)).font(.system(size: 16, weight: .bold, design: .rounded))
+                                    .foregroundStyle(isCurrent ? MusicXTheme.blue : (index < 3 ? MusicXTheme.blue : MusicXTheme.muted)).frame(width: 22)
                             }
-                        }.buttonStyle(.plain)
-                        Image(systemName: "heart").foregroundStyle(MusicXTheme.muted)
-                        Image(systemName: "ellipsis").foregroundStyle(MusicXTheme.muted)
-                    }
-                    .padding(.horizontal, 10).padding(.vertical, 7)
-                    .background(isCurrent ? MusicXTheme.blue.opacity(0.13) : .clear, in: RoundedRectangle(cornerRadius: 14))
-                    .overlay(alignment: .leading) {
-                        if isCurrent {
-                            Capsule().fill(MusicXTheme.blue).frame(width: 3).padding(.vertical, 8)
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(LinearGradient(colors: index.isMultiple(of: 2) ? [Color(red: 0.20, green: 0.42, blue: 0.68), Color(red: 0.10, green: 0.16, blue: 0.30)] : [Color(red: 0.40, green: 0.25, blue: 0.49), Color(red: 0.17, green: 0.14, blue: 0.30)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                .frame(width: 48, height: 48)
+                                .overlay(Image(systemName: isCurrent && isPlaying ? "waveform" : "music.note").foregroundStyle(isCurrent ? MusicXTheme.blue : .white.opacity(0.8)))
+                            VStack(alignment: .leading, spacing: 5) {
+                                Text(song.title).font(.system(size: 15, weight: .semibold)).foregroundStyle(isCurrent ? MusicXTheme.blue : .white).lineLimit(1)
+                                Text(song.artist).font(.system(size: 12)).foregroundStyle(isCurrent ? .white.opacity(0.78) : MusicXTheme.muted).lineLimit(1)
+                            }
+                            Spacer(minLength: 0)
+                            if isCurrent && isPlaying {
+                                Image(systemName: "waveform").font(.system(size: 13, weight: .semibold)).foregroundStyle(MusicXTheme.blue)
+                            }
+                            Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)).foregroundStyle(MusicXTheme.muted.opacity(0.7))
+                        }
+                        .padding(.horizontal, 10).padding(.vertical, 8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                        .background(isCurrent ? MusicXTheme.blue.opacity(0.13) : .clear, in: RoundedRectangle(cornerRadius: 14))
+                        .overlay(alignment: .leading) {
+                            if isCurrent { Capsule().fill(MusicXTheme.blue).frame(width: 3).padding(.vertical, 8) }
                         }
                     }
+                    .buttonStyle(.plain)
                 }
             }
-        }.padding(.top, 4)
+        }
+        .padding(.top, 4)
     }
 
     @MainActor
