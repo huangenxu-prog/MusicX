@@ -177,16 +177,17 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 15) {
             sectionTitle("热门专辑", detail: "精选推荐")
             HStack(spacing: 14) {
-                albumTile(title: "蓝色时刻", artist: "演示专辑", color: Color(red: 0.20, green: 0.34, blue: 0.53))
-                albumTile(title: "日落以后", artist: "演示专辑", color: Color(red: 0.53, green: 0.31, blue: 0.22))
-                albumTile(title: "留白", artist: "演示专辑", color: Color(red: 0.34, green: 0.31, blue: 0.49))
+                ForEach(Array(songs.prefix(3))) { song in
+                    albumTile(title: song.album.isEmpty ? song.title : song.album,
+                              artist: song.artist, color: song.tint)
+                }
             }
         }.padding(.horizontal, 20)
     }
 
     private var chartSection: some View {
         VStack(alignment: .leading, spacing: 15) {
-            sectionTitle("排行榜", detail: "接入音源后显示")
+            sectionTitle("排行榜", detail: "在线曲目")
             HStack(spacing: 12) {
                 chartTile("热歌榜", subtitle: "热门歌曲", icon: "flame.fill", color: .orange)
                 chartTile("新歌榜", subtitle: "最新发行", icon: "sparkles", color: MusicXTheme.blue)
