@@ -49,6 +49,8 @@ struct ContentView: View {
     @State private var isSearching = false
     @State private var searchError: String?
     @State private var isPlayerPresented = false
+    @State private var playbackRequestID = UUID()
+    @State private var isResolvingSong = false
     @AppStorage("musicx.favoriteIDs") private var favoriteIDs = "1,3"
     @AppStorage("musicx.recentIDs") private var recentIDs = ""
 
@@ -107,6 +109,11 @@ struct ContentView: View {
         .fullScreenCover(item: $discoveryRoute) { route in
             MusicDiscoveryPage(route: route, onClose: { discoveryRoute = nil },
                 onPlay: { playDiscoverySong($0) },
+                currentSong: currentSong?.onlineSong,
+                isPlaying: playerStore.isPlaying,
+                onTogglePlayback: { playerStore.togglePlayback() },
+                onOpenPlayer: { isPlayerPresented = true },
+                onNowPlayingVisibilityChanged: { playerStore.setNowPlayingPublishing($0) },
                 onOpenPlaylist: { discoveryRoute = .playlist($0) })
         }
         .task { await loadHomeSongs() }
@@ -417,7 +424,7 @@ struct ContentView: View {
 
     private var nowPlayingPage: some View {
         GeometryReader { geometry in
-            let artworkSize = min(geometry.size.width - 64, geometry.size.height * 0.31)
+            let artworkSize = min(geometry.size.width - 48, geometry.size.height * 0.38)
             ZStack {
                 playerArtwork
                     .frame(width: geometry.size.width + 100, height: geometry.size.height + 100)
@@ -552,6 +559,7 @@ struct ContentView: View {
 
                     Spacer(minLength: 8)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .preferredColorScheme(.dark)
@@ -659,12 +667,12 @@ struct ContentView: View {
             } else {
                 ScrollViewReader { proxy in
                     ScrollView(showsIndicators: false) {
-                        VStack(spacing: 18) {
+                        VStack(spacing: 24) {
                             ForEach(Array(lyricLines.enumerated()), id: \.element.id) { index, line in
-                                Text(line.text).font(.system(size: index == activeLyricIndex ? 19 : 14, weight: index == activeLyricIndex ? .bold : .medium))
+                                Text(line.text).font(.system(size: index == activeLyricIndex ? 22 : 16, weight: index == activeLyricIndex ? .bold : .medium))
                                     .foregroundStyle(index == activeLyricIndex ? .white : MusicXTheme.muted).multilineTextAlignment(.center).frame(maxWidth: .infinity).id(line.id)
                             }
-                        }.padding(.horizontal, 18).padding(.vertical, 24)
+                        }.padding(.horizontal, 26).padding(.vertical, 34)
                     }
                     .onChange(of: activeLyricIndex) { _, index in
                         guard lyricLines.indices.contains(index) else { return }
@@ -780,14 +788,26 @@ struct ContentView: View {
 
     private func select(_ song: AppSong) {
         if currentSong?.id == song.id {
-            playerStore.togglePlayback()
+            if playerStore.isPlaying { playerStore.pause() }
+            else if isResolvingSong { return }
+            else { playerStore.resume() }
         } else if let onlineSong = song.onlineSong {
+            // Stop the previous item before any network lookup for the new track.
+            playbackRequestID = UUID()
+            let requestID = playbackRequestID
+            playerStore.stop()
+            isResolvingSong = true
             currentSong = song
             Task {
+                defer {
+                    if playbackRequestID == requestID { isResolvingSong = false }
+                }
                 do {
                     let url = try await LXMusicURLResolver().resolve(song: onlineSong, quality: .high)
+                    guard playbackRequestID == requestID, currentSong?.id == song.id else { return }
                     playerStore.play(url: url, title: onlineSong.title, artist: onlineSong.artist)
                 } catch {
+                    guard playbackRequestID == requestID else { return }
                     searchError = error.localizedDescription
                 }
             }
