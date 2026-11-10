@@ -483,64 +483,61 @@ struct ContentView: View {
                 .padding(.top, 22)
 
                 HStack(spacing: 0) {
-                    Button { isShuffleEnabled.toggle() } label: {
-                        Image(systemName: "shuffle")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundStyle(isShuffleEnabled ? MusicXTheme.blue : .white.opacity(0.55))
-                            .frame(maxWidth: .infinity)
-                    }
                     Button { stepSong(by: -1) } label: {
-                        Image(systemName: "backward.end.fill")
-                            .font(.system(size: 27)).foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
+                        Image(systemName: "backward.end.fill").font(.system(size: 27)).foregroundStyle(.white).frame(maxWidth: .infinity)
                     }
                     Button { if currentSong != nil { playerStore.togglePlayback() } } label: {
                         Image(systemName: playerStore.isPlaying ? "pause.fill" : "play.fill")
-                            .font(.system(size: 30, weight: .bold))
-                            .foregroundStyle(MusicXTheme.background)
-                            .frame(width: 82, height: 82)
-                            .background(.white, in: Circle())
-                    }
-                    .frame(maxWidth: .infinity)
+                            .font(.system(size: 30, weight: .bold)).foregroundStyle(MusicXTheme.background)
+                            .frame(width: 82, height: 82).background(.white, in: Circle())
+                    }.frame(maxWidth: .infinity)
                     Button { stepSong(by: 1) } label: {
-                        Image(systemName: "forward.end.fill")
-                            .font(.system(size: 27)).foregroundStyle(.white)
+                        Image(systemName: "forward.end.fill").font(.system(size: 27)).foregroundStyle(.white).frame(maxWidth: .infinity)
+                    }
+                }
+                .padding(.horizontal, 48)
+                .padding(.top, 27)
+
+                HStack(spacing: 0) {
+                    Button { isShuffleEnabled.toggle() } label: {
+                        Image(systemName: "shuffle").font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(isShuffleEnabled ? MusicXTheme.blue : .white.opacity(0.62))
                             .frame(maxWidth: .infinity)
                     }
                     Button { repeatMode = (repeatMode + 1) % 3 } label: {
-                        Image(systemName: repeatMode == 2 ? "repeat.1" : "repeat")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundStyle(repeatMode == 0 ? .white.opacity(0.55) : MusicXTheme.blue)
+                        Image(systemName: repeatMode == 2 ? "repeat.1" : "repeat").font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(repeatMode == 0 ? .white.opacity(0.62) : MusicXTheme.blue)
                             .frame(maxWidth: .infinity)
                     }
-                }
-                .padding(.horizontal, 18)
-                .padding(.top, 25)
-
-                HStack {
                     Button { isLyricsPresented = true } label: {
-                        Label("歌词", systemImage: "quote.bubble")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(.white.opacity(0.72))
+                        Label("歌词", systemImage: "quote.bubble").font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.72)).frame(maxWidth: .infinity)
                     }
-                    Spacer()
                     Button { isQueuePresented = true } label: {
-                        Label("播放队列", systemImage: "list.bullet")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(.white.opacity(0.72))
+                        Label("队列", systemImage: "list.bullet").font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.72)).frame(maxWidth: .infinity)
                     }
                 }
-                .padding(.horizontal, 30)
-                .padding(.top, 22)
+                .padding(.horizontal, 25)
+                .padding(.top, 25)
                 Spacer(minLength: 12)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background {
-                LinearGradient(colors: [
-                    (currentSong?.tint ?? MusicXTheme.blue).opacity(0.38),
-                    Color(red: 0.035, green: 0.065, blue: 0.11),
-                    MusicXTheme.background
-                ], startPoint: .top, endPoint: .bottom)
+                ZStack {
+                    if let url = currentSong?.onlineSong?.artworkURL {
+                        AsyncImage(url: url) { phase in
+                            if let image = phase.image {
+                                image.resizable().scaledToFill().blur(radius: 48).opacity(0.24)
+                            }
+                        }
+                    }
+                    LinearGradient(colors: [
+                        (currentSong?.tint ?? MusicXTheme.blue).opacity(0.42),
+                        Color(red: 0.035, green: 0.065, blue: 0.11).opacity(0.94),
+                        MusicXTheme.background
+                    ], startPoint: .top, endPoint: .bottom)
+                }
                 .ignoresSafeArea()
             }
         }
