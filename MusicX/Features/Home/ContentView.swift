@@ -816,15 +816,6 @@ struct ContentView: View {
                                 .foregroundStyle(isShuffleEnabled ? MusicXTheme.blue : .white.opacity(0.65))
                         }
                         Spacer()
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.22)) {
-                                playerDisplayMode = playerDisplayMode.next
-                            }
-                        } label: {
-                            Label("下一视图：\(playerDisplayMode.next.title)", systemImage: playerDisplayMode.next.symbol)
-                                .foregroundStyle(.white.opacity(0.78))
-                        }
-                        Spacer()
                         Button { repeatMode = (repeatMode + 1) % 3 } label: {
                             Image(systemName: repeatMode == 2 ? "repeat.1" : "repeat")
                                 .foregroundStyle(repeatMode == 0 ? .white.opacity(0.65) : MusicXTheme.blue)
@@ -985,7 +976,12 @@ struct ContentView: View {
         }
         .padding(10)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(MusicXTheme.surface.opacity(0.28), in: RoundedRectangle(cornerRadius: 22))
+        .background {
+            RoundedRectangle(cornerRadius: 22)
+                .fill(MusicXTheme.surface.opacity(0.28))
+                .contentShape(RoundedRectangle(cornerRadius: 22))
+                .onTapGesture { cyclePlayerDisplayMode() }
+        }
     }
     @ViewBuilder
     private var playerVisualContent: some View {
@@ -1033,9 +1029,11 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(MusicXTheme.surface.opacity(0.42))
                 .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
+                .onTapGesture { cyclePlayerDisplayMode() }
             }
         case .artwork:
             playerArtwork
+                .onTapGesture { cyclePlayerDisplayMode() }
         }
     }
 
@@ -1070,6 +1068,12 @@ struct ContentView: View {
         }
         var seen = Set<Int>()
         return items.filter { seen.insert($0.id).inserted }
+    }
+
+    private func cyclePlayerDisplayMode() {
+        withAnimation(.easeInOut(duration: 0.22)) {
+            playerDisplayMode = playerDisplayMode.next
+        }
     }
 
     private func playerTime(_ time: TimeInterval) -> String {
