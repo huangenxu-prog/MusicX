@@ -1201,10 +1201,20 @@ struct ContentView: View {
         searchError = nil
         defer { isSearching = false }
         let service = GDStudioMusicSearchService()
+        let youtubeMusicService = YouTubeMusicSearchService()
+        let youtubeService = YouTubeSearchService()
         async let netease = try? service.search(keyword: keyword, source: .netease, count: 50)
         async let qq = try? service.search(keyword: keyword, source: .qq, count: 50)
         async let kuwo = try? service.search(keyword: keyword, source: .kuwo, count: 50)
-        let sourceResults = [await netease ?? [], await qq ?? [], await kuwo ?? []]
+        async let youtubeMusic = try? youtubeMusicService.search(keyword: keyword, limit: 50)
+        async let youtube = try? youtubeService.search(keyword: keyword, limit: 50)
+        let sourceResults = [
+            await netease ?? [],
+            await qq ?? [],
+            await kuwo ?? [],
+            await youtubeMusic ?? [],
+            await youtube ?? []
+        ]
         // Interleave providers so one source cannot occupy the entire first page.
         var merged: [MusicSong] = []
         let maxCount = sourceResults.map(\.count).max() ?? 0
@@ -1216,11 +1226,11 @@ struct ContentView: View {
         guard !Task.isCancelled,
               searchText.trimmingCharacters(in: .whitespacesAndNewlines) == keyword else { return }
 
-        // Collapse cross-provider duplicates by normalized title + artist.
+        // Deduplicate only within the same provider. Keep cross-provider matches
+        // so each service remains visible and its source icon is meaningful.
         var seen = Set<String>()
         let uniqueResults = merged.filter { item in
-            let key = "\(normalizedSearchKey(item.title))|\(normalizedSearchKey(item.artist))"
-            return !key.isEmpty && seen.insert(key).inserted
+            seen.insert(item.id).inserted
         }
         let results = Array(uniqueResults.prefix(50))
         onlineResults = results.map { item in
