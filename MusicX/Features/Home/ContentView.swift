@@ -21,15 +21,23 @@ private struct AppSong: Identifiable, Equatable {
     let album: String
     let tint: Color
     let onlineSong: MusicSong?
+    let localFileURL: URL?
 
-    init(id: Int, title: String, artist: String, album: String, tint: Color, onlineSong: MusicSong? = nil) {
+    init(id: Int, title: String, artist: String, album: String, tint: Color, onlineSong: MusicSong? = nil, localFileURL: URL? = nil) {
         self.id = id
         self.title = title
         self.artist = artist
         self.album = album
         self.tint = tint
         self.onlineSong = onlineSong
+        self.localFileURL = localFileURL
     }
+}
+
+private struct DownloadedTrack: Codable, Identifiable {
+    let id: Int
+    let song: MusicSong
+    let fileName: String
 }
 
 private enum LibraryFilter: String, CaseIterable {
@@ -55,6 +63,10 @@ struct ContentView: View {
     @State private var isResolvingSong = false
     @AppStorage("musicx.favoriteIDs") private var favoriteIDs = "1,3"
     @AppStorage("musicx.recentIDs") private var recentIDs = ""
+    @AppStorage("musicx.downloadedTracks") private var downloadedTracksJSON = "[]"
+    @State private var isDownloading = false
+    @State private var downloadMessage: String?
+    @State private var isDownloadAlertPresented = false
 
     private var favorites: Set<Int> {
         Set(favoriteIDs.split(separator: ",").compactMap { Int($0) })
@@ -63,6 +75,28 @@ struct ContentView: View {
     private var recentSongs: [AppSong] {
         let ids = recentIDs.split(separator: ",").compactMap { Int($0) }
         return ids.compactMap { id in songs.first { $0.id == id } }
+    }
+
+    private var downloadedTracks: [DownloadedTrack] {
+        guard let data = downloadedTracksJSON.data(using: .utf8),
+              let tracks = try? JSONDecoder().decode([DownloadedTrack].self, from: data) else { return [] }
+        return tracks
+    }
+
+    private var downloadedSongs: [AppSong] {
+        let folder = downloadsDirectory
+        return downloadedTracks.compactMap { track in
+            let url = folder.appendingPathComponent(track.fileName)
+            guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+            return AppSong(id: track.id, title: track.song.title, artist: track.song.artist,
+                           album: track.song.album ?? "", tint: MusicXTheme.blue,
+                           onlineSong: track.song, localFileURL: url)
+        }
+    }
+
+    private var downloadsDirectory: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("MusicXDownloads", isDirectory: true)
     }
 
     @State private var songs: [AppSong] = []
@@ -81,7 +115,7 @@ struct ContentView: View {
         switch libraryFilter {
         case .favorites: songs.filter { favorites.contains($0.id) }
         case .recent: recentSongs
-        case .downloads: []
+        case .downloads: downloadedSongs
         }
     }
 
@@ -113,6 +147,11 @@ struct ContentView: View {
             Button("完成", role: .cancel) { }
         } message: {
             Text("音质、音源与播放偏好设置将在后续版本开放。")
+        }
+        .alert("下载歌曲", isPresented: $isDownloadAlertPresented) {
+            Button("确定", role: .cancel) { }
+        } message: {
+            Text(downloadMessage ?? "操作完成")
         }
         .fullScreenCover(item: $discoveryRoute) { route in
             MusicDiscoveryPage(route: route, onClose: { discoveryRoute = nil },
@@ -382,7 +421,7 @@ struct ContentView: View {
                 emptyState(
                     icon: libraryFilter == .downloads ? "arrow.down.circle" : "music.note.list",
                     title: libraryFilter == .downloads ? "暂无下载歌曲" : "这里还没有内容",
-                    detail: libraryFilter == .favorites ? "喜欢的歌曲会出现在这里" : libraryFilter == .recent ? "播放过的歌曲会记录在这里" : "下载功能将在音源接入后开放"
+                    detail: libraryFilter == .favorites ? "喜欢的歌曲会出现在这里" : libraryFilter == .recent ? "播放过的歌曲会记录在这里" : "从正在播放页面下载的歌曲会保存在这里"
                 )
                 Spacer()
             } else {
@@ -602,9 +641,43 @@ struct ContentView: View {
                         Spacer()
                         Text("正在播放").font(.system(size: 16, weight: .semibold))
                         Spacer()
-                        Button { isQueueInPlayerArea.toggle(); isLyricsPresented = false } label: {
+                        Menu {
+                            Button {
+                                if let currentSong { toggleFavorite(currentSong) }
+                            } label: {
+                                Label(favorites.contains(currentSong?.id ?? -1) ? "取消喜欢" : "添加到喜欢",
+                                      systemImage: favorites.contains(currentSong?.id ?? -1) ? "heart.slash" : "heart")
+                            }
+                            ShareLink(item: "\(currentSong?.title ?? "歌曲") - \(currentSong?.artist ?? "未知歌手")") {
+                                Label("分享歌曲", systemImage: "square.and.arrow.up")
+                            }
+                            Button {
+                                downloadCurrentSong()
+                            } label: {
+                                Label(isDownloading ? "正在下载…" : (currentSong.map { downloadedSongs.contains(where: { $0.id == $0.id }) } == true ? "下载歌曲" : "下载歌曲"),
+                                      systemImage: "arrow.down.to.line")
+                            }
+                            .disabled(currentSong?.onlineSong == nil || isDownloading || currentSong?.localFileURL != nil)
+                            Menu {
+                                Button("查看专辑") {
+                                    if let song = currentSong?.onlineSong {
+                                        isPlayerPresented = false
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { discoveryRoute = .album(song) }
+                                    }
+                                }
+                                Button("查看歌手") {
+                                    if let artist = currentSong?.artist, !artist.isEmpty {
+                                        isPlayerPresented = false
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { openSearch(query: artist) }
+                                    }
+                                }
+                            } label: {
+                                Label("查看专辑 / 歌手", systemImage: "person.crop.rectangle")
+                            }
+                        } label: {
                             Image(systemName: "ellipsis").font(.system(size: 19, weight: .semibold))
                         }
+                        .disabled(currentSong == nil)
                     }
                     .foregroundStyle(.white)
                     .padding(.horizontal, 26)
@@ -731,6 +804,13 @@ struct ContentView: View {
                     .padding(.bottom, 8)
                 }
                 .frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
+                .simultaneousGesture(DragGesture(minimumDistance: 45).onEnded { value in
+                    if value.translation.height > 95 && abs(value.translation.width) < 85 {
+                        withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+                            isPlayerPresented = false
+                        }
+                    }
+                })
             .frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
             .background {
                 playerArtwork
@@ -860,7 +940,7 @@ struct ContentView: View {
                                     Spacer(minLength: 4)
                                     if active { Image(systemName: playerStore.isPlaying ? "waveform" : "pause.fill").font(.system(size: 13, weight: .semibold)).foregroundStyle(MusicXTheme.blue) }
                                 }
-                                .padding(.horizontal, 10).padding(.vertical, 7)
+                                .padding(.horizontal, 10).padding(.vertical, 9)
                                 .background(active ? MusicXTheme.blue.opacity(0.14) : .clear, in: RoundedRectangle(cornerRadius: 12))
                                 .contentShape(Rectangle())
                             }
@@ -871,7 +951,7 @@ struct ContentView: View {
                 }
             }
         }
-        .padding(14)
+        .padding(10)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(MusicXTheme.surface.opacity(0.28), in: RoundedRectangle(cornerRadius: 22))
     }
@@ -978,7 +1058,12 @@ struct ContentView: View {
     }
 
     private func select(_ song: AppSong) {
-        if currentSong?.id == song.id {
+        if let localURL = song.localFileURL {
+            playbackTask?.cancel()
+            playbackRequestID = UUID()
+            playerStore.play(url: localURL, title: song.title, artist: song.artist)
+            currentSong = song
+        } else if currentSong?.id == song.id {
             if playerStore.isPlaying { playerStore.pause() }
             else if isResolvingSong { return }
             else { playerStore.resume() }
@@ -1082,6 +1167,40 @@ struct ContentView: View {
         if ids.contains(song.id) { ids.remove(song.id) }
         else { ids.insert(song.id) }
         favoriteIDs = ids.sorted().map { String($0) }.joined(separator: ",")
+    }
+
+    private func downloadCurrentSong() {
+        guard let appSong = currentSong, let song = appSong.onlineSong else { return }
+        if downloadedSongs.contains(where: { $0.id == appSong.id }) {
+            downloadMessage = "这首歌曲已经下载，可在「我的 → 下载」中收听。"
+            isDownloadAlertPresented = true
+            return
+        }
+        isDownloading = true
+        Task {
+            do {
+                let sourceURL = try await LXMusicURLResolver().resolve(song: song, quality: .high)
+                let (temporaryURL, response) = try await URLSession.shared.download(from: sourceURL)
+                if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+                    throw URLError(.badServerResponse)
+                }
+                try FileManager.default.createDirectory(at: downloadsDirectory, withIntermediateDirectories: true)
+                let ext = sourceURL.pathExtension.isEmpty ? "audio" : sourceURL.pathExtension
+                let fileName = "\(appSong.id)-\(UUID().uuidString).\(ext)"
+                let destination = downloadsDirectory.appendingPathComponent(fileName)
+                try FileManager.default.moveItem(at: temporaryURL, to: destination)
+                var tracks = downloadedTracks
+                tracks.removeAll { $0.id == appSong.id }
+                tracks.append(DownloadedTrack(id: appSong.id, song: song, fileName: fileName))
+                let data = try JSONEncoder().encode(tracks)
+                downloadedTracksJSON = String(decoding: data, as: UTF8.self)
+                downloadMessage = "下载完成，已保存到「我的 → 下载」。"
+            } catch {
+                downloadMessage = "下载失败：\(error.localizedDescription)"
+            }
+            isDownloading = false
+            isDownloadAlertPresented = true
+        }
     }
 }
 
