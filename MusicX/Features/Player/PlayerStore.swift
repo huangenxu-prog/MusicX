@@ -19,6 +19,7 @@ final class PlayerStore: ObservableObject {
     private var trackArtist = "本地音乐"
     private var wantsPlayback = false
     private var hasPublishedDuration = false
+    private var publishesNowPlayingInfo = true
 
     init() {
         player.audiovisualBackgroundPlaybackPolicy = .continuesIfPossible
@@ -132,6 +133,12 @@ final class PlayerStore: ObservableObject {
         center.previousTrackCommand.isEnabled = false
     }
 
+    func setNowPlayingPublishing(_ enabled: Bool) {
+        publishesNowPlayingInfo = enabled
+        if enabled { updateNowPlayingInfo() }
+        else { MPNowPlayingInfoCenter.default().nowPlayingInfo = nil }
+    }
+
     func play(url: URL, title: String, artist: String) {
         errorMessage = nil
         trackTitle = title
@@ -204,6 +211,7 @@ final class PlayerStore: ObservableObject {
     }
 
     private func updateNowPlayingInfo() {
+        guard publishesNowPlayingInfo else { return }
         var info: [String: Any] = [
             MPMediaItemPropertyTitle: trackTitle,
             MPMediaItemPropertyArtist: trackArtist,
