@@ -1,5 +1,4 @@
 import SwiftUI
-import UniformTypeIdentifiers
 
 private enum MainTab: String, CaseIterable {
     case home = "主页"
@@ -34,9 +33,7 @@ struct ContentView: View {
     @State private var searchText = ""
     @State private var libraryFilter: LibraryFilter = .favorites
     @State private var currentSong: DemoSong?
-    @StateObject private var player = PlayerStore()
-    @State private var isImportingAudio = false
-    @State private var importError: String?
+    @State private var isPlaying = false
     @State private var isPlayerPresented = false
     @AppStorage("musicx.favoriteIDs") private var favoriteIDs = "1,3"
     @AppStorage("musicx.recentIDs") private var recentIDs = ""
@@ -92,12 +89,6 @@ struct ContentView: View {
         }
         .preferredColorScheme(.dark)
         .fullScreenCover(isPresented: $isPlayerPresented) { nowPlayingPage }
-        .fileImporter(isPresented: $isImportingAudio, allowedContentTypes: [.audio], allowsMultipleSelection: false) { result in
-            importLocalAudio(result)
-        }
-        .alert("无法导入音频", isPresented: Binding(get: { importError != nil }, set: { if !$0 { importError = nil } })) {
-            Button("好", role: .cancel) { importError = nil }
-        } message: { Text(importError ?? "请重试") }
     }
 
     private var homePage: some View {
@@ -241,17 +232,6 @@ struct ContentView: View {
     private var libraryPage: some View {
         VStack(alignment: .leading, spacing: 24) {
             pageHeader("音乐库", subtitle: "你的音乐，保存在本地")
-            Button { isImportingAudio = true } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "plus.circle.fill").font(.system(size: 19))
-                    Text("导入本地音乐").font(.system(size: 16, weight: .semibold))
-                    Spacer()
-                    Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold))
-                }
-                .foregroundStyle(.white)
-                .padding(.horizontal, 16).frame(height: 54)
-                .background(MusicXTheme.blue.opacity(0.22), in: RoundedRectangle(cornerRadius: 15))
-            }
             HStack(spacing: 8) {
                 ForEach(LibraryFilter.allCases, id: \.self) { filter in
                     Button { libraryFilter = filter } label: {
@@ -323,7 +303,7 @@ struct ContentView: View {
                     .font(.system(size: 17)).foregroundStyle(favorites.contains(song.id) ? MusicXTheme.blue : MusicXTheme.muted)
             }
             Button { select(song) } label: {
-                Image(systemName: currentSong?.id == song.id && player.isPlaying ? "pause.circle.fill" : "play.circle")
+                Image(systemName: currentSong?.id == song.id && isPlaying ? "pause.circle.fill" : "play.circle")
                     .font(.system(size: 25)).foregroundStyle(.white.opacity(0.85))
             }
         }
@@ -360,8 +340,8 @@ struct ContentView: View {
                 Text(currentSong?.artist ?? "选择一首歌曲开始聆听").font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
             }
             Spacer()
-            Button { if currentSong != nil { player.togglePlayback() } } label: {
-                Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
+            Button { if currentSong != nil { isPlaying.toggle() } } label: {
+                Image(systemName: isPlaying ? "pause.fill" : "play.fill")
                     .font(.system(size: 19, weight: .semibold)).foregroundStyle(.white)
             }
             .disabled(currentSong == nil)
@@ -381,7 +361,7 @@ struct ContentView: View {
                 Spacer()
                 Text("正在播放").font(.system(size: 13, weight: .semibold))
                 Spacer()
-                Button { isImportingAudio = true } label: { Image(systemName: "ellipsis").font(.system(size: 19)) }
+                Image(systemName: "ellipsis").font(.system(size: 19))
             }
             .foregroundStyle(.white)
             .padding(.horizontal, 24)
@@ -402,22 +382,11 @@ struct ContentView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 28)
 
-            VStack(spacing: 8) {
-                Slider(value: Binding(get: { player.duration > 0 ? player.currentTime : 0 }, set: { player.seek(to: $0) }), in: 0...max(player.duration, 1))
-                    .tint(MusicXTheme.blue)
-                HStack {
-                    Text(timeText(player.currentTime))
-                    Spacer()
-                    Text(timeText(player.duration))
-                }.font(.system(size: 11, weight: .medium, design: .monospaced)).foregroundStyle(MusicXTheme.muted)
-                if let message = player.errorMessage {
-                    Text(message).font(.system(size: 12)).foregroundStyle(.orange)
-                }
-            }.padding(.horizontal, 28)
+            Capsule().fill(.white.opacity(0.16)).frame(height: 4).padding(.horizontal, 28)
             HStack(spacing: 42) {
                 Button { stepSong(by: -1) } label: { Image(systemName: "backward.end.fill") }
-                Button { if currentSong != nil { player.togglePlayback() } } label: {
-                    Image(systemName: player.isPlaying ? "pause.circle.fill" : "play.circle.fill").font(.system(size: 66, weight: .light))
+                Button { if currentSong != nil { isPlaying.toggle() } } label: {
+                    Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill").font(.system(size: 66, weight: .light))
                 }
                 Button { stepSong(by: 1) } label: { Image(systemName: "forward.end.fill") }
             }
@@ -457,46 +426,15 @@ struct ContentView: View {
 
     private func select(_ song: DemoSong) {
         if currentSong?.id == song.id {
-            player.togglePlayback()
+            isPlaying.toggle()
         } else {
             currentSong = song
-            player.stop()
+            isPlaying = true
         }
         var ids = recentIDs.split(separator: ",").compactMap { Int($0) }
         ids.removeAll { $0 == song.id }
         ids.insert(song.id, at: 0)
         recentIDs = ids.prefix(30).map { String($0) }.joined(separator: ",")
-    }
-
-    private func importLocalAudio(_ result: Result<[URL], Error>) {
-        do {
-            guard let sourceURL = try result.get().first else { return }
-            let accessGranted = sourceURL.startAccessingSecurityScopedResource()
-            defer { if accessGranted { sourceURL.stopAccessingSecurityScopedResource() } }
-
-            let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            let folder = documents.appendingPathComponent("ImportedAudio", isDirectory: true)
-            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            let destination = folder.appendingPathComponent(sourceURL.lastPathComponent)
-            if FileManager.default.fileExists(atPath: destination.path) {
-                try FileManager.default.removeItem(at: destination)
-            }
-            try FileManager.default.copyItem(at: sourceURL, to: destination)
-
-            let localSong = DemoSong(id: 999, title: sourceURL.deletingPathExtension().lastPathComponent, artist: "本地音频", album: "本地导入", tint: MusicXTheme.blue)
-            currentSong = localSong
-            player.play(url: destination, title: localSong.title, artist: localSong.artist)
-            isPlayerPresented = true
-        } catch {
-            player.stop()
-            importError = error.localizedDescription
-        }
-    }
-
-    private func timeText(_ seconds: TimeInterval) -> String {
-        guard seconds.isFinite, seconds >= 0 else { return "0:00" }
-        let total = Int(seconds)
-        return String(format: "%d:%02d", total / 60, total % 60)
     }
 
     private func toggleFavorite(_ song: DemoSong) {
