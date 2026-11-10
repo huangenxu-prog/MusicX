@@ -37,9 +37,9 @@ struct LXMusicURLResolver: MusicURLResolving {
         case .netease:
             return [neteaseChksz, neteaseCenguigui, neteaseGDStudio]
         case .qq:
-            return [qqGDStudio, qqChksz]
+            return [qqGDStudio]
         case .kuwo:
-            return [kuwoLerd, kuwoCenguigui]
+            return [kuwoGDStudio, kuwoLerd, kuwoCenguigui]
         case .kugou, .migu, .qishui:
             return []
         }
@@ -84,7 +84,7 @@ struct LXMusicURLResolver: MusicURLResolving {
         let data = try await get(
             "https://music-api.gdstudio.xyz/api.php",
             query: [URLQueryItem(name: "types", value: "url"),
-                    URLQueryItem(name: "source", value: "qq"),
+                    URLQueryItem(name: "source", value: "tencent"),
                     URLQueryItem(name: "id", value: song.sourceID),
                     URLQueryItem(name: "br", value: quality.gdstudioBitrate)]
         )
@@ -99,6 +99,17 @@ struct LXMusicURLResolver: MusicURLResolving {
         ]
         let data = try await post("https://api.chksz.top/api", body: body)
         return extractURL(data, paths: [["data", "url"], ["url"]])
+    }
+
+    private func kuwoGDStudio(_ song: MusicSong, _ quality: MusicQuality) async throws -> URL? {
+        let data = try await get(
+            "https://music-api.gdstudio.xyz/api.php",
+            query: [URLQueryItem(name: "types", value: "url"),
+                    URLQueryItem(name: "source", value: "kuwo"),
+                    URLQueryItem(name: "id", value: song.sourceID),
+                    URLQueryItem(name: "br", value: quality.gdstudioBitrate)]
+        )
+        return extractURL(data, paths: [["url"], ["data", "url"]])
     }
 
     // MARK: - Kuwo
