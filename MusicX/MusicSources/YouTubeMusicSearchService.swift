@@ -13,7 +13,7 @@ struct YouTubeMusicSearchService {
         self.session = session
     }
 
-    func search(keyword: String, limit: Int = 5) async throws -> [MusicSong] {
+    func search(keyword: String, limit: Int = 20) async throws -> [MusicSong] {
         let query = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return [] }
 
