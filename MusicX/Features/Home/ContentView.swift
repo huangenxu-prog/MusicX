@@ -34,7 +34,17 @@ struct ContentView: View {
     @State private var libraryFilter: LibraryFilter = .favorites
     @State private var currentSong: DemoSong?
     @State private var isPlaying = false
-    @State private var favorites: Set<Int> = [1, 3]
+    @AppStorage("musicx.favoriteIDs") private var favoriteIDs = "1,3"
+    @AppStorage("musicx.recentIDs") private var recentIDs = ""
+
+    private var favorites: Set<Int> {
+        Set(favoriteIDs.split(separator: ",").compactMap { Int($0) })
+    }
+
+    private var recentSongs: [DemoSong] {
+        let ids = recentIDs.split(separator: ",").compactMap { Int($0) }
+        return ids.compactMap { id in songs.first { $0.id == id } }
+    }
 
     private let songs: [DemoSong] = [
         DemoSong(id: 1, title: "夜色之间", artist: "演示歌手 · Demo", album: "蓝色时刻", tint: Color(red: 0.22, green: 0.38, blue: 0.56)),
@@ -53,7 +63,7 @@ struct ContentView: View {
     private var librarySongs: [DemoSong] {
         switch libraryFilter {
         case .favorites: songs.filter { favorites.contains($0.id) }
-        case .recent: currentSong.map { [$0] } ?? []
+        case .recent: recentSongs
         case .downloads: []
         }
     }
@@ -360,11 +370,17 @@ struct ContentView: View {
             currentSong = song
             isPlaying = true
         }
+        var ids = recentIDs.split(separator: ",").compactMap { Int($0) }
+        ids.removeAll { $0 == song.id }
+        ids.insert(song.id, at: 0)
+        recentIDs = ids.prefix(30).map { String($0) }.joined(separator: ",")
     }
 
     private func toggleFavorite(_ song: DemoSong) {
-        if favorites.contains(song.id) { favorites.remove(song.id) }
-        else { favorites.insert(song.id) }
+        var ids = favorites
+        if ids.contains(song.id) { ids.remove(song.id) }
+        else { ids.insert(song.id) }
+        favoriteIDs = ids.sorted().map { String($0) }.joined(separator: ",")
     }
 }
 
