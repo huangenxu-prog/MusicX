@@ -577,10 +577,19 @@ struct ContentView: View {
                 .overlay(Image(systemName: "music.note").font(.system(size: 20)).foregroundStyle(.white.opacity(0.8)))
             Button { select(song) } label: {
                 VStack(alignment: .leading, spacing: 5) {
-                    Text(song.title).font(.system(size: 16, weight: .semibold)).foregroundStyle(.white)
-                    Text(song.artist).font(.system(size: 12)).foregroundStyle(MusicXTheme.muted)
+                    Text(song.title).font(.system(size: 16, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
+                    HStack(spacing: 6) {
+                        Text(song.artist).font(.system(size: 12)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
+                        if let source = song.onlineSong?.source {
+                            Text("·").foregroundStyle(MusicXTheme.muted)
+                            Text(source.shortLabel)
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(song.tint)
+                        }
+                    }
                 }.frame(maxWidth: .infinity, alignment: .leading)
             }
+            .buttonStyle(.plain)
             Button { toggleFavorite(song) } label: {
                 Image(systemName: favorites.contains(song.id) ? "heart.fill" : "heart")
                     .font(.system(size: 17)).foregroundStyle(favorites.contains(song.id) ? MusicXTheme.blue : MusicXTheme.muted)
@@ -1197,9 +1206,25 @@ struct ContentView: View {
         async let netease = try? service.search(keyword: keyword, source: .netease, count: 20)
         async let qq = try? service.search(keyword: keyword, source: .qq, count: 20)
         async let kuwo = try? service.search(keyword: keyword, source: .kuwo, count: 20)
-        let results = (await netease ?? []) + (await qq ?? []) + (await kuwo ?? [])
+        let sourceResults = [await netease ?? [], await qq ?? [], await kuwo ?? []]
+        // Interleave providers so one source cannot occupy the entire first page.
+        var merged: [MusicSong] = []
+        let maxCount = sourceResults.map(\.count).max() ?? 0
+        for index in 0..<maxCount {
+            for source in sourceResults where source.indices.contains(index) {
+                merged.append(source[index])
+            }
+        }
         guard !Task.isCancelled,
               searchText.trimmingCharacters(in: .whitespacesAndNewlines) == keyword else { return }
+
+        // Collapse cross-provider duplicates by normalized title + artist.
+        var seen = Set<String>()
+        let uniqueResults = merged.filter { item in
+            let key = "\(normalizedSearchKey(item.title))|\(normalizedSearchKey(item.artist))"
+            return !key.isEmpty && seen.insert(key).inserted
+        }
+        let results = Array(uniqueResults.prefix(20))
         onlineResults = results.map { item in
             AppSong(id: stableSongID(item), title: item.title, artist: item.artist,
                      album: item.album ?? "",
@@ -1241,6 +1266,12 @@ struct ContentView: View {
         onlineResults = []
         selectedTab = .search
         searchFieldFocused = false
+    }
+
+    private func normalizedSearchKey(_ value: String) -> String {
+        value.lowercased()
+            .folding(options: [.diacriticInsensitive, .widthInsensitive], locale: .current)
+            .filter { $0.isLetter || $0.isNumber }
     }
 
     private func stableSongID(_ song: MusicSong) -> Int {
