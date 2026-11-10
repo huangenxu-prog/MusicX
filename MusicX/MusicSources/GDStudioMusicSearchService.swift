@@ -44,7 +44,7 @@ struct GDStudioMusicSearchService {
         guard let rows = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
             throw MusicSourceError.invalidResponse("搜索结果不是歌曲列表")
         }
-        let songs = rows.compactMap { row in
+        let songs: [MusicSong] = rows.compactMap { (row: [String: Any]) -> MusicSong? in
             guard let id = row["id"] else { return nil }
             let artist: String
             if let names = row["artist"] as? [String] { artist = names.joined(separator: " / ") }
