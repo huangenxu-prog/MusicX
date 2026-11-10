@@ -21,10 +21,12 @@ final class PlayerStore: ObservableObject {
             forInterval: interval,
             queue: .main
         ) { [weak self] time in
-            guard let self else { return }
-            self.currentTime = max(0, time.seconds.isFinite ? time.seconds : 0)
-            let seconds = self.player.currentItem?.duration.seconds ?? 0
-            self.duration = seconds.isFinite ? max(0, seconds) : 0
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.currentTime = max(0, time.seconds.isFinite ? time.seconds : 0)
+                let seconds = self.player.currentItem?.duration.seconds ?? 0
+                self.duration = seconds.isFinite ? max(0, seconds) : 0
+            }
         }
 
         endObserver = NotificationCenter.default.addObserver(

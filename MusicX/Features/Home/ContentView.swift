@@ -401,7 +401,7 @@ struct ContentView: View {
             }.padding(.horizontal, 28)
             HStack(spacing: 42) {
                 Button { stepSong(by: -1) } label: { Image(systemName: "backward.end.fill") }
-                Button { if currentSong != nil { isPlaying.toggle() } } label: {
+                Button { if currentSong != nil { player.togglePlayback() } } label: {
                     Image(systemName: player.isPlaying ? "pause.circle.fill" : "play.circle.fill").font(.system(size: 66, weight: .light))
                 }
                 Button { stepSong(by: 1) } label: { Image(systemName: "forward.end.fill") }
