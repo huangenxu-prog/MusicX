@@ -23,6 +23,9 @@ struct MusicDiscoveryPage: View {
     let isPlaying: Bool
     let onTogglePlayback: () -> Void
     let onOpenPlayer: () -> Void
+    let onQueueChanged: ([MusicSong]) -> Void
+    let currentTime: TimeInterval
+    let duration: TimeInterval
     let onOpenPlaylist: (String) -> Void
 
     @State private var songs: [MusicSong] = []
@@ -78,9 +81,7 @@ struct MusicDiscoveryPage: View {
         }
         .preferredColorScheme(.dark)
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if let currentSong {
-                miniPlayerBar(song: currentSong)
-            }
+            miniPlayerBar(song: currentSong)
         }
         .task(id: query) { await loadSongs() }
     }
@@ -163,35 +164,52 @@ struct MusicDiscoveryPage: View {
         }
     }
 
-    private func miniPlayerBar(song: MusicSong) -> some View {
-        HStack(spacing: 12) {
-            Button(action: onOpenPlayer) {
-                HStack(spacing: 11) {
-                    RoundedRectangle(cornerRadius: 9)
-                        .fill(LinearGradient(colors: [MusicXTheme.blue, MusicXTheme.blue.opacity(0.42)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                        .frame(width: 42, height: 42)
-                        .overlay(Image(systemName: "waveform").foregroundStyle(.white))
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(song.title).font(.system(size: 13, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
-                        Text(song.artist).font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
+    private func miniPlayerBar(song: MusicSong?) -> some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                Button(action: onOpenPlayer) {
+                    HStack(spacing: 11) {
+                        RoundedRectangle(cornerRadius: 9)
+                            .fill(LinearGradient(colors: [MusicXTheme.blue, MusicXTheme.blue.opacity(0.42)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                            .frame(width: 42, height: 42)
+                            .overlay(Image(systemName: song == nil ? "music.note" : "waveform").foregroundStyle(.white))
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(song?.title ?? "尚未播放").font(.system(size: 13, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
+                            Text(song?.artist ?? "选择一首歌曲开始聆听").font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
+                        }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }.buttonStyle(.plain)
+                Button(action: onTogglePlayback) {
+                    Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                        .font(.system(size: 19, weight: .semibold)).foregroundStyle(.white)
+                        .frame(width: 42, height: 42)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }.buttonStyle(.plain)
-            Button(action: onTogglePlayback) {
-                Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-                    .font(.system(size: 19, weight: .semibold)).foregroundStyle(.white)
-                    .frame(width: 42, height: 42)
+                .disabled(song == nil)
+                Button(action: onOpenPlayer) {
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                        .font(.system(size: 14, weight: .semibold)).foregroundStyle(MusicXTheme.muted)
+                        .frame(width: 32, height: 42)
+                }
+                .disabled(song == nil)
             }
-            Button(action: onOpenPlayer) {
-                Image(systemName: "arrow.up.left.and.arrow.down.right")
-                    .font(.system(size: 14, weight: .semibold)).foregroundStyle(MusicXTheme.muted)
-                    .frame(width: 32, height: 42)
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(.white.opacity(0.12))
+                    Capsule().fill(MusicXTheme.blue)
+                        .frame(width: geometry.size.width * progressFraction)
+                }
             }
+            .frame(height: 3)
         }
-        .padding(.horizontal, 18).padding(.vertical, 9)
+        .padding(.horizontal, 16).padding(.vertical, 8)
         .background(.ultraThinMaterial)
         .overlay(alignment: .top) { Rectangle().fill(.white.opacity(0.08)).frame(height: 0.5) }
+    }
+
+    private var progressFraction: CGFloat {
+        guard duration > 0 else { return 0 }
+        return CGFloat(min(max(currentTime / duration, 0), 1))
     }
 
     private var playlistGrid: some View {
@@ -296,6 +314,7 @@ struct MusicDiscoveryPage: View {
             if case .album(let albumSong) = route, let album = albumSong.album, !album.isEmpty {
                 songs = result.filter { $0.album?.localizedCaseInsensitiveContains(album) ?? false }
             } else { songs = result }
+            onQueueChanged(songs)
             if songs.isEmpty { errorMessage = "音源没有返回匹配的歌曲，请稍后重试" }
         } catch { errorMessage = error.localizedDescription }
     }
