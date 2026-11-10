@@ -696,6 +696,9 @@ struct ContentView: View {
                             ShareLink(item: "\(currentSong?.title ?? "歌曲") - \(currentSong?.artist ?? "未知歌手")") {
                                 Label("分享歌曲", systemImage: "square.and.arrow.up")
                             }
+                            ShareLink(item: MusicSourceDiagnostics.shared.fileURL) {
+                                Label("分享音源诊断", systemImage: "waveform.path")
+                            }
                             Button {
                                 downloadCurrentSong()
                             } label: {

@@ -11,6 +11,16 @@ struct GDStudioMusicSearchService {
     func search(keyword: String, source: MusicSource, page: Int = 1, count: Int = 5) async throws -> [MusicSong] {
         let query = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return [] }
+        let startedAt = Date()
+        var diagnosticResult = "failed"
+        var diagnosticCount = 0
+        defer {
+            MusicSourceDiagnostics.shared.record(
+                event: "search", source: source.rawValue, provider: "gdstudio-search",
+                duration: Date().timeIntervalSince(startedAt), result: diagnosticResult,
+                detail: "count=\(diagnosticCount)"
+            )
+        }
         guard var components = URLComponents(string: baseURL) else {
             throw MusicSourceError.invalidResponse("搜索接口地址无效")
         }
@@ -34,7 +44,7 @@ struct GDStudioMusicSearchService {
         guard let rows = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
             throw MusicSourceError.invalidResponse("搜索结果不是歌曲列表")
         }
-        return rows.compactMap { row in
+        let songs = rows.compactMap { row in
             guard let id = row["id"] else { return nil }
             let artist: String
             if let names = row["artist"] as? [String] { artist = names.joined(separator: " / ") }
@@ -55,6 +65,9 @@ struct GDStudioMusicSearchService {
                 lyricID: row["lyric_id"].map { String(describing: $0) }
             )
         }
+        diagnosticCount = songs.count
+        diagnosticResult = "success"
+        return songs
     }
 
     private func gdSource(_ source: MusicSource) -> String {

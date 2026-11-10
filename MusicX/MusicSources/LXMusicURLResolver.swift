@@ -15,16 +15,37 @@ struct LXMusicURLResolver: MusicURLResolving {
 
         for backend in backends(for: song.source) {
             try Task.checkCancellation()
+            let startedAt = Date()
             do {
-                if let url = try await backend(song, quality), isPlayableURL(url) {
+                if let url = try await backend.resolve(song, quality), isPlayableURL(url) {
                     try Task.checkCancellation()
+                    MusicSourceDiagnostics.shared.record(
+                        event: "resolve", source: song.source.rawValue,
+                        provider: backend.name, duration: Date().timeIntervalSince(startedAt),
+                        result: "url_returned"
+                    )
                     return url
                 }
                 failures.append("接口未返回有效播放地址")
+                MusicSourceDiagnostics.shared.record(
+                    event: "resolve", source: song.source.rawValue,
+                    provider: backend.name, duration: Date().timeIntervalSince(startedAt),
+                    result: "empty_url"
+                )
             } catch is CancellationError {
+                MusicSourceDiagnostics.shared.record(
+                    event: "resolve", source: song.source.rawValue,
+                    provider: backend.name, duration: Date().timeIntervalSince(startedAt),
+                    result: "cancelled"
+                )
                 throw CancellationError()
             } catch {
                 failures.append(error.localizedDescription)
+                MusicSourceDiagnostics.shared.record(
+                    event: "resolve", source: song.source.rawValue,
+                    provider: backend.name, duration: Date().timeIntervalSince(startedAt),
+                    result: "failed", detail: error.localizedDescription
+                )
             }
         }
 
@@ -34,18 +55,32 @@ struct LXMusicURLResolver: MusicURLResolving {
         )
     }
 
-    private typealias Backend = (MusicSong, MusicQuality) async throws -> URL?
+    private struct Backend {
+        let name: String
+        let resolve: (MusicSong, MusicQuality) async throws -> URL?
+    }
 
     private func backends(for source: MusicSource) -> [Backend] {
         switch source {
         case .netease:
-            return [neteaseChksz, neteaseCenguigui, neteaseGDStudio]
+            return [
+                Backend(name: "netease-chksz", resolve: neteaseChksz),
+                Backend(name: "netease-cenguigui", resolve: neteaseCenguigui),
+                Backend(name: "netease-gdstudio", resolve: neteaseGDStudio)
+            ]
         case .qq:
-            return [qqGDStudio, qqChksz]
+            return [
+                Backend(name: "qq-gdstudio", resolve: qqGDStudio),
+                Backend(name: "qq-chksz", resolve: qqChksz)
+            ]
         case .kuwo:
-            return [kuwoGDStudio, kuwoLerd, kuwoCenguigui]
+            return [
+                Backend(name: "kuwo-gdstudio", resolve: kuwoGDStudio),
+                Backend(name: "kuwo-lerd", resolve: kuwoLerd),
+                Backend(name: "kuwo-cenguigui", resolve: kuwoCenguigui)
+            ]
         case .kugou, .migu:
-            return [gdstudioPlatform]
+            return [Backend(name: "\(source.rawValue)-gdstudio", resolve: gdstudioPlatform)]
         case .qishui:
             return []
         }
