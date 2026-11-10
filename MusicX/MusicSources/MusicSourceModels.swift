@@ -7,6 +7,9 @@ enum MusicSource: String, Codable, CaseIterable, Identifiable {
     case kugou = "kg"
     case migu = "mg"
     case qishui = "qs"
+    case youtubeMusic = "ytm"
+    case youtube = "yt"
+    case spotify = "sp"
 
     var id: String { rawValue }
 
@@ -18,6 +21,9 @@ enum MusicSource: String, Codable, CaseIterable, Identifiable {
         case .kugou: "酷狗音乐"
         case .migu: "咪咕音乐"
         case .qishui: "汽水音乐"
+        case .youtubeMusic: "YouTube Music"
+        case .youtube: "YouTube"
+        case .spotify: "Spotify"
         }
     }
 }
