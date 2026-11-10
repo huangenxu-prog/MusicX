@@ -864,7 +864,7 @@ struct ContentView: View {
     }
 
     private var playbackQueue: [AppSong] {
-        var items = songs + onlineResults
+        var items = playbackQueueSongs.isEmpty ? songs + onlineResults : playbackQueueSongs
         if let currentSong, !items.contains(where: { $0.id == currentSong.id }) {
             items.insert(currentSong, at: 0)
         }
