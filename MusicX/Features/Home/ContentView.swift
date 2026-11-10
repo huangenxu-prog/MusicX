@@ -580,11 +580,9 @@ struct ContentView: View {
                     Text(song.title).font(.system(size: 16, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
                     HStack(spacing: 6) {
                         Text(song.artist).font(.system(size: 12)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
-                        if let source = song.onlineSong?.source {
-                            Text("·").foregroundStyle(MusicXTheme.muted)
-                            Text(sourceShortLabel(source))
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundStyle(song.tint)
+                        if let source = song.onlineSong?.source,
+                           source == .spotify || source == .youtube || source == .youtubeMusic {
+                            sourceIcon(source)
                         }
                     }
                 }.frame(maxWidth: .infinity, alignment: .leading)
@@ -1268,17 +1266,26 @@ struct ContentView: View {
         searchFieldFocused = false
     }
 
-    private func sourceShortLabel(_ source: MusicSource) -> String {
+    @ViewBuilder
+    private func sourceIcon(_ source: MusicSource) -> some View {
         switch source {
-        case .netease: "网易云"
-        case .qq: "QQ"
-        case .kuwo: "酷我"
-        case .kugou: "酷狗"
-        case .migu: "咪咕"
-        case .qishui: "汽水"
-        case .youtubeMusic: "YTM"
-        case .youtube: "YT"
-        case .spotify: "SP"
+        case .spotify:
+            Image(systemName: "waveform.circle.fill")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Color(red: 0.12, green: 0.78, blue: 0.36))
+                .accessibilityLabel("Spotify")
+        case .youtube:
+            Image(systemName: "play.rectangle.fill")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Color(red: 1.0, green: 0.12, blue: 0.12))
+                .accessibilityLabel("YouTube")
+        case .youtubeMusic:
+            Image(systemName: "music.note")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(Color(red: 1.0, green: 0.18, blue: 0.22))
+                .accessibilityLabel("YouTube Music")
+        default:
+            EmptyView()
         }
     }
 
