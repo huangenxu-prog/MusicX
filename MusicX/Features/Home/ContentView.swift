@@ -46,6 +46,34 @@ private enum LibraryFilter: String, CaseIterable {
     case downloads = "下载"
 }
 
+private enum PlayerDisplayMode: CaseIterable {
+    case artwork
+    case lyrics
+    case queue
+
+    var title: String {
+        switch self {
+        case .artwork: "封面"
+        case .lyrics: "歌词"
+        case .queue: "播放队列"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .artwork: "square"
+        case .lyrics: "quote.bubble"
+        case .queue: "list.bullet"
+        }
+    }
+
+    var next: PlayerDisplayMode {
+        let modes = Self.allCases
+        let index = modes.firstIndex(of: self) ?? 0
+        return modes[(index + 1) % modes.count]
+    }
+}
+
 struct ContentView: View {
     @State private var selectedTab: MainTab = .home
     @State private var searchText = ""
@@ -626,8 +654,8 @@ struct ContentView: View {
         return CGFloat(min(max(playerStore.currentTime / playerStore.duration, 0), 1))
     }
 
-    @State private var isQueueInPlayerArea = false
     @State private var isLyricsPresented = false
+    @State private var playerDisplayMode: PlayerDisplayMode = .artwork
     @State private var isShuffleEnabled = false
     @State private var repeatMode = 0
     @State private var resolvedArtworkURL: URL?
@@ -691,7 +719,7 @@ struct ContentView: View {
                     // The entire middle region is reserved for artwork or lyrics.
                     // Artwork stays square and centered; lyrics use the full available region.
                     GeometryReader { contentGeometry in
-                        if isLyricsPresented {
+                        if playerDisplayMode != .artwork {
                             playerVisualContent
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                         } else {
@@ -788,13 +816,12 @@ struct ContentView: View {
                                 .foregroundStyle(isShuffleEnabled ? MusicXTheme.blue : .white.opacity(0.65))
                         }
                         Spacer()
-                        Button { isLyricsPresented.toggle(); isQueueInPlayerArea = false } label: {
-                            Label("歌词", systemImage: "quote.bubble")
-                                .foregroundStyle(.white.opacity(0.78))
-                        }
-                        Spacer()
-                        Button { isQueueInPlayerArea.toggle(); isLyricsPresented = false } label: {
-                            Label("播放队列", systemImage: "list.bullet")
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.22)) {
+                                playerDisplayMode = playerDisplayMode.next
+                            }
+                        } label: {
+                            Label("下一视图：\(playerDisplayMode.next.title)", systemImage: playerDisplayMode.next.symbol)
                                 .foregroundStyle(.white.opacity(0.78))
                         }
                         Spacer()
@@ -962,36 +989,54 @@ struct ContentView: View {
     }
     @ViewBuilder
     private var playerVisualContent: some View {
-        if isQueueInPlayerArea {
+        switch playerDisplayMode {
+        case .queue:
             playerQueueContent
-        } else if isLyricsPresented {
+        case .lyrics:
             if lyricLines.isEmpty {
                 VStack(spacing: 12) {
                     Image(systemName: "quote.bubble").font(.system(size: 34, weight: .light)).foregroundStyle(MusicXTheme.blue)
                     Text(lyricsUnavailable ? "暂时没有找到歌词" : "正在获取歌词").font(.system(size: 18, weight: .semibold)).foregroundStyle(.white)
                     Text(lyricsUnavailable ? "当前音源没有提供可用的歌词数据。" : "请稍候，正在读取歌词。").font(.system(size: 12)).foregroundStyle(MusicXTheme.muted).multilineTextAlignment(.center)
-                }.padding(22).frame(maxWidth: .infinity, maxHeight: .infinity).background(MusicXTheme.surface.opacity(0.42))
+                }
+                .padding(22)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(MusicXTheme.surface.opacity(0.42))
+                .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
             } else {
                 ScrollViewReader { proxy in
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 24) {
                             ForEach(Array(lyricLines.enumerated()), id: \.element.id) { index, line in
-                                Text(line.text).font(.system(size: index == activeLyricIndex ? 22 : 16, weight: index == activeLyricIndex ? .bold : .medium))
-                                    .foregroundStyle(index == activeLyricIndex ? .white : MusicXTheme.muted).multilineTextAlignment(.center).frame(maxWidth: .infinity).id(line.id)
+                                Text(line.text)
+                                    .font(.system(size: index == activeLyricIndex ? 22 : 16, weight: index == activeLyricIndex ? .bold : .medium))
+                                    .foregroundStyle(index == activeLyricIndex ? .white : MusicXTheme.muted)
+                                    .multilineTextAlignment(.center)
+                                    .frame(maxWidth: .infinity)
+                                    .id(line.id)
                             }
-                        }.padding(.horizontal, 26).padding(.vertical, 34)
+                        }
+                        .padding(.horizontal, 26)
+                        .padding(.vertical, 34)
                     }
                     .onChange(of: activeLyricIndex) { _, index in
                         guard lyricLines.indices.contains(index) else { return }
-                        withAnimation(.easeInOut(duration: 0.25)) { proxy.scrollTo(lyricLines[index].id, anchor: .center) }
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            proxy.scrollTo(lyricLines[index].id, anchor: .center)
+                        }
                     }
                     .onAppear {
                         guard lyricLines.indices.contains(activeLyricIndex) else { return }
                         proxy.scrollTo(lyricLines[activeLyricIndex].id, anchor: .center)
                     }
-                }.frame(maxWidth: .infinity, maxHeight: .infinity).background(MusicXTheme.surface.opacity(0.42)).clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(MusicXTheme.surface.opacity(0.42))
+                .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
             }
-        } else { playerArtwork }
+        case .artwork:
+            playerArtwork
+        }
     }
 
     @ViewBuilder
