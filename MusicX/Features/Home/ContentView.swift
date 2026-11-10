@@ -46,7 +46,7 @@ private enum LibraryFilter: String, CaseIterable {
     case downloads = "下载"
 }
 
-private enum PlayerDisplayMode: CaseIterable {
+private enum PlayerDisplayMode: CaseIterable, Hashable {
     case artwork
     case lyrics
     case queue
@@ -71,6 +71,12 @@ private enum PlayerDisplayMode: CaseIterable {
         let modes = Self.allCases
         let index = modes.firstIndex(of: self) ?? 0
         return modes[(index + 1) % modes.count]
+    }
+
+    var previous: PlayerDisplayMode {
+        let modes = Self.allCases
+        let index = modes.firstIndex(of: self) ?? 0
+        return modes[(index - 1 + modes.count) % modes.count]
     }
 }
 
@@ -734,6 +740,14 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(.horizontal, 18)
                     .contentShape(Rectangle())
+                    .simultaneousGesture(DragGesture(minimumDistance: 30).onEnded { value in
+                        let horizontal = value.translation.width
+                        let vertical = value.translation.height
+                        guard abs(horizontal) > 55, abs(horizontal) > abs(vertical) * 1.2 else { return }
+                        withAnimation(.easeInOut(duration: 0.22)) {
+                            playerDisplayMode = horizontal < 0 ? playerDisplayMode.next : playerDisplayMode.previous
+                        }
+                    })
 
                     // Fixed lower controls: track information, timeline and transport.
                     HStack(alignment: .center, spacing: 14) {
@@ -814,6 +828,25 @@ struct ContentView: View {
                         Button { isShuffleEnabled.toggle() } label: {
                             Image(systemName: "shuffle")
                                 .foregroundStyle(isShuffleEnabled ? MusicXTheme.blue : .white.opacity(0.65))
+                        }
+                        Spacer()
+                        HStack(spacing: 10) {
+                            ForEach(PlayerDisplayMode.allCases, id: \.self) { mode in
+                                Button {
+                                    withAnimation(.easeInOut(duration: 0.22)) {
+                                        playerDisplayMode = mode
+                                    }
+                                } label: {
+                                    Capsule()
+                                        .fill(playerDisplayMode == mode ? MusicXTheme.blue : .white.opacity(0.30))
+                                        .frame(width: playerDisplayMode == mode ? 16 : 5, height: 5)
+                                        .frame(width: 20, height: 30)
+                                        .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel(mode.title)
+                                .accessibilityAddTraits(playerDisplayMode == mode ? .isSelected : [])
+                            }
                         }
                         Spacer()
                         Button { repeatMode = (repeatMode + 1) % 3 } label: {
@@ -976,12 +1009,7 @@ struct ContentView: View {
         }
         .padding(10)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background {
-            RoundedRectangle(cornerRadius: 22)
-                .fill(MusicXTheme.surface.opacity(0.28))
-                .contentShape(RoundedRectangle(cornerRadius: 22))
-                .onTapGesture { cyclePlayerDisplayMode() }
-        }
+        .background(MusicXTheme.surface.opacity(0.28), in: RoundedRectangle(cornerRadius: 22))
     }
     @ViewBuilder
     private var playerVisualContent: some View {
@@ -1029,11 +1057,9 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(MusicXTheme.surface.opacity(0.42))
                 .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
-                .onTapGesture { cyclePlayerDisplayMode() }
             }
         case .artwork:
             playerArtwork
-                .onTapGesture { cyclePlayerDisplayMode() }
         }
     }
 
@@ -1068,12 +1094,6 @@ struct ContentView: View {
         }
         var seen = Set<Int>()
         return items.filter { seen.insert($0.id).inserted }
-    }
-
-    private func cyclePlayerDisplayMode() {
-        withAnimation(.easeInOut(duration: 0.22)) {
-            playerDisplayMode = playerDisplayMode.next
-        }
     }
 
     private func playerTime(_ time: TimeInterval) -> String {
