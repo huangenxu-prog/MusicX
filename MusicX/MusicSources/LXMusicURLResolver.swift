@@ -14,11 +14,15 @@ struct LXMusicURLResolver: MusicURLResolving {
         var failures: [String] = []
 
         for backend in backends(for: song.source) {
+            try Task.checkCancellation()
             do {
                 if let url = try await backend(song, quality), isPlayableURL(url) {
+                    try Task.checkCancellation()
                     return url
                 }
                 failures.append("接口未返回有效播放地址")
+            } catch is CancellationError {
+                throw CancellationError()
             } catch {
                 failures.append(error.localizedDescription)
             }
