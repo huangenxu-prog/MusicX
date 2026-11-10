@@ -593,7 +593,9 @@ struct ContentView: View {
 
     private var nowPlayingPage: some View {
         GeometryReader { geometry in
-            let artworkSize = min(geometry.size.width - 56, geometry.size.height * 0.36)
+            // Keep the cover near the upper-middle of the screen instead of letting
+            // a flexible Spacer push it down toward the transport controls.
+            let artworkSize = min(geometry.size.width - 64, geometry.size.height * 0.34)
             ZStack {
                 playerArtwork
                     .frame(width: geometry.size.width + 100, height: geometry.size.height + 100)
@@ -618,7 +620,8 @@ struct ContentView: View {
                     .padding(.horizontal, 26)
                     .padding(.top, 8)
 
-                    Spacer(minLength: 10)
+                    Color.clear
+                        .frame(height: max(22, geometry.size.height * 0.045))
 
                     playerVisualContent
                         .frame(width: artworkSize, height: artworkSize)
@@ -662,7 +665,7 @@ struct ContentView: View {
                         .disabled(currentSong == nil)
                     }
                     .padding(.horizontal, 28)
-                    .padding(.top, 16)
+                    .padding(.top, 12)
 
                     VStack(spacing: 5) {
                         Slider(value: Binding(
@@ -680,7 +683,7 @@ struct ContentView: View {
                         .foregroundStyle(MusicXTheme.muted)
                     }
                     .padding(.horizontal, 28)
-                    .padding(.top, 12)
+                    .padding(.top, 8)
 
                     HStack(spacing: 0) {
                         Button { stepSong(by: -1) } label: {
