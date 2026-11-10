@@ -34,6 +34,7 @@ struct ContentView: View {
     @State private var libraryFilter: LibraryFilter = .favorites
     @State private var currentSong: DemoSong?
     @State private var isPlaying = false
+    @State private var isPlayerPresented = false
     @AppStorage("musicx.favoriteIDs") private var favoriteIDs = "1,3"
     @AppStorage("musicx.recentIDs") private var recentIDs = ""
 
@@ -87,6 +88,7 @@ struct ContentView: View {
             .background(.ultraThinMaterial)
         }
         .preferredColorScheme(.dark)
+        .fullScreenCover(isPresented: $isPlayerPresented) { nowPlayingPage }
     }
 
     private var homePage: some View {
@@ -346,6 +348,65 @@ struct ContentView: View {
         }
         .padding(.horizontal, 18).padding(.vertical, 10)
         .background(MusicXTheme.surface.opacity(0.96))
+        .contentShape(Rectangle())
+        .onTapGesture { if currentSong != nil { isPlayerPresented = true } }
+    }
+
+    private var nowPlayingPage: some View {
+        VStack(spacing: 28) {
+            HStack {
+                Button { isPlayerPresented = false } label: {
+                    Image(systemName: "chevron.down").font(.system(size: 19, weight: .semibold))
+                }
+                Spacer()
+                Text("正在播放").font(.system(size: 13, weight: .semibold))
+                Spacer()
+                Image(systemName: "ellipsis").font(.system(size: 19))
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 24)
+            .padding(.top, 16)
+
+            Spacer(minLength: 12)
+
+            RoundedRectangle(cornerRadius: 28)
+                .fill(LinearGradient(colors: [currentSong?.tint ?? MusicXTheme.blue, Color.black.opacity(0.75)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                .aspectRatio(1, contentMode: .fit)
+                .overlay(Image(systemName: "waveform").font(.system(size: 76, weight: .ultraLight)).foregroundStyle(.white.opacity(0.85)))
+                .padding(.horizontal, 30)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(currentSong?.title ?? "尚未选择歌曲").font(.system(size: 25, weight: .bold))
+                Text(currentSong?.artist ?? "选择一首歌曲开始聆听").font(.system(size: 14)).foregroundStyle(MusicXTheme.muted)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 28)
+
+            Capsule().fill(.white.opacity(0.16)).frame(height: 4).padding(.horizontal, 28)
+            HStack(spacing: 42) {
+                Button { stepSong(by: -1) } label: { Image(systemName: "backward.end.fill") }
+                Button { if currentSong != nil { isPlaying.toggle() } } label: {
+                    Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill").font(.system(size: 66, weight: .light))
+                }
+                Button { stepSong(by: 1) } label: { Image(systemName: "forward.end.fill") }
+            }
+            .font(.system(size: 25))
+            .foregroundStyle(.white)
+            Spacer(minLength: 24)
+        }
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background {
+            LinearGradient(colors: [currentSong?.tint.opacity(0.45) ?? MusicXTheme.blue.opacity(0.3), MusicXTheme.background, MusicXTheme.background], startPoint: .top, endPoint: .bottom)
+                .ignoresSafeArea()
+        }
+        .preferredColorScheme(.dark)
+    }
+
+    private func stepSong(by offset: Int) {
+        guard !songs.isEmpty else { return }
+        let index = songs.firstIndex(where: { $0.id == currentSong?.id }) ?? 0
+        select(songs[(index + offset + songs.count) % songs.count])
     }
 
     private var tabBar: some View {
