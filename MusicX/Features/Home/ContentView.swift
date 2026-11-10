@@ -142,8 +142,8 @@ struct ContentView: View {
     private var newMusicSection: some View {
         VStack(alignment: .leading, spacing: 15) {
             sectionTitle("新歌速递", detail: "演示数据")
-            ForEach(Array(songs.prefix(3).enumerated()), id: \.element.id) { index, song in
-                songRow(song, number: String(format: "%02d", index + 1))
+            ForEach(songs.prefix(3)) { song in
+                songRow(song)
             }
         }.padding(.horizontal, 20)
     }
