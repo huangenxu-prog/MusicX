@@ -192,6 +192,12 @@ struct ContentView: View {
         } message: {
             Text(downloadMessage ?? "操作完成")
         }
+        .onReceive(NotificationCenter.default.publisher(for: .musicXRemoteNextTrack)) { _ in
+            stepSong(by: 1)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .musicXRemotePreviousTrack)) { _ in
+            stepSong(by: -1)
+        }
         .fullScreenCover(item: $discoveryRoute) { route in
             MusicDiscoveryPage(route: route, onClose: { discoveryRoute = nil },
                 onPlay: { playDiscoverySong($0) },
@@ -1103,7 +1109,7 @@ struct ContentView: View {
     }
 
     private func stepSong(by offset: Int) {
-        let queue = playbackQueueSongs.isEmpty ? songs : playbackQueueSongs
+        let queue = playbackQueue
         guard !queue.isEmpty else { return }
         let index = queue.firstIndex(where: { $0.id == currentSong?.id }) ?? 0
         select(queue[(index + offset + queue.count) % queue.count])
@@ -1135,7 +1141,8 @@ struct ContentView: View {
         if let localURL = song.localFileURL {
             playbackTask?.cancel()
             playbackRequestID = UUID()
-            playerStore.play(url: localURL, title: song.title, artist: song.artist)
+            playerStore.play(url: localURL, title: song.title, artist: song.artist,
+                             album: song.album, artworkURL: song.onlineSong?.artworkURL)
             currentSong = song
         } else if currentSong?.id == song.id {
             if playerStore.isPlaying { playerStore.pause() }
@@ -1157,7 +1164,8 @@ struct ContentView: View {
                     let url = try await LXMusicURLResolver().resolve(song: onlineSong, quality: .high)
                     try Task.checkCancellation()
                     guard playbackRequestID == requestID, currentSong?.id == song.id else { return }
-                    playerStore.play(url: url, title: onlineSong.title, artist: onlineSong.artist)
+                    playerStore.play(url: url, title: onlineSong.title, artist: onlineSong.artist,
+                                     album: onlineSong.album, artworkURL: onlineSong.artworkURL)
                 } catch is CancellationError {
                     return
                 } catch {

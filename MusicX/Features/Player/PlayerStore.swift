@@ -2,6 +2,12 @@ import AVFoundation
 import Combine
 import MediaPlayer
 import Foundation
+import UIKit
+
+extension Notification.Name {
+    static let musicXRemoteNextTrack = Notification.Name("MusicXRemoteNextTrack")
+    static let musicXRemotePreviousTrack = Notification.Name("MusicXRemotePreviousTrack")
+}
 
 @MainActor
 final class PlayerStore: ObservableObject {
@@ -20,6 +26,10 @@ final class PlayerStore: ObservableObject {
     private var wantsPlayback = false
     private var hasPublishedDuration = false
     private var publishesNowPlayingInfo = true
+    private var trackAlbum: String?
+    private var artworkImage: UIImage?
+    private var artworkTask: Task<Void, Never>?
+    private var artworkRequestID = UUID()
 
     init() {
         player.audiovisualBackgroundPlaybackPolicy = .continuesIfPossible
@@ -129,6 +139,22 @@ final class PlayerStore: ObservableObject {
         }
         remoteTargets.append((center.changePlaybackPositionCommand, position))
 
+        let next = center.nextTrackCommand.addTarget { _ in
+            NotificationCenter.default.post(name: .musicXRemoteNextTrack, object: nil)
+            return .success
+        }
+        remoteTargets.append((center.nextTrackCommand, next))
+
+        let previous = center.previousTrackCommand.addTarget { _ in
+            NotificationCenter.default.post(name: .musicXRemotePreviousTrack, object: nil)
+            return .success
+        }
+        remoteTargets.append((center.previousTrackCommand, previous))
+
+        center.playCommand.isEnabled = true
+        center.pauseCommand.isEnabled = true
+        center.togglePlayPauseCommand.isEnabled = true
+        center.changePlaybackPositionCommand.isEnabled = true
         center.nextTrackCommand.isEnabled = false
         center.previousTrackCommand.isEnabled = false
     }
@@ -139,10 +165,27 @@ final class PlayerStore: ObservableObject {
         else { MPNowPlayingInfoCenter.default().nowPlayingInfo = nil }
     }
 
-    func play(url: URL, title: String, artist: String) {
+    func play(url: URL, title: String, artist: String, album: String? = nil, artworkURL: URL? = nil) {
         errorMessage = nil
         trackTitle = title
         trackArtist = artist
+        trackAlbum = album
+        artworkImage = nil
+        artworkTask?.cancel()
+        artworkRequestID = UUID()
+        let requestID = artworkRequestID
+        if let artworkURL {
+            artworkTask = Task { [weak self] in
+                guard let (data, _) = try? await URLSession.shared.data(from: artworkURL),
+                      !Task.isCancelled,
+                      let image = UIImage(data: data) else { return }
+                guard let self, self.artworkRequestID == requestID else { return }
+                self.artworkImage = image
+                self.updateNowPlayingInfo()
+            }
+        }
+        MPRemoteCommandCenter.shared().nextTrackCommand.isEnabled = true
+        MPRemoteCommandCenter.shared().previousTrackCommand.isEnabled = true
         wantsPlayback = true
         hasPublishedDuration = false
         configureAudioSession()
@@ -209,6 +252,11 @@ final class PlayerStore: ObservableObject {
         currentTime = 0
         duration = 0
         hasPublishedDuration = false
+        artworkTask?.cancel()
+        artworkImage = nil
+        trackAlbum = nil
+        MPRemoteCommandCenter.shared().nextTrackCommand.isEnabled = false
+        MPRemoteCommandCenter.shared().previousTrackCommand.isEnabled = false
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
     }
 
@@ -221,13 +269,22 @@ final class PlayerStore: ObservableObject {
             MPNowPlayingInfoPropertyPlaybackRate: isPlaying ? 1.0 : 0.0,
             MPNowPlayingInfoPropertyDefaultPlaybackRate: 1.0
         ]
+        if let trackAlbum, !trackAlbum.isEmpty {
+            info[MPMediaItemPropertyAlbumTitle] = trackAlbum
+        }
         if duration > 0 {
             info[MPMediaItemPropertyPlaybackDuration] = duration
         }
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+        if let artworkImage {
+            info[MPMediaItemPropertyArtwork] = MPMediaItemArtwork(boundsSize: artworkImage.size) { _ in artworkImage }
+        }
+        let center = MPNowPlayingInfoCenter.default()
+        center.nowPlayingInfo = info
+        center.playbackState = isPlaying ? .playing : .paused
     }
 
     deinit {
+        artworkTask?.cancel()
         if let timeObserver { player.removeTimeObserver(timeObserver) }
         if let endObserver { NotificationCenter.default.removeObserver(endObserver) }
         if let interruptionObserver { NotificationCenter.default.removeObserver(interruptionObserver) }
