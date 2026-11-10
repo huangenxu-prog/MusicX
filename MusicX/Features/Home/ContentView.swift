@@ -613,8 +613,8 @@ struct ContentView: View {
         let lyricsResult = await lyrics
         guard !Task.isCancelled, currentSong?.onlineSong?.id == song.id else { return }
         if let artworkResult { resolvedArtworkURL = artworkResult }
-        if let lyricsResult, let value = lyricsResult {
-            lyricLines = parseLyrics(value.original)
+        if let lyricsResult {
+            lyricLines = parseLyrics(lyricsResult.original)
         }
         lyricsUnavailable = lyricLines.isEmpty
     }
