@@ -417,9 +417,14 @@ struct ContentView: View {
 
     private var nowPlayingPage: some View {
         GeometryReader { geometry in
-            let artworkSize = min(geometry.size.width - 64, geometry.size.height * 0.43)
+            let artworkSize = min(geometry.size.width - 64, geometry.size.height * 0.39)
             ZStack {
-                playerBackground
+                playerArtwork
+                    .frame(width: geometry.size.width + 100, height: geometry.size.height + 100)
+                    .blur(radius: 65)
+                    .overlay(MusicXTheme.background.opacity(0.78))
+                    .ignoresSafeArea()
+
                 VStack(spacing: 0) {
                     HStack {
                         Button { isPlayerPresented = false } label: {
@@ -437,28 +442,27 @@ struct ContentView: View {
                     .padding(.horizontal, 26)
                     .padding(.top, 8)
 
-                    Spacer(minLength: 20)
+                    Spacer(minLength: 18)
 
                     playerArtwork
                         .frame(width: artworkSize, height: artworkSize)
-                        .clipShape(RoundedRectangle(cornerRadius: 34, style: .continuous))
-                        .shadow(color: (currentSong?.tint ?? MusicXTheme.blue).opacity(0.24), radius: 32, y: 14)
+                        .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
+                        .shadow(color: (currentSong?.tint ?? MusicXTheme.blue).opacity(0.28), radius: 30, y: 14)
 
                     HStack(alignment: .center, spacing: 14) {
                         VStack(alignment: .leading, spacing: 7) {
                             Text(currentSong?.title ?? "尚未选择歌曲")
-                                .font(.system(size: 28, weight: .bold))
-                                .foregroundStyle(.white)
-                                .lineLimit(1)
+                                .font(.system(size: 27, weight: .bold))
+                                .foregroundStyle(.white).lineLimit(1)
                             Text(currentSong?.artist ?? "选择一首歌曲开始聆听")
-                                .font(.system(size: 16))
-                                .foregroundStyle(MusicXTheme.muted)
-                                .lineLimit(1)
+                                .font(.system(size: 16)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
                             if let album = currentSong?.album, !album.isEmpty {
                                 Button {
                                     if let song = currentSong?.onlineSong {
-                                        discoveryRoute = .album(song)
                                         isPlayerPresented = false
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                                            discoveryRoute = .album(song)
+                                        }
                                     }
                                 } label: {
                                     HStack(spacing: 5) {
@@ -466,7 +470,7 @@ struct ContentView: View {
                                         Image(systemName: "arrow.up.right").font(.system(size: 9, weight: .semibold))
                                     }
                                     .font(.system(size: 12, weight: .medium))
-                                    .foregroundStyle(.white.opacity(0.62))
+                                    .foregroundStyle(.white.opacity(0.58))
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -476,12 +480,11 @@ struct ContentView: View {
                             Image(systemName: currentSong.map { favorites.contains($0.id) } == true ? "heart.fill" : "heart")
                                 .font(.system(size: 24, weight: .medium))
                                 .foregroundStyle(currentSong.map { favorites.contains($0.id) } == true ? MusicXTheme.blue : .white.opacity(0.82))
-                                .frame(width: 42, height: 42)
                         }
                         .disabled(currentSong == nil)
                     }
                     .padding(.horizontal, 28)
-                    .padding(.top, 25)
+                    .padding(.top, 24)
 
                     VStack(spacing: 5) {
                         Slider(value: Binding(
@@ -503,81 +506,56 @@ struct ContentView: View {
 
                     HStack(spacing: 0) {
                         Button { stepSong(by: -1) } label: {
-                            Image(systemName: "backward.end.fill")
-                                .font(.system(size: 27))
-                                .foregroundStyle(.white)
-                                .frame(maxWidth: .infinity)
+                            Image(systemName: "backward.end.fill").font(.system(size: 27))
+                                .foregroundStyle(.white).frame(maxWidth: .infinity)
                         }
                         Button { if currentSong != nil { playerStore.togglePlayback() } } label: {
                             Image(systemName: playerStore.isPlaying ? "pause.fill" : "play.fill")
-                                .font(.system(size: 30, weight: .bold))
-                                .foregroundStyle(MusicXTheme.background)
-                                .frame(width: 82, height: 82)
-                                .background(.white, in: Circle())
+                                .font(.system(size: 30, weight: .bold)).foregroundStyle(MusicXTheme.background)
+                                .frame(width: 82, height: 82).background(.white, in: Circle())
                         }
                         .frame(maxWidth: .infinity)
                         Button { stepSong(by: 1) } label: {
-                            Image(systemName: "forward.end.fill")
-                                .font(.system(size: 27))
-                                .foregroundStyle(.white)
-                                .frame(maxWidth: .infinity)
+                            Image(systemName: "forward.end.fill").font(.system(size: 27))
+                                .foregroundStyle(.white).frame(maxWidth: .infinity)
                         }
                     }
                     .padding(.horizontal, 42)
-                    .padding(.top, 23)
+                    .padding(.top, 18)
 
                     HStack {
                         Button { isShuffleEnabled.toggle() } label: {
                             Image(systemName: "shuffle")
-                                .font(.system(size: 19, weight: .medium))
-                                .foregroundStyle(isShuffleEnabled ? MusicXTheme.blue : .white.opacity(0.62))
+                                .foregroundStyle(isShuffleEnabled ? MusicXTheme.blue : .white.opacity(0.65))
                         }
                         Spacer()
                         Button { isLyricsPresented = true } label: {
                             Label("歌词", systemImage: "quote.bubble")
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundStyle(.white.opacity(0.72))
+                                .foregroundStyle(.white.opacity(0.78))
                         }
                         Spacer()
                         Button { isQueuePresented = true } label: {
-                            Image(systemName: "list.bullet")
-                                .font(.system(size: 19, weight: .medium))
-                                .foregroundStyle(.white.opacity(0.72))
+                            Label("播放队列", systemImage: "list.bullet")
+                                .foregroundStyle(.white.opacity(0.78))
+                        }
+                        Spacer()
+                        Button { repeatMode = (repeatMode + 1) % 3 } label: {
+                            Image(systemName: repeatMode == 2 ? "repeat.1" : "repeat")
+                                .foregroundStyle(repeatMode == 0 ? .white.opacity(0.65) : MusicXTheme.blue)
                         }
                     }
-                    .padding(.horizontal, 48)
-                    .padding(.top, 23)
-                    Spacer(minLength: 16)
+                    .font(.system(size: 13, weight: .medium))
+                    .padding(.horizontal, 34)
+                    .padding(.top, 22)
+
+                    Spacer(minLength: 20)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .preferredColorScheme(.dark)
         .task(id: currentSong?.id) { await loadPlayerMetadata() }
         .sheet(isPresented: $isQueuePresented) { playbackQueueSheet }
         .sheet(isPresented: $isLyricsPresented) { lyricsSheet }
-    }
-
-    @ViewBuilder
-    private var playerBackground: some View {
-        ZStack {
-            LinearGradient(colors: [
-                Color(red: 0.055, green: 0.09, blue: 0.15),
-                Color(red: 0.025, green: 0.045, blue: 0.075),
-                MusicXTheme.background
-            ], startPoint: .top, endPoint: .bottom)
-            if let url = resolvedArtworkURL ?? currentSong?.onlineSong?.artworkURL {
-                AsyncImage(url: url) { phase in
-                    if let image = phase.image {
-                        image.resizable().scaledToFill()
-                            .blur(radius: 70)
-                            .overlay(Color.black.opacity(0.60))
-                    }
-                }
-                .ignoresSafeArea()
-            }
-        }
-        .ignoresSafeArea()
     }
 
     private var lyricsSheet: some View {
