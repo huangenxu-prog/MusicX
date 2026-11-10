@@ -1203,9 +1203,9 @@ struct ContentView: View {
         searchError = nil
         defer { isSearching = false }
         let service = GDStudioMusicSearchService()
-        async let netease = try? service.search(keyword: keyword, source: .netease, count: 20)
-        async let qq = try? service.search(keyword: keyword, source: .qq, count: 20)
-        async let kuwo = try? service.search(keyword: keyword, source: .kuwo, count: 20)
+        async let netease = try? service.search(keyword: keyword, source: .netease, count: 50)
+        async let qq = try? service.search(keyword: keyword, source: .qq, count: 50)
+        async let kuwo = try? service.search(keyword: keyword, source: .kuwo, count: 50)
         let sourceResults = [await netease ?? [], await qq ?? [], await kuwo ?? []]
         // Interleave providers so one source cannot occupy the entire first page.
         var merged: [MusicSong] = []
@@ -1224,7 +1224,7 @@ struct ContentView: View {
             let key = "\(normalizedSearchKey(item.title))|\(normalizedSearchKey(item.artist))"
             return !key.isEmpty && seen.insert(key).inserted
         }
-        let results = Array(uniqueResults.prefix(20))
+        let results = Array(uniqueResults.prefix(50))
         onlineResults = results.map { item in
             AppSong(id: stableSongID(item), title: item.title, artist: item.artist,
                      album: item.album ?? "",
