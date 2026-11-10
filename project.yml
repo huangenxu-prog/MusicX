@@ -16,6 +16,8 @@ targets:
       - path: MusicX
     info:
       path: MusicX/Info.plist
+      properties:
+        UILaunchStoryboardName: LaunchScreen
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.huangenxu.musicx
