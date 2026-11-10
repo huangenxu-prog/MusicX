@@ -196,7 +196,8 @@ struct ContentView: View {
     }
 
     private var searchPage: some View {
-        VStack(alignment: .leading, spacing: 24) {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 24) {
             pageHeader("搜索", subtitle: "搜索歌曲、歌手或专辑")
             HStack(spacing: 12) {
                 Image(systemName: "magnifyingglass").foregroundStyle(MusicXTheme.muted)
@@ -230,16 +231,16 @@ struct ContentView: View {
                 if filteredSongs.isEmpty {
                     emptyState(icon: "music.note.list", title: searchError == nil ? "正在搜索在线音源" : "暂时没有搜索结果", detail: searchError ?? "请稍候")
                 } else {
-                    ScrollView(showsIndicators: false) {
-                        VStack(spacing: 17) {
-                            ForEach(filteredSongs) { song in songRow(song) }
-                        }
+                    VStack(spacing: 17) {
+                        ForEach(filteredSongs) { song in songRow(song) }
                     }
                 }
             }
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 22).padding(.top, 28)
+            .padding(.horizontal, 22).padding(.top, 28)
+        }
+        .scrollDismissesKeyboard(.interactively)
         .task(id: searchText) {
             let keyword = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !keyword.isEmpty else { onlineResults = []; searchError = nil; return }
