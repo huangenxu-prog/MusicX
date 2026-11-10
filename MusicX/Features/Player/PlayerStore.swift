@@ -201,8 +201,11 @@ final class PlayerStore: ObservableObject {
 
     func stop() {
         wantsPlayback = false
+        player.rate = 0
         player.pause()
+        let oldItem = player.currentItem
         player.replaceCurrentItem(with: nil)
+        oldItem?.cancelPendingSeeks()
         isPlaying = false
         currentTime = 0
         duration = 0
