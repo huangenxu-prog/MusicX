@@ -78,6 +78,7 @@ struct GDStudioMusicSearchService {
         case .kugou: "kugou"
         case .migu: "migu"
         case .qishui: "netease"
+        case .youtubeMusic, .youtube, .spotify: "netease"
         }
     }
 }
