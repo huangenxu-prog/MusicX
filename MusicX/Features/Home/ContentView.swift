@@ -62,6 +62,8 @@ struct ContentView: View {
     }
 
     @State private var songs: [AppSong] = []
+    @State private var isLoadingHomeSongs = false
+    @State private var homeLoadError: String?
 
     private var filteredSongs: [AppSong] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -147,13 +149,14 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 16) {
             sectionTitle("为你推荐", detail: "每日精选")
             HStack(spacing: 14) {
-                recommendationCard(title: "每日推荐", subtitle: "发现今天的好音乐", colors: [Color(red: 0.18, green: 0.38, blue: 0.61), Color(red: 0.13, green: 0.18, blue: 0.35)], icon: "sparkles")
-                recommendationCard(title: "精选歌单", subtitle: "按心情聆听", colors: [Color(red: 0.39, green: 0.25, blue: 0.48), Color(red: 0.18, green: 0.15, blue: 0.31)], icon: "square.stack.fill")
+                recommendationCard(title: "每日推荐", subtitle: "发现今天的好音乐", colors: [Color(red: 0.18, green: 0.38, blue: 0.61), Color(red: 0.13, green: 0.18, blue: 0.35)], icon: "sparkles", query: "陈奕迅")
+                recommendationCard(title: "精选歌单", subtitle: "按心情聆听", colors: [Color(red: 0.39, green: 0.25, blue: 0.48), Color(red: 0.18, green: 0.15, blue: 0.31)], icon: "square.stack.fill", query: "周杰伦")
             }
         }.padding(.horizontal, 20)
     }
 
-    private func recommendationCard(title: String, subtitle: String, colors: [Color], icon: String) -> some View {
+    private func recommendationCard(title: String, subtitle: String, colors: [Color], icon: String, query: String) -> some View {
+        Button { openSearch(query: query) } label: {
         VStack(alignment: .leading, spacing: 10) {
             Image(systemName: icon).font(.system(size: 28, weight: .light)).foregroundStyle(.white.opacity(0.9))
             Spacer(minLength: 12)
@@ -162,13 +165,19 @@ struct ContentView: View {
         }
         .padding(16).frame(maxWidth: .infinity, minHeight: 148, alignment: .leading)
         .background(LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing), in: RoundedRectangle(cornerRadius: 20))
+        }
+        .buttonStyle(.plain)
     }
 
     private var newMusicSection: some View {
         VStack(alignment: .leading, spacing: 15) {
             sectionTitle("新歌速递", detail: "在线音源")
-            ForEach(songs.prefix(3)) { song in
-                songRow(song)
+            if isLoadingHomeSongs && songs.isEmpty {
+                ProgressView().tint(MusicXTheme.blue).frame(maxWidth: .infinity).padding(.vertical, 20)
+            } else if let homeLoadError, songs.isEmpty {
+                Text(homeLoadError).font(.system(size: 13)).foregroundStyle(MusicXTheme.muted).padding(.vertical, 12)
+            } else {
+                ForEach(songs.prefix(3)) { song in songRow(song) }
             }
         }.padding(.horizontal, 20)
     }
@@ -189,9 +198,9 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 15) {
             sectionTitle("排行榜", detail: "在线曲目")
             HStack(spacing: 12) {
-                chartTile("热歌榜", subtitle: "热门歌曲", icon: "flame.fill", color: .orange)
-                chartTile("新歌榜", subtitle: "最新发行", icon: "sparkles", color: MusicXTheme.blue)
-                chartTile("飙升榜", subtitle: "正在上升", icon: "chart.line.uptrend.xyaxis", color: .mint)
+                chartTile("热歌榜", subtitle: "热门歌曲", icon: "flame.fill", color: .orange, query: "陈奕迅")
+                chartTile("新歌榜", subtitle: "最新发行", icon: "sparkles", color: MusicXTheme.blue, query: "周杰伦")
+                chartTile("飙升榜", subtitle: "正在上升", icon: "chart.line.uptrend.xyaxis", color: .mint, query: "薛之谦")
             }
         }.padding(.horizontal, 20)
     }
@@ -353,7 +362,8 @@ struct ContentView: View {
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func chartTile(_ title: String, subtitle: String, icon: String, color: Color) -> some View {
+    private func chartTile(_ title: String, subtitle: String, icon: String, color: Color, query: String) -> some View {
+        Button { openSearch(query: query) } label: {
         VStack(alignment: .leading, spacing: 9) {
             Image(systemName: icon).font(.system(size: 21)).foregroundStyle(color)
             Text(title).font(.system(size: 15, weight: .bold))
@@ -361,6 +371,8 @@ struct ContentView: View {
         }
         .frame(maxWidth: .infinity, minHeight: 92, alignment: .leading)
         .padding(12).background(MusicXTheme.surface, in: RoundedRectangle(cornerRadius: 16))
+        }
+        .buttonStyle(.plain)
     }
 
     private var miniPlayer: some View {
@@ -503,12 +515,19 @@ struct ContentView: View {
 
     @MainActor
     private func loadHomeSongs() async {
-        guard songs.isEmpty else { return }
+        guard songs.isEmpty, !isLoadingHomeSongs else { return }
+        isLoadingHomeSongs = true
+        homeLoadError = nil
+        defer { isLoadingHomeSongs = false }
         let service = GDStudioMusicSearchService()
         var collected: [MusicSong] = []
-        for keyword in ["华语流行", "热门歌曲"] {
-            if let rows = try? await service.search(keyword: keyword, source: .netease, count: 8) {
-                collected.append(contentsOf: rows)
+        var failures: [String] = []
+        // GDStudio search accepts song, artist or album names, not genre labels.
+        for keyword in ["陈奕迅", "周杰伦", "薛之谦"] {
+            do {
+                collected.append(contentsOf: try await service.search(keyword: keyword, source: .netease, count: 5))
+            } catch {
+                failures.append(error.localizedDescription)
             }
         }
         var seen = Set<String>()
@@ -516,6 +535,16 @@ struct ContentView: View {
             AppSong(id: stableSongID(item), title: item.title, artist: item.artist,
                     album: item.album ?? "", tint: MusicXTheme.blue, onlineSong: item)
         }
+        if songs.isEmpty {
+            homeLoadError = failures.first ?? "在线音源暂时没有返回歌曲，请稍后重试"
+        }
+    }
+
+    private func openSearch(query: String) {
+        searchText = query
+        onlineResults = []
+        selectedTab = .search
+        searchFieldFocused = false
     }
 
     private func stableSongID(_ song: MusicSong) -> Int {
