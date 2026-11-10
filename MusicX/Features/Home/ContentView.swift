@@ -41,6 +41,7 @@ private enum LibraryFilter: String, CaseIterable {
 struct ContentView: View {
     @State private var selectedTab: MainTab = .home
     @State private var searchText = ""
+    @FocusState private var searchFieldFocused: Bool
     @State private var libraryFilter: LibraryFilter = .favorites
     @State private var currentSong: DemoSong?
     @StateObject private var playerStore = PlayerStore()
@@ -96,11 +97,13 @@ struct ContentView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(MusicXTheme.background.ignoresSafeArea())
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            VStack(spacing: 0) {
-                miniPlayer
-                tabBar
+            if !(selectedTab == .search && searchFieldFocused) {
+                VStack(spacing: 0) {
+                    miniPlayer
+                    tabBar
+                }
+                .background(.ultraThinMaterial)
             }
-            .background(.ultraThinMaterial)
         }
         .preferredColorScheme(.dark)
         .fullScreenCover(isPresented: $isPlayerPresented) { nowPlayingPage }
@@ -198,8 +201,9 @@ struct ContentView: View {
     }
 
     private var searchPage: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 24) {
+        ScrollViewReader { proxy in
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 24) {
             pageHeader("搜索", subtitle: "搜索歌曲、歌手或专辑")
             HStack(spacing: 12) {
                 Image(systemName: "magnifyingglass").foregroundStyle(MusicXTheme.muted)
@@ -208,6 +212,7 @@ struct ContentView: View {
                     .tint(MusicXTheme.blue)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
+                    .focused($searchFieldFocused)
                 if !searchText.isEmpty {
                     Button { searchText = "" } label: {
                         Image(systemName: "xmark.circle.fill").foregroundStyle(MusicXTheme.muted)
@@ -227,6 +232,7 @@ struct ContentView: View {
             } else {
                 HStack {
                     Text("搜索结果").font(.system(size: 19, weight: .bold))
+                        .id("searchResults")
                     Spacer()
                     Text(isSearching ? "搜索中…" : "\(filteredSongs.count) 首").font(.system(size: 13)).foregroundStyle(MusicXTheme.muted)
                 }
@@ -240,15 +246,24 @@ struct ContentView: View {
             }
             Spacer(minLength: 0)
         }
-            .padding(.horizontal, 22).padding(.top, 28)
-        }
-        .scrollDismissesKeyboard(.interactively)
-        .task(id: searchText) {
+                .padding(.horizontal, 22).padding(.top, 28)
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .onChange(of: searchFieldFocused) { _, focused in
+                guard focused else { return }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        proxy.scrollTo("searchResults", anchor: .top)
+                    }
+                }
+            }
+            .task(id: searchText) {
             let keyword = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !keyword.isEmpty else { onlineResults = []; searchError = nil; return }
             try? await Task.sleep(for: .milliseconds(450))
             guard !Task.isCancelled else { return }
-            await searchOnline(keyword)
+                await searchOnline(keyword)
+            }
         }
     }
 
