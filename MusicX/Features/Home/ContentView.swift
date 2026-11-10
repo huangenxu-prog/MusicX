@@ -593,14 +593,7 @@ struct ContentView: View {
 
     private var nowPlayingPage: some View {
         GeometryReader { geometry in
-            ZStack {
-                playerArtwork
-                    .frame(width: geometry.size.width + 100, height: geometry.size.height + 100)
-                    .blur(radius: 65)
-                    .overlay(MusicXTheme.background.opacity(0.78))
-                    .ignoresSafeArea()
-
-                VStack(spacing: 0) {
+            VStack(spacing: 0) {
                     // Fixed top navigation.
                     HStack {
                         Button { isPlayerPresented = false } label: {
@@ -710,7 +703,7 @@ struct ContentView: View {
                                 .foregroundStyle(.white).frame(maxWidth: .infinity)
                         }
                     }
-                    .padding(.horizontal, 28)
+                    .frame(width: geometry.size.width - 56, alignment: .center)
                     .padding(.top, 10)
 
                     HStack {
@@ -739,8 +732,17 @@ struct ContentView: View {
                     .padding(.top, 12)
                     .padding(.bottom, 8)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
             }
+            .frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
+            .background {
+                playerArtwork
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                    .clipped()
+                    .blur(radius: 65)
+                    .overlay(MusicXTheme.background.opacity(0.78))
+            }
+            .clipped()
         }
         .preferredColorScheme(.dark)
         .task(id: currentSong?.id) { await loadPlayerMetadata() }
