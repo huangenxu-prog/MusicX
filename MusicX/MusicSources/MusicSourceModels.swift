@@ -62,6 +62,8 @@ struct MusicSong: Identifiable, Codable, Hashable {
     var duration: TimeInterval?
     var hash: String?
     var albumID: String?
+    var pictureID: String?
+    var lyricID: String?
 }
 
 enum MusicSourceError: LocalizedError {
