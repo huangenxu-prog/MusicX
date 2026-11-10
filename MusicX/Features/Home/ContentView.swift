@@ -411,6 +411,9 @@ struct ContentView: View {
     @State private var isLyricsPresented = false
     @State private var isShuffleEnabled = false
     @State private var repeatMode = 0
+    @State private var resolvedArtworkURL: URL?
+    @State private var lyricLines: [PlayerLyricLine] = []
+    @State private var lyricsUnavailable = false
 
     private var nowPlayingPage: some View {
         GeometryReader { geometry in
@@ -423,34 +426,31 @@ struct ContentView: View {
                     Spacer()
                     Text("正在播放").font(.system(size: 16, weight: .semibold))
                     Spacer()
-                    Image(systemName: "ellipsis").font(.system(size: 19))
+                    Button { isQueuePresented = true } label: {
+                        Image(systemName: "ellipsis").font(.system(size: 19))
+                    }
                 }
                 .foregroundStyle(.white)
                 .padding(.horizontal, 26)
                 .padding(.top, 12)
 
-                Spacer(minLength: 18)
+                Spacer(minLength: 16)
 
                 playerArtwork
                     .frame(width: artworkSize, height: artworkSize)
                     .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
-                    .shadow(color: (currentSong?.tint ?? MusicXTheme.blue).opacity(0.20), radius: 28, y: 12)
+                    .shadow(color: (currentSong?.tint ?? MusicXTheme.blue).opacity(0.22), radius: 30, y: 12)
 
                 HStack(alignment: .center, spacing: 14) {
                     VStack(alignment: .leading, spacing: 7) {
                         Text(currentSong?.title ?? "尚未选择歌曲")
                             .font(.system(size: 27, weight: .bold))
-                            .foregroundStyle(.white)
-                            .lineLimit(1)
+                            .foregroundStyle(.white).lineLimit(1)
                         Text(currentSong?.artist ?? "选择一首歌曲开始聆听")
-                            .font(.system(size: 16))
-                            .foregroundStyle(MusicXTheme.muted)
-                            .lineLimit(1)
+                            .font(.system(size: 16)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
                         if let album = currentSong?.album, !album.isEmpty {
-                            Text(album)
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundStyle(.white.opacity(0.48))
-                                .lineLimit(1)
+                            Text(album).font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(.white.opacity(0.48)).lineLimit(1)
                         }
                     }
                     Spacer(minLength: 4)
@@ -484,64 +484,64 @@ struct ContentView: View {
 
                 HStack(spacing: 0) {
                     Button { stepSong(by: -1) } label: {
-                        Image(systemName: "backward.end.fill").font(.system(size: 27)).foregroundStyle(.white).frame(maxWidth: .infinity)
+                        Image(systemName: "backward.end.fill").font(.system(size: 27))
+                            .foregroundStyle(.white).frame(maxWidth: .infinity)
                     }
                     Button { if currentSong != nil { playerStore.togglePlayback() } } label: {
                         Image(systemName: playerStore.isPlaying ? "pause.fill" : "play.fill")
                             .font(.system(size: 30, weight: .bold)).foregroundStyle(MusicXTheme.background)
                             .frame(width: 82, height: 82).background(.white, in: Circle())
-                    }.frame(maxWidth: .infinity)
+                    }
+                    .frame(maxWidth: .infinity)
                     Button { stepSong(by: 1) } label: {
-                        Image(systemName: "forward.end.fill").font(.system(size: 27)).foregroundStyle(.white).frame(maxWidth: .infinity)
+                        Image(systemName: "forward.end.fill").font(.system(size: 27))
+                            .foregroundStyle(.white).frame(maxWidth: .infinity)
                     }
                 }
-                .padding(.horizontal, 48)
+                .padding(.horizontal, 42)
                 .padding(.top, 27)
 
-                HStack(spacing: 0) {
+                HStack {
                     Button { isShuffleEnabled.toggle() } label: {
-                        Image(systemName: "shuffle").font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(isShuffleEnabled ? MusicXTheme.blue : .white.opacity(0.62))
-                            .frame(maxWidth: .infinity)
+                        Label("随机播放", systemImage: "shuffle")
+                            .foregroundStyle(isShuffleEnabled ? MusicXTheme.blue : .white.opacity(0.65))
                     }
+                    Spacer()
                     Button { repeatMode = (repeatMode + 1) % 3 } label: {
-                        Image(systemName: repeatMode == 2 ? "repeat.1" : "repeat").font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(repeatMode == 0 ? .white.opacity(0.62) : MusicXTheme.blue)
-                            .frame(maxWidth: .infinity)
+                        Label(repeatMode == 0 ? "顺序播放" : repeatMode == 1 ? "循环播放" : "单曲循环",
+                              systemImage: repeatMode == 2 ? "repeat.1" : "repeat")
+                            .foregroundStyle(repeatMode == 0 ? .white.opacity(0.65) : MusicXTheme.blue)
                     }
-                    Button { isLyricsPresented = true } label: {
-                        Label("歌词", systemImage: "quote.bubble").font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(.white.opacity(0.72)).frame(maxWidth: .infinity)
-                    }
+                    Spacer()
                     Button { isQueuePresented = true } label: {
-                        Label("队列", systemImage: "list.bullet").font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(.white.opacity(0.72)).frame(maxWidth: .infinity)
+                        Label("播放队列", systemImage: "list.bullet")
+                            .foregroundStyle(.white.opacity(0.72))
                     }
                 }
-                .padding(.horizontal, 25)
-                .padding(.top, 25)
+                .font(.system(size: 12, weight: .medium))
+                .padding(.horizontal, 30)
+                .padding(.top, 24)
+
+                Button { isLyricsPresented = true } label: {
+                    Label("查看歌词", systemImage: "quote.bubble")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.72))
+                }
+                .padding(.top, 18)
                 Spacer(minLength: 12)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background {
-                ZStack {
-                    if let url = currentSong?.onlineSong?.artworkURL {
-                        AsyncImage(url: url) { phase in
-                            if let image = phase.image {
-                                image.resizable().scaledToFill().blur(radius: 48).opacity(0.24)
-                            }
-                        }
-                    }
-                    LinearGradient(colors: [
-                        (currentSong?.tint ?? MusicXTheme.blue).opacity(0.42),
-                        Color(red: 0.035, green: 0.065, blue: 0.11).opacity(0.94),
-                        MusicXTheme.background
-                    ], startPoint: .top, endPoint: .bottom)
-                }
+                LinearGradient(colors: [
+                    (currentSong?.tint ?? MusicXTheme.blue).opacity(0.38),
+                    Color(red: 0.035, green: 0.065, blue: 0.11),
+                    MusicXTheme.background
+                ], startPoint: .top, endPoint: .bottom)
                 .ignoresSafeArea()
             }
         }
         .preferredColorScheme(.dark)
+        .task(id: currentSong?.id) { await loadPlayerMetadata() }
         .sheet(isPresented: $isQueuePresented) { playbackQueueSheet }
         .sheet(isPresented: $isLyricsPresented) { lyricsSheet }
     }
@@ -550,33 +550,93 @@ struct ContentView: View {
         NavigationStack {
             ZStack {
                 MusicXTheme.background.ignoresSafeArea()
-                VStack(spacing: 14) {
-                    Image(systemName: "quote.bubble")
-                        .font(.system(size: 34, weight: .light))
-                        .foregroundStyle(MusicXTheme.blue)
-                    Text(currentSong?.title ?? "歌词")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundStyle(.white)
-                    Text("歌词服务尚未接入，后续会在这里显示逐行歌词。")
-                        .font(.system(size: 14))
-                        .foregroundStyle(MusicXTheme.muted)
-                        .multilineTextAlignment(.center)
+                if lyricLines.isEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "quote.bubble").font(.system(size: 34, weight: .light)).foregroundStyle(MusicXTheme.blue)
+                        Text(lyricsUnavailable ? "暂时没有找到歌词" : "正在获取歌词")
+                            .font(.system(size: 18, weight: .semibold)).foregroundStyle(.white)
+                        Text(lyricsUnavailable ? "当前音源没有提供可用的歌词数据。" : "请稍候，正在从音源读取歌词。")
+                            .font(.system(size: 13)).foregroundStyle(MusicXTheme.muted)
+                    }.padding(30)
+                } else {
+                    ScrollViewReader { proxy in
+                        ScrollView {
+                            VStack(spacing: 22) {
+                                ForEach(Array(lyricLines.enumerated()), id: \.element.id) { index, line in
+                                    Text(line.text)
+                                        .font(.system(size: index == activeLyricIndex ? 21 : 16, weight: index == activeLyricIndex ? .bold : .medium))
+                                        .foregroundStyle(index == activeLyricIndex ? .white : MusicXTheme.muted)
+                                        .multilineTextAlignment(.center)
+                                        .frame(maxWidth: .infinity)
+                                        .id(line.id)
+                                }
+                            }.padding(.horizontal, 24).padding(.vertical, 42)
+                        }
+                        .onChange(of: playerStore.currentTime) { _, _ in
+                            if lyricLines.indices.contains(activeLyricIndex) {
+                                withAnimation(.easeInOut(duration: 0.25)) { proxy.scrollTo(lyricLines[activeLyricIndex].id, anchor: .center) }
+                            }
+                        }
+                    }
                 }
-                .padding(30)
             }
+            .navigationTitle(currentSong?.title ?? "歌词")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("完成") { isLyricsPresented = false }
-                }
+                ToolbarItem(placement: .topBarTrailing) { Button("完成") { isLyricsPresented = false } }
             }
         }
         .presentationDetents([.medium, .large])
         .preferredColorScheme(.dark)
     }
 
+    private var activeLyricIndex: Int {
+        guard !lyricLines.isEmpty else { return 0 }
+        return lyricLines.lastIndex(where: { $0.time <= playerStore.currentTime }) ?? 0
+    }
+
+    @MainActor
+    private func loadPlayerMetadata() async {
+        guard let song = currentSong?.onlineSong else {
+            resolvedArtworkURL = nil
+            lyricLines = []
+            lyricsUnavailable = true
+            return
+        }
+        resolvedArtworkURL = song.artworkURL
+        lyricLines = []
+        lyricsUnavailable = false
+        let service = GDStudioMetadataService()
+        async let artwork = try? service.artworkURL(for: song)
+        async let lyrics = try? service.lyrics(for: song)
+        let artworkResult = await artwork
+        let lyricsResult = await lyrics
+        guard !Task.isCancelled, currentSong?.onlineSong?.id == song.id else { return }
+        if let artworkResult { resolvedArtworkURL = artworkResult }
+        if let lyricsResult, let value = lyricsResult {
+            lyricLines = parseLyrics(value.original)
+        }
+        lyricsUnavailable = lyricLines.isEmpty
+    }
+
+    private func parseLyrics(_ raw: String) -> [PlayerLyricLine] {
+        raw.components(separatedBy: .newlines).compactMap { line in
+            guard let close = line.firstIndex(of: "]"),
+                  let open = line.firstIndex(of: "[") else { return nil }
+            let stamp = String(line[line.index(after: open)..<close])
+            let parts = stamp.split(separator: ":")
+            guard parts.count == 2,
+                  let minutes = Double(parts[0]),
+                  let seconds = Double(parts[1]) else { return nil }
+            let text = String(line[line.index(after: close)...]).trimmingCharacters(in: .whitespaces)
+            guard !text.isEmpty else { return nil }
+            return PlayerLyricLine(time: minutes * 60 + seconds, text: text)
+        }.sorted { $0.time < $1.time }
+    }
+
     @ViewBuilder
     private var playerArtwork: some View {
-        if let url = currentSong?.onlineSong?.artworkURL {
+        if let url = resolvedArtworkURL ?? currentSong?.onlineSong?.artworkURL {
             AsyncImage(url: url) { phase in
                 if let image = phase.image {
                     image.resizable().scaledToFill()
@@ -763,6 +823,12 @@ struct ContentView: View {
         else { ids.insert(song.id) }
         favoriteIDs = ids.sorted().map { String($0) }.joined(separator: ",")
     }
+}
+
+private struct PlayerLyricLine: Identifiable {
+    let id = UUID()
+    let time: TimeInterval
+    let text: String
 }
 
 private struct FlowTags: View {
