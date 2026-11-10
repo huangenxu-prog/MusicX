@@ -33,6 +33,7 @@ final class PlayerStore: ObservableObject {
 
     init() {
         player.audiovisualBackgroundPlaybackPolicy = .continuesIfPossible
+        UIApplication.shared.beginReceivingRemoteControlEvents()
         configureAudioSession()
         configureRemoteCommands()
 
@@ -83,6 +84,7 @@ final class PlayerStore: ObservableObject {
             let session = AVAudioSession.sharedInstance()
             try session.setCategory(.playback, mode: .default, options: [])
             try session.setActive(true)
+            errorMessage = nil
         } catch {
             errorMessage = "音频会话初始化失败：\(error.localizedDescription)"
         }
@@ -193,7 +195,7 @@ final class PlayerStore: ObservableObject {
         currentTime = 0
         duration = 0
         isPlaying = true
-        player.play()
+        player.playImmediately(atRate: 1.0)
         updateNowPlayingInfo()
     }
 
@@ -209,7 +211,7 @@ final class PlayerStore: ObservableObject {
             return
         }
         wantsPlayback = true
-        player.play()
+        player.playImmediately(atRate: 1.0)
         isPlaying = true
         errorMessage = nil
         updateNowPlayingInfo()

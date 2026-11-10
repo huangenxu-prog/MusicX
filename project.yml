@@ -18,6 +18,8 @@ targets:
       path: MusicX/Info.plist
       properties:
         UILaunchStoryboardName: LaunchScreen
+        UIBackgroundModes:
+          - audio
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.huangenxu.musicx

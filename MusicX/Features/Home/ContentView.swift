@@ -1153,9 +1153,10 @@ struct ContentView: View {
             playbackTask?.cancel()
             playbackRequestID = UUID()
             let requestID = playbackRequestID
-            playerStore.stop()
+            // Keep the current AVPlayer item and Now Playing session alive while
+            // the next stream URL resolves. Stopping here releases lock-screen ownership
+            // and can leave background playback silent during network resolution.
             isResolvingSong = true
-            currentSong = song
             playbackTask = Task {
                 defer {
                     if playbackRequestID == requestID { isResolvingSong = false }
@@ -1163,13 +1164,15 @@ struct ContentView: View {
                 do {
                     let url = try await LXMusicURLResolver().resolve(song: onlineSong, quality: .high)
                     try Task.checkCancellation()
-                    guard playbackRequestID == requestID, currentSong?.id == song.id else { return }
+                    guard playbackRequestID == requestID else { return }
+                    currentSong = song
                     playerStore.play(url: url, title: onlineSong.title, artist: onlineSong.artist,
                                      album: onlineSong.album, artworkURL: onlineSong.artworkURL)
                 } catch is CancellationError {
                     return
                 } catch {
                     guard playbackRequestID == requestID else { return }
+                    isResolvingSong = false
                     searchError = error.localizedDescription
                 }
             }
