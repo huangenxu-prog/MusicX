@@ -14,7 +14,7 @@ private enum MainTab: String, CaseIterable {
     }
 }
 
-private struct DemoSong: Identifiable, Equatable {
+private struct AppSong: Identifiable, Equatable {
     let id: Int
     let title: String
     let artist: String
@@ -43,9 +43,9 @@ struct ContentView: View {
     @State private var searchText = ""
     @FocusState private var searchFieldFocused: Bool
     @State private var libraryFilter: LibraryFilter = .favorites
-    @State private var currentSong: DemoSong?
+    @State private var currentSong: AppSong?
     @StateObject private var playerStore = PlayerStore()
-    @State private var onlineResults: [DemoSong] = []
+    @State private var onlineResults: [AppSong] = []
     @State private var isSearching = false
     @State private var searchError: String?
     @State private var isPlayerPresented = false
@@ -56,26 +56,20 @@ struct ContentView: View {
         Set(favoriteIDs.split(separator: ",").compactMap { Int($0) })
     }
 
-    private var recentSongs: [DemoSong] {
+    private var recentSongs: [AppSong] {
         let ids = recentIDs.split(separator: ",").compactMap { Int($0) }
         return ids.compactMap { id in songs.first { $0.id == id } }
     }
 
-    private let songs: [DemoSong] = [
-        DemoSong(id: 1, title: "夜色之间", artist: "演示歌手 · Demo", album: "蓝色时刻", tint: Color(red: 0.22, green: 0.38, blue: 0.56)),
-        DemoSong(id: 2, title: "慢慢喜欢你", artist: "演示歌手 · Demo", album: "日落以后", tint: Color(red: 0.48, green: 0.29, blue: 0.35)),
-        DemoSong(id: 3, title: "远方来信", artist: "演示歌手 · Demo", album: "留白", tint: Color(red: 0.29, green: 0.43, blue: 0.38)),
-        DemoSong(id: 4, title: "蓝色时刻", artist: "演示歌手 · Demo", album: "蓝色时刻", tint: Color(red: 0.25, green: 0.34, blue: 0.53)),
-        DemoSong(id: 5, title: "日落以后", artist: "演示歌手 · Demo", album: "日落以后", tint: Color(red: 0.53, green: 0.31, blue: 0.22))
-    ]
+    @State private var songs: [AppSong] = []
 
-    private var filteredSongs: [DemoSong] {
+    private var filteredSongs: [AppSong] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return songs }
         return onlineResults
     }
 
-    private var librarySongs: [DemoSong] {
+    private var librarySongs: [AppSong] {
         switch libraryFilter {
         case .favorites: songs.filter { favorites.contains($0.id) }
         case .recent: recentSongs
@@ -107,6 +101,7 @@ struct ContentView: View {
         }
         .preferredColorScheme(.dark)
         .fullScreenCover(isPresented: $isPlayerPresented) { nowPlayingPage }
+        .task { await loadHomeSongs() }
     }
 
     private var homePage: some View {
@@ -171,7 +166,7 @@ struct ContentView: View {
 
     private var newMusicSection: some View {
         VStack(alignment: .leading, spacing: 15) {
-            sectionTitle("新歌速递", detail: "演示数据")
+            sectionTitle("新歌速递", detail: "在线音源")
             ForEach(songs.prefix(3)) { song in
                 songRow(song)
             }
@@ -180,7 +175,7 @@ struct ContentView: View {
 
     private var albumSection: some View {
         VStack(alignment: .leading, spacing: 15) {
-            sectionTitle("热门专辑", detail: "演示内容")
+            sectionTitle("热门专辑", detail: "精选推荐")
             HStack(spacing: 14) {
                 albumTile(title: "蓝色时刻", artist: "演示专辑", color: Color(red: 0.20, green: 0.34, blue: 0.53))
                 albumTile(title: "日落以后", artist: "演示专辑", color: Color(red: 0.53, green: 0.31, blue: 0.22))
@@ -324,7 +319,7 @@ struct ContentView: View {
         }
     }
 
-    private func songRow(_ song: DemoSong, number: String? = nil) -> some View {
+    private func songRow(_ song: AppSong, number: String? = nil) -> some View {
         HStack(spacing: 13) {
             RoundedRectangle(cornerRadius: 12)
                 .fill(LinearGradient(colors: [song.tint, song.tint.opacity(0.45)], startPoint: .topLeading, endPoint: .bottomTrailing))
@@ -462,7 +457,7 @@ struct ContentView: View {
         }.padding(.horizontal, 12).background(MusicXTheme.background.opacity(0.98))
     }
 
-    private func select(_ song: DemoSong) {
+    private func select(_ song: AppSong) {
         if currentSong?.id == song.id {
             playerStore.togglePlayback()
         } else if let onlineSong = song.onlineSong {
@@ -496,8 +491,8 @@ struct ContentView: View {
         let results = (await netease ?? []) + (await qq ?? []) + (await kuwo ?? [])
         guard !Task.isCancelled,
               searchText.trimmingCharacters(in: .whitespacesAndNewlines) == keyword else { return }
-        onlineResults = results.enumerated().map { index, item in
-            DemoSong(id: 10_000 + index, title: item.title, artist: item.artist,
+        onlineResults = results.map { item in
+            AppSong(id: stableSongID(item), title: item.title, artist: item.artist,
                      album: item.album ?? "",
                      tint: item.source == .netease ? MusicXTheme.blue : item.source == .qq ? .purple : .teal,
                      onlineSong: item)
@@ -505,7 +500,31 @@ struct ContentView: View {
         if results.isEmpty { searchError = "当前音源暂未返回结果" }
     }
 
-    private func toggleFavorite(_ song: DemoSong) {
+    @MainActor
+    private func loadHomeSongs() async {
+        guard songs.isEmpty else { return }
+        let service = GDStudioMusicSearchService()
+        var collected: [MusicSong] = []
+        for keyword in ["华语流行", "热门歌曲"] {
+            if let rows = try? await service.search(keyword: keyword, source: .netease, count: 8) {
+                collected.append(contentsOf: rows)
+            }
+        }
+        var seen = Set<String>()
+        songs = collected.filter { seen.insert($0.id).inserted }.map { item in
+            AppSong(id: stableSongID(item), title: item.title, artist: item.artist,
+                    album: item.album ?? "", tint: MusicXTheme.blue, onlineSong: item)
+        }
+    }
+
+    private func stableSongID(_ song: MusicSong) -> Int {
+        let hash = song.id.utf8.reduce(UInt64(14695981039346656037)) {
+            ($0 ^ UInt64($1)) &* 1099511628211
+        }
+        return Int(hash & 0x7FFFFFFFFFFFFFFF)
+    }
+
+    private func toggleFavorite(_ song: AppSong) {
         var ids = favorites
         if ids.contains(song.id) { ids.remove(song.id) }
         else { ids.insert(song.id) }
