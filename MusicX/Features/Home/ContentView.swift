@@ -36,6 +36,7 @@ struct ContentView: View {
     @State private var currentSong: DemoSong?
     @StateObject private var player = PlayerStore()
     @State private var isImportingAudio = false
+    @State private var importError: String?
     @State private var isPlayerPresented = false
     @AppStorage("musicx.favoriteIDs") private var favoriteIDs = "1,3"
     @AppStorage("musicx.recentIDs") private var recentIDs = ""
@@ -94,6 +95,9 @@ struct ContentView: View {
         .fileImporter(isPresented: $isImportingAudio, allowedContentTypes: [.audio], allowsMultipleSelection: false) { result in
             importLocalAudio(result)
         }
+        .alert("无法导入音频", isPresented: Binding(get: { importError != nil }, set: { if !$0 { importError = nil } })) {
+            Button("好", role: .cancel) { importError = nil }
+        } message: { Text(importError ?? "请重试") }
     }
 
     private var homePage: some View {
@@ -237,6 +241,17 @@ struct ContentView: View {
     private var libraryPage: some View {
         VStack(alignment: .leading, spacing: 24) {
             pageHeader("音乐库", subtitle: "你的音乐，保存在本地")
+            Button { isImportingAudio = true } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "plus.circle.fill").font(.system(size: 19))
+                    Text("导入本地音乐").font(.system(size: 16, weight: .semibold))
+                    Spacer()
+                    Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold))
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, 16).frame(height: 54)
+                .background(MusicXTheme.blue.opacity(0.22), in: RoundedRectangle(cornerRadius: 15))
+            }
             HStack(spacing: 8) {
                 ForEach(LibraryFilter.allCases, id: \.self) { filter in
                     Button { libraryFilter = filter } label: {
@@ -474,6 +489,7 @@ struct ContentView: View {
             isPlayerPresented = true
         } catch {
             player.stop()
+            importError = error.localizedDescription
         }
     }
 
