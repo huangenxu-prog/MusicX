@@ -108,7 +108,6 @@ struct ContentView: View {
             }
         }
         .preferredColorScheme(.dark)
-        .sheet(isPresented: $isQueuePresented) { playbackQueueSheet }
         .fullScreenCover(isPresented: $isPlayerPresented) { nowPlayingPage }
         .alert("MusicX 设置", isPresented: $isSettingsAlertPresented) {
             Button("完成", role: .cancel) { }
@@ -583,7 +582,7 @@ struct ContentView: View {
         return CGFloat(min(max(playerStore.currentTime / playerStore.duration, 0), 1))
     }
 
-    @State private var isQueuePresented = false
+    @State private var isQueueInPlayerArea = false
     @State private var isLyricsPresented = false
     @State private var isShuffleEnabled = false
     @State private var repeatMode = 0
@@ -603,7 +602,7 @@ struct ContentView: View {
                         Spacer()
                         Text("正在播放").font(.system(size: 16, weight: .semibold))
                         Spacer()
-                        Button { isQueuePresented = true } label: {
+                        Button { isQueueInPlayerArea.toggle(); isLyricsPresented = false } label: {
                             Image(systemName: "ellipsis").font(.system(size: 19, weight: .semibold))
                         }
                     }
@@ -629,7 +628,6 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(.horizontal, 18)
                     .contentShape(Rectangle())
-                    .onTapGesture { isLyricsPresented.toggle() }
 
                     // Fixed lower controls: track information, timeline and transport.
                     HStack(alignment: .center, spacing: 14) {
@@ -712,12 +710,12 @@ struct ContentView: View {
                                 .foregroundStyle(isShuffleEnabled ? MusicXTheme.blue : .white.opacity(0.65))
                         }
                         Spacer()
-                        Button { isLyricsPresented.toggle() } label: {
+                        Button { isLyricsPresented.toggle(); isQueueInPlayerArea = false } label: {
                             Label("歌词", systemImage: "quote.bubble")
                                 .foregroundStyle(.white.opacity(0.78))
                         }
                         Spacer()
-                        Button { isQueuePresented = true } label: {
+                        Button { isQueueInPlayerArea.toggle(); isLyricsPresented = false } label: {
                             Label("播放队列", systemImage: "list.bullet")
                                 .foregroundStyle(.white.opacity(0.78))
                         }
@@ -835,9 +833,53 @@ struct ContentView: View {
         }.sorted { $0.time < $1.time }
     }
 
+    private var playerQueueContent: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("播放队列").font(.system(size: 20, weight: .bold)).foregroundStyle(.white)
+                Spacer()
+                Text("\(playbackQueue.count) 首").font(.system(size: 12, weight: .medium)).foregroundStyle(MusicXTheme.muted)
+            }
+            .padding(.horizontal, 6)
+            if playbackQueue.isEmpty {
+                Spacer()
+                Text("播放队列为空").font(.system(size: 15)).foregroundStyle(MusicXTheme.muted).frame(maxWidth: .infinity)
+                Spacer()
+            } else {
+                ScrollView(showsIndicators: false) {
+                    LazyVStack(spacing: 8) {
+                        ForEach(playbackQueue) { song in
+                            let active = song.id == currentSong?.id
+                            Button { select(song) } label: {
+                                HStack(spacing: 12) {
+                                    songArtwork(song.onlineSong, tint: song.tint, size: 42)
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(song.title).font(.system(size: 14, weight: .semibold)).foregroundStyle(active ? MusicXTheme.blue : .white).lineLimit(1)
+                                        Text(song.artist).font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
+                                    }
+                                    Spacer(minLength: 4)
+                                    if active { Image(systemName: playerStore.isPlaying ? "waveform" : "pause.fill").font(.system(size: 13, weight: .semibold)).foregroundStyle(MusicXTheme.blue) }
+                                }
+                                .padding(.horizontal, 10).padding(.vertical, 7)
+                                .background(active ? MusicXTheme.blue.opacity(0.14) : .clear, in: RoundedRectangle(cornerRadius: 12))
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.bottom, 8)
+                }
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(MusicXTheme.surface.opacity(0.28), in: RoundedRectangle(cornerRadius: 22))
+    }
     @ViewBuilder
     private var playerVisualContent: some View {
-        if isLyricsPresented {
+        if isQueueInPlayerArea {
+            playerQueueContent
+        } else if isLyricsPresented {
             if lyricLines.isEmpty {
                 VStack(spacing: 12) {
                     Image(systemName: "quote.bubble").font(.system(size: 34, weight: .light)).foregroundStyle(MusicXTheme.blue)
@@ -898,38 +940,6 @@ struct ContentView: View {
         }
         var seen = Set<Int>()
         return items.filter { seen.insert($0.id).inserted }
-    }
-
-    private var playbackQueueSheet: some View {
-        NavigationStack {
-            List {
-                ForEach(playbackQueue) { song in
-                    Button {
-                        select(song)
-                        isQueuePresented = false
-                    } label: {
-                        HStack(spacing: 12) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(song.title).foregroundStyle(.primary).lineLimit(1)
-                                Text(song.artist).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                            }
-                            Spacer()
-                            if song.id == currentSong?.id {
-                                Image(systemName: "waveform").foregroundStyle(MusicXTheme.blue)
-                            }
-                        }
-                    }
-                }
-            }
-            .navigationTitle("播放队列")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("完成") { isQueuePresented = false }
-                }
-            }
-        }
-        .preferredColorScheme(.dark)
     }
 
     private func playerTime(_ time: TimeInterval) -> String {
