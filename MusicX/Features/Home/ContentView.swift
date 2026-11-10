@@ -107,6 +107,7 @@ struct ContentView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .sheet(isPresented: $isQueuePresented) { playbackQueueSheet }
         .fullScreenCover(isPresented: $isPlayerPresented) { nowPlayingPage }
         .alert("MusicX 设置", isPresented: $isSettingsAlertPresented) {
             Button("完成", role: .cancel) { }
@@ -712,7 +713,6 @@ struct ContentView: View {
         }
         .preferredColorScheme(.dark)
         .task(id: currentSong?.id) { await loadPlayerMetadata() }
-        .sheet(isPresented: $isQueuePresented) { playbackQueueSheet }
     }
 
     private var lyricsSheet: some View {
