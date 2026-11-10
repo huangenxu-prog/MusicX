@@ -50,7 +50,9 @@ struct GDStudioMusicSearchService {
                 artworkURL: nil,
                 duration: nil,
                 hash: row["hash"] as? String,
-                albumID: row["album_id"].map { String(describing: $0) }
+                albumID: row["album_id"].map { String(describing: $0) },
+                pictureID: row["pic_id"].map { String(describing: $0) },
+                lyricID: row["lyric_id"].map { String(describing: $0) }
             )
         }
     }
