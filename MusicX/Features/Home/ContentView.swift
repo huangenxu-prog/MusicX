@@ -660,7 +660,7 @@ struct ContentView: View {
                 ScrollViewReader { proxy in
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 18) {
-                            ForEach(Array(lyricLines.enumerated()), id: \\.element.id) { index, line in
+                            ForEach(Array(lyricLines.enumerated()), id: \.element.id) { index, line in
                                 Text(line.text).font(.system(size: index == activeLyricIndex ? 19 : 14, weight: index == activeLyricIndex ? .bold : .medium))
                                     .foregroundStyle(index == activeLyricIndex ? .white : MusicXTheme.muted).multilineTextAlignment(.center).frame(maxWidth: .infinity).id(line.id)
                             }
