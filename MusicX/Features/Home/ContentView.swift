@@ -413,6 +413,7 @@ struct ContentView: View {
 
     private var nowPlayingPage: some View {
         GeometryReader { geometry in
+            let artworkSize = min(geometry.size.width - 64, geometry.size.height * 0.43)
             VStack(spacing: 0) {
                 HStack {
                     Button { isPlayerPresented = false } label: {
@@ -427,42 +428,42 @@ struct ContentView: View {
                 .padding(.horizontal, 26)
                 .padding(.top, 12)
 
-                Spacer(minLength: 22)
+                Spacer(minLength: 18)
 
                 playerArtwork
-                    .frame(width: min(geometry.size.width - 64, geometry.size.height * 0.48),
-                           height: min(geometry.size.width - 64, geometry.size.height * 0.48))
-                    .clipShape(RoundedRectangle(cornerRadius: 34, style: .continuous))
-                    .shadow(color: (currentSong?.tint ?? MusicXTheme.blue).opacity(0.16), radius: 28, y: 12)
+                    .frame(width: artworkSize, height: artworkSize)
+                    .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
+                    .shadow(color: (currentSong?.tint ?? MusicXTheme.blue).opacity(0.20), radius: 28, y: 12)
 
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(alignment: .center, spacing: 14) {
-                        VStack(alignment: .leading, spacing: 7) {
-                            Text(currentSong?.title ?? "尚未选择歌曲")
-                                .font(.system(size: 27, weight: .bold))
-                                .foregroundStyle(.white)
+                HStack(alignment: .center, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 7) {
+                        Text(currentSong?.title ?? "尚未选择歌曲")
+                            .font(.system(size: 27, weight: .bold))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                        Text(currentSong?.artist ?? "选择一首歌曲开始聆听")
+                            .font(.system(size: 16))
+                            .foregroundStyle(MusicXTheme.muted)
+                            .lineLimit(1)
+                        if let album = currentSong?.album, !album.isEmpty {
+                            Text(album)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(.white.opacity(0.48))
                                 .lineLimit(1)
-                            Text(currentSong?.artist ?? "选择一首歌曲开始聆听")
-                                .font(.system(size: 16))
-                                .foregroundStyle(MusicXTheme.muted)
-                                .lineLimit(1)
-                            if let album = currentSong?.album, !album.isEmpty {
-                                Text(album).font(.system(size: 12)).foregroundStyle(.white.opacity(0.42)).lineLimit(1)
-                            }
                         }
-                        Spacer(minLength: 4)
-                        Button { if let currentSong { toggleFavorite(currentSong) } } label: {
-                            Image(systemName: currentSong.map { favorites.contains($0.id) } == true ? "heart.fill" : "heart")
-                                .font(.system(size: 23, weight: .medium))
-                                .foregroundStyle(currentSong.map { favorites.contains($0.id) } == true ? MusicXTheme.blue : .white.opacity(0.82))
-                        }
-                        .disabled(currentSong == nil)
                     }
+                    Spacer(minLength: 4)
+                    Button { if let currentSong { toggleFavorite(currentSong) } } label: {
+                        Image(systemName: currentSong.map { favorites.contains($0.id) } == true ? "heart.fill" : "heart")
+                            .font(.system(size: 24, weight: .medium))
+                            .foregroundStyle(currentSong.map { favorites.contains($0.id) } == true ? MusicXTheme.blue : .white.opacity(0.82))
+                    }
+                    .disabled(currentSong == nil)
                 }
                 .padding(.horizontal, 28)
-                .padding(.top, 28)
+                .padding(.top, 25)
 
-                VStack(spacing: 8) {
+                VStack(spacing: 7) {
                     Slider(value: Binding(
                         get: { playerStore.duration > 0 ? min(playerStore.currentTime, playerStore.duration) : 0 },
                         set: { playerStore.seek(to: $0) }
@@ -472,24 +473,24 @@ struct ContentView: View {
                     HStack {
                         Text(playerTime(playerStore.currentTime))
                         Spacer()
-                        Text("-" + playerTime(max(0, playerStore.duration - playerStore.currentTime)))
+                        Text(playerTime(playerStore.duration))
                     }
                     .font(.system(size: 12, weight: .medium, design: .rounded))
                     .foregroundStyle(MusicXTheme.muted)
                 }
                 .padding(.horizontal, 28)
-                .padding(.top, 28)
+                .padding(.top, 22)
 
                 HStack(spacing: 0) {
                     Button { isShuffleEnabled.toggle() } label: {
                         Image(systemName: "shuffle")
-                            .font(.system(size: 19, weight: .semibold))
+                            .font(.system(size: 18, weight: .semibold))
                             .foregroundStyle(isShuffleEnabled ? MusicXTheme.blue : .white.opacity(0.55))
                             .frame(maxWidth: .infinity)
                     }
                     Button { stepSong(by: -1) } label: {
-                        Image(systemName: "backward.end.fill").font(.system(size: 27))
-                            .foregroundStyle(.white)
+                        Image(systemName: "backward.end.fill")
+                            .font(.system(size: 27)).foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
                     }
                     Button { if currentSong != nil { playerStore.togglePlayback() } } label: {
@@ -501,41 +502,41 @@ struct ContentView: View {
                     }
                     .frame(maxWidth: .infinity)
                     Button { stepSong(by: 1) } label: {
-                        Image(systemName: "forward.end.fill").font(.system(size: 27))
-                            .foregroundStyle(.white)
+                        Image(systemName: "forward.end.fill")
+                            .font(.system(size: 27)).foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
                     }
                     Button { repeatMode = (repeatMode + 1) % 3 } label: {
                         Image(systemName: repeatMode == 2 ? "repeat.1" : "repeat")
-                            .font(.system(size: 19, weight: .semibold))
+                            .font(.system(size: 18, weight: .semibold))
                             .foregroundStyle(repeatMode == 0 ? .white.opacity(0.55) : MusicXTheme.blue)
                             .frame(maxWidth: .infinity)
                     }
                 }
                 .padding(.horizontal, 18)
-                .padding(.top, 32)
+                .padding(.top, 25)
 
                 HStack {
-                    Button {} label: {
+                    Button { isLyricsPresented = true } label: {
                         Label("歌词", systemImage: "quote.bubble")
                             .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(.white.opacity(0.68))
+                            .foregroundStyle(.white.opacity(0.72))
                     }
                     Spacer()
                     Button { isQueuePresented = true } label: {
                         Label("播放队列", systemImage: "list.bullet")
                             .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(.white.opacity(0.68))
+                            .foregroundStyle(.white.opacity(0.72))
                     }
                 }
                 .padding(.horizontal, 30)
-                .padding(.top, 24)
-                Spacer(minLength: 18)
+                .padding(.top, 22)
+                Spacer(minLength: 12)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background {
                 LinearGradient(colors: [
-                    (currentSong?.tint ?? MusicXTheme.blue).opacity(0.34),
+                    (currentSong?.tint ?? MusicXTheme.blue).opacity(0.38),
                     Color(red: 0.035, green: 0.065, blue: 0.11),
                     MusicXTheme.background
                 ], startPoint: .top, endPoint: .bottom)
@@ -544,6 +545,35 @@ struct ContentView: View {
         }
         .preferredColorScheme(.dark)
         .sheet(isPresented: $isQueuePresented) { playbackQueueSheet }
+        .sheet(isPresented: $isLyricsPresented) { lyricsSheet }
+    }
+
+    private var lyricsSheet: some View {
+        NavigationStack {
+            ZStack {
+                MusicXTheme.background.ignoresSafeArea()
+                VStack(spacing: 14) {
+                    Image(systemName: "quote.bubble")
+                        .font(.system(size: 34, weight: .light))
+                        .foregroundStyle(MusicXTheme.blue)
+                    Text(currentSong?.title ?? "歌词")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(.white)
+                    Text("歌词服务尚未接入，后续会在这里显示逐行歌词。")
+                        .font(.system(size: 14))
+                        .foregroundStyle(MusicXTheme.muted)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(30)
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("完成") { isLyricsPresented = false }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .preferredColorScheme(.dark)
     }
 
     @ViewBuilder
