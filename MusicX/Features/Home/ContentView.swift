@@ -1194,9 +1194,9 @@ struct ContentView: View {
         searchError = nil
         defer { isSearching = false }
         let service = GDStudioMusicSearchService()
-        async let netease = try? service.search(keyword: keyword, source: .netease, count: 5)
-        async let qq = try? service.search(keyword: keyword, source: .qq, count: 5)
-        async let kuwo = try? service.search(keyword: keyword, source: .kuwo, count: 5)
+        async let netease = try? service.search(keyword: keyword, source: .netease, count: 20)
+        async let qq = try? service.search(keyword: keyword, source: .qq, count: 20)
+        async let kuwo = try? service.search(keyword: keyword, source: .kuwo, count: 20)
         let results = (await netease ?? []) + (await qq ?? []) + (await kuwo ?? [])
         guard !Task.isCancelled,
               searchText.trimmingCharacters(in: .whitespacesAndNewlines) == keyword else { return }
