@@ -593,9 +593,6 @@ struct ContentView: View {
 
     private var nowPlayingPage: some View {
         GeometryReader { geometry in
-            // Keep the cover near the upper-middle of the screen instead of letting
-            // a flexible Spacer push it down toward the transport controls.
-            let artworkSize = min(geometry.size.width - 64, geometry.size.height * 0.34)
             ZStack {
                 playerArtwork
                     .frame(width: geometry.size.width + 100, height: geometry.size.height + 100)
@@ -604,6 +601,7 @@ struct ContentView: View {
                     .ignoresSafeArea()
 
                 VStack(spacing: 0) {
+                    // Fixed top navigation.
                     HStack {
                         Button { isPlayerPresented = false } label: {
                             Image(systemName: "chevron.down")
@@ -620,16 +618,27 @@ struct ContentView: View {
                     .padding(.horizontal, 26)
                     .padding(.top, 8)
 
-                    Color.clear
-                        .frame(height: max(22, geometry.size.height * 0.045))
+                    // The entire middle region is reserved for artwork or lyrics.
+                    // Artwork stays square and centered; lyrics use the full available region.
+                    GeometryReader { contentGeometry in
+                        if isLyricsPresented {
+                            playerVisualContent
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        } else {
+                            let artworkSize = min(contentGeometry.size.width - 48, contentGeometry.size.height - 20)
+                            playerVisualContent
+                                .frame(width: max(0, artworkSize), height: max(0, artworkSize))
+                                .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
+                                .shadow(color: (currentSong?.tint ?? MusicXTheme.blue).opacity(0.28), radius: 30, y: 14)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.horizontal, 18)
+                    .contentShape(Rectangle())
+                    .onTapGesture { isLyricsPresented.toggle() }
 
-                    playerVisualContent
-                        .frame(width: artworkSize, height: artworkSize)
-                        .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
-                        .shadow(color: (currentSong?.tint ?? MusicXTheme.blue).opacity(0.28), radius: 30, y: 14)
-                        .contentShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
-                        .onTapGesture { isLyricsPresented.toggle() }
-
+                    // Fixed lower controls: track information, timeline and transport.
                     HStack(alignment: .center, spacing: 14) {
                         VStack(alignment: .leading, spacing: 7) {
                             Text(currentSong?.title ?? "尚未选择歌曲")
@@ -665,7 +674,7 @@ struct ContentView: View {
                         .disabled(currentSong == nil)
                     }
                     .padding(.horizontal, 28)
-                    .padding(.top, 12)
+                    .padding(.top, 10)
 
                     VStack(spacing: 5) {
                         Slider(value: Binding(
@@ -702,7 +711,7 @@ struct ContentView: View {
                         }
                     }
                     .padding(.horizontal, 28)
-                    .padding(.top, 12)
+                    .padding(.top, 10)
 
                     HStack {
                         Button { isShuffleEnabled.toggle() } label: {
