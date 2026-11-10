@@ -39,6 +39,11 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             archive
 
+      - name: Verify archived background audio configuration
+        run: |
+          /usr/libexec/PlistBuddy -c 'Print :UIBackgroundModes' build/MusicX.xcarchive/Products/Applications/MusicX.app/Info.plist
+          /usr/libexec/PlistBuddy -c 'Print :UIBackgroundModes:0' build/MusicX.xcarchive/Products/Applications/MusicX.app/Info.plist | grep -qx audio
+
       - name: Package unsigned IPA
         run: |
           mkdir -p build/ipa/Payload

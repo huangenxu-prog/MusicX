@@ -15,6 +15,7 @@ final class PlayerStore: ObservableObject {
     @Published private(set) var currentTime: TimeInterval = 0
     @Published private(set) var duration: TimeInterval = 0
     @Published private(set) var errorMessage: String?
+    @Published private(set) var playbackDiagnostics = "等待播放"
 
     private let player = AVPlayer()
     private var timeObserver: Any?
@@ -30,12 +31,71 @@ final class PlayerStore: ObservableObject {
     private var artworkImage: UIImage?
     private var artworkTask: Task<Void, Never>?
     private var artworkRequestID = UUID()
+    private var playerStatusObservation: NSKeyValueObservation?
+    private var itemStatusObservation: NSKeyValueObservation?
+    private var lifecycleObservers: [NSObjectProtocol] = []
+
+    var diagnosticFileURL: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("MusicX-Playback-Diagnostics.txt")
+    }
+
+    private func recordDiagnostic(_ event: String) {
+        let session = AVAudioSession.sharedInstance()
+        let itemStatus = player.currentItem?.status.rawValue ?? -1
+        let timeStatus = player.timeControlStatus.rawValue
+        let seconds = player.currentTime().seconds
+        let route = session.currentRoute.outputs.map { $0.portType.rawValue }.joined(separator: ",")
+        let line = "[\(ISO8601DateFormatter().string(from: Date()))] \(event) | player=\(timeStatus) item=\(itemStatus) time=\(seconds.isFinite ? String(format: "%.1f", seconds) : "n/a") wants=\(wantsPlayback) session=\(session.category.rawValue)/\(session.mode.rawValue) otherAudio=\(session.isOtherAudioPlaying) route=\(route)\n"
+        playbackDiagnostics = "\(event) · player \(timeStatus) / item \(itemStatus)"
+        if !FileManager.default.fileExists(atPath: diagnosticFileURL.path) {
+            FileManager.default.createFile(atPath: diagnosticFileURL.path, contents: nil)
+        }
+        if let handle = try? FileHandle(forWritingTo: diagnosticFileURL) {
+            try? handle.seekToEnd()
+            try? handle.write(contentsOf: Data(line.utf8))
+            try? handle.close()
+        }
+    }
+
+    private func observeCurrentItem(_ item: AVPlayerItem) {
+        itemStatusObservation = item.observe(\.status, options: [.initial, .new]) { [weak self] item, _ in
+            Task { @MainActor [weak self] in
+                let error = item.error?.localizedDescription ?? "no-error"
+                self?.recordDiagnostic("item-status=\(item.status.rawValue) \(error)")
+            }
+        }
+    }
 
     init() {
         player.audiovisualBackgroundPlaybackPolicy = .continuesIfPossible
         UIApplication.shared.beginReceivingRemoteControlEvents()
         configureAudioSession()
         configureRemoteCommands()
+        playerStatusObservation = player.observe(\.timeControlStatus, options: [.initial, .new]) { [weak self] player, _ in
+            Task { @MainActor [weak self] in
+                self?.recordDiagnostic("player-time-control=\(player.timeControlStatus.rawValue)")
+            }
+        }
+        let center = NotificationCenter.default
+        lifecycleObservers.append(center.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor [weak self] in self?.recordDiagnostic("app-did-enter-background") }
+        })
+        lifecycleObservers.append(center.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor [weak self] in self?.recordDiagnostic("app-will-enter-foreground") }
+        })
+        lifecycleObservers.append(center.addObserver(forName: AVAudioSession.routeChangeNotification, object: nil, queue: .main) { [weak self] note in
+            let reason = (note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt).map(String.init) ?? "unknown"
+            Task { @MainActor [weak self] in self?.recordDiagnostic("audio-route-change=\(reason)") }
+        })
+        lifecycleObservers.append(center.addObserver(forName: AVAudioSession.mediaServicesWereResetNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.recordDiagnostic("media-services-reset")
+                self.configureAudioSession()
+                if self.wantsPlayback { self.resume() }
+            }
+        })
 
         let interval = CMTime(seconds: 0.5, preferredTimescale: 600)
         timeObserver = player.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
@@ -99,10 +159,12 @@ final class PlayerStore: ObservableObject {
 
         switch type {
         case .began:
+            recordDiagnostic("audio-interruption-began")
             // Keep the intent separate from AVPlayer's transient state.
             isPlaying = false
             updateNowPlayingInfo()
         case .ended:
+            recordDiagnostic("audio-interruption-ended")
             let rawOptions = userInfo[AVAudioSessionInterruptionOptionKey] as? UInt ?? 0
             let options = AVAudioSession.InterruptionOptions(rawValue: rawOptions)
             if wantsPlayback && options.contains(.shouldResume) {
@@ -191,10 +253,13 @@ final class PlayerStore: ObservableObject {
         wantsPlayback = true
         hasPublishedDuration = false
         configureAudioSession()
-        player.replaceCurrentItem(with: AVPlayerItem(url: url))
+        let item = AVPlayerItem(url: url)
+        observeCurrentItem(item)
+        player.replaceCurrentItem(with: item)
         currentTime = 0
         duration = 0
         isPlaying = true
+        recordDiagnostic("play-request")
         player.playImmediately(atRate: 1.0)
         updateNowPlayingInfo()
     }
@@ -211,6 +276,7 @@ final class PlayerStore: ObservableObject {
             return
         }
         wantsPlayback = true
+        recordDiagnostic("resume-request")
         player.playImmediately(atRate: 1.0)
         isPlaying = true
         errorMessage = nil
@@ -291,5 +357,8 @@ final class PlayerStore: ObservableObject {
         if let endObserver { NotificationCenter.default.removeObserver(endObserver) }
         if let interruptionObserver { NotificationCenter.default.removeObserver(interruptionObserver) }
         for (command, target) in remoteTargets { command.removeTarget(target) }
+        playerStatusObservation = nil
+        itemStatusObservation = nil
+        for observer in lifecycleObservers { NotificationCenter.default.removeObserver(observer) }
     }
 }
