@@ -20,6 +20,7 @@ private struct DemoSong: Identifiable, Equatable {
     let artist: String
     let album: String
     let tint: Color
+    let onlineSong: MusicSong? = nil
 }
 
 private enum LibraryFilter: String, CaseIterable {
@@ -33,7 +34,10 @@ struct ContentView: View {
     @State private var searchText = ""
     @State private var libraryFilter: LibraryFilter = .favorites
     @State private var currentSong: DemoSong?
-    @State private var isPlaying = false
+    @StateObject private var playerStore = PlayerStore()
+    @State private var onlineResults: [DemoSong] = []
+    @State private var isSearching = false
+    @State private var searchError: String?
     @State private var isPlayerPresented = false
     @AppStorage("musicx.favoriteIDs") private var favoriteIDs = "1,3"
     @AppStorage("musicx.recentIDs") private var recentIDs = ""
@@ -58,7 +62,7 @@ struct ContentView: View {
     private var filteredSongs: [DemoSong] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return songs }
-        return songs.filter { $0.title.localizedCaseInsensitiveContains(query) || $0.artist.localizedCaseInsensitiveContains(query) || $0.album.localizedCaseInsensitiveContains(query) }
+        return onlineResults
     }
 
     private var librarySongs: [DemoSong] {
@@ -212,10 +216,10 @@ struct ContentView: View {
                 HStack {
                     Text("搜索结果").font(.system(size: 19, weight: .bold))
                     Spacer()
-                    Text("\(filteredSongs.count) 首").font(.system(size: 13)).foregroundStyle(MusicXTheme.muted)
+                    Text(isSearching ? "搜索中…" : "\(filteredSongs.count) 首").font(.system(size: 13)).foregroundStyle(MusicXTheme.muted)
                 }
                 if filteredSongs.isEmpty {
-                    emptyState(icon: "music.note.list", title: "没有找到相关内容", detail: "试试其他关键词")
+                    emptyState(icon: "music.note.list", title: searchError == nil ? "正在搜索在线音源" : "暂时没有搜索结果", detail: searchError ?? "请稍候")
                 } else {
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 17) {
@@ -227,6 +231,13 @@ struct ContentView: View {
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 22).padding(.top, 28)
+        .task(id: searchText) {
+            let keyword = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !keyword.isEmpty else { onlineResults = []; searchError = nil; return }
+            try? await Task.sleep(for: .milliseconds(450))
+            guard !Task.isCancelled else { return }
+            await searchOnline(keyword)
+        }
     }
 
     private var libraryPage: some View {
@@ -303,7 +314,7 @@ struct ContentView: View {
                     .font(.system(size: 17)).foregroundStyle(favorites.contains(song.id) ? MusicXTheme.blue : MusicXTheme.muted)
             }
             Button { select(song) } label: {
-                Image(systemName: currentSong?.id == song.id && isPlaying ? "pause.circle.fill" : "play.circle")
+                Image(systemName: currentSong?.id == song.id && playerStore.isPlaying ? "pause.circle.fill" : "play.circle")
                     .font(.system(size: 25)).foregroundStyle(.white.opacity(0.85))
             }
         }
@@ -426,15 +437,45 @@ struct ContentView: View {
 
     private func select(_ song: DemoSong) {
         if currentSong?.id == song.id {
-            isPlaying.toggle()
+            playerStore.togglePlayback()
+        } else if let onlineSong = song.onlineSong {
+            currentSong = song
+            Task {
+                do {
+                    let url = try await LXMusicURLResolver().resolve(song: onlineSong, quality: .high)
+                    playerStore.play(url: url, title: onlineSong.title, artist: onlineSong.artist)
+                } catch {
+                    searchError = error.localizedDescription
+                }
+            }
         } else {
             currentSong = song
-            isPlaying = true
         }
         var ids = recentIDs.split(separator: ",").compactMap { Int($0) }
         ids.removeAll { $0 == song.id }
         ids.insert(song.id, at: 0)
         recentIDs = ids.prefix(30).map { String($0) }.joined(separator: ",")
+    }
+
+    @MainActor
+    private func searchOnline(_ keyword: String) async {
+        isSearching = true
+        searchError = nil
+        defer { isSearching = false }
+        let service = GDStudioMusicSearchService()
+        async let netease = try? service.search(keyword: keyword, source: .netease, count: 5)
+        async let qq = try? service.search(keyword: keyword, source: .qq, count: 5)
+        async let kuwo = try? service.search(keyword: keyword, source: .kuwo, count: 5)
+        let results = (await netease ?? []) + (await qq ?? []) + (await kuwo ?? [])
+        guard !Task.isCancelled,
+              searchText.trimmingCharacters(in: .whitespacesAndNewlines) == keyword else { return }
+        onlineResults = results.enumerated().map { index, item in
+            DemoSong(id: 10_000 + index, title: item.title, artist: item.artist,
+                     album: item.album ?? "",
+                     tint: item.source == .netease ? MusicXTheme.blue : item.source == .qq ? .purple : .teal,
+                     onlineSong: item)
+        }
+        if results.isEmpty { searchError = "当前音源暂未返回结果" }
     }
 
     private func toggleFavorite(_ song: DemoSong) {
