@@ -5,8 +5,7 @@ let source = URL(fileURLWithPath: "MusicX/Assets.xcassets/AppIcon.appiconset/App
 let destination = URL(fileURLWithPath: "MusicX/Assets.xcassets/AppIcon.appiconset/AppIcon.png")
 guard let image = NSImage(contentsOf: source),
       let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil),
-      let bitmap = NSBitmapImageRep(cgImage: cgImage),
-      let data = bitmap.representation(using: .png, properties: [:]) else {
+      let data = NSBitmapImageRep(cgImage: cgImage).representation(using: .png, properties: [:]) else {
     fatalError("Unable to rasterize AppIcon.svg")
 }
 try data.write(to: destination)
