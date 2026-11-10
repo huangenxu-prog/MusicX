@@ -50,6 +50,8 @@ struct ContentView: View {
     @State private var searchError: String?
     @State private var isPlayerPresented = false
     @State private var playbackRequestID = UUID()
+    @State private var playbackTask: Task<Void, Never>?
+    @State private var playbackQueueSongs: [AppSong] = []
     @State private var isResolvingSong = false
     @AppStorage("musicx.favoriteIDs") private var favoriteIDs = "1,3"
     @AppStorage("musicx.recentIDs") private var recentIDs = ""
@@ -121,6 +123,9 @@ struct ContentView: View {
                 isPlaying: playerStore.isPlaying,
                 onTogglePlayback: { playerStore.togglePlayback() },
                 onOpenPlayer: { isPlayerPresented = true },
+                onQueueChanged: { playbackQueueSongs = $0.map { AppSong(id: stableSongID($0), title: $0.title, artist: $0.artist, album: $0.album ?? "", tint: MusicXTheme.blue, onlineSong: $0) } },
+                currentTime: playerStore.currentTime,
+                duration: playerStore.duration,
                 onOpenPlaylist: { discoveryRoute = .playlist($0) })
         }
         .task { await loadHomeSongs() }
@@ -573,7 +578,7 @@ struct ContentView: View {
 
     private var nowPlayingPage: some View {
         GeometryReader { geometry in
-            let artworkSize = min(geometry.size.width - 48, geometry.size.height * 0.38)
+            let artworkSize = min(geometry.size.width - 36, geometry.size.height * 0.45)
             ZStack {
                 playerArtwork
                     .frame(width: geometry.size.width + 100, height: geometry.size.height + 100)
@@ -598,7 +603,7 @@ struct ContentView: View {
                     .padding(.horizontal, 26)
                     .padding(.top, 8)
 
-                    Spacer(minLength: 8)
+                    Spacer(minLength: 10)
 
                     playerVisualContent
                         .frame(width: artworkSize, height: artworkSize)
@@ -704,9 +709,8 @@ struct ContentView: View {
                     }
                     .font(.system(size: 13, weight: .medium))
                     .padding(.horizontal, 34)
-                    .padding(.top, 16)
-
-                    Spacer(minLength: 8)
+                    .padding(.top, 12)
+                    .padding(.bottom, 8)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -907,9 +911,10 @@ struct ContentView: View {
     }
 
     private func stepSong(by offset: Int) {
-        guard !songs.isEmpty else { return }
-        let index = songs.firstIndex(where: { $0.id == currentSong?.id }) ?? 0
-        select(songs[(index + offset + songs.count) % songs.count])
+        let queue = playbackQueueSongs.isEmpty ? songs : playbackQueueSongs
+        guard !queue.isEmpty else { return }
+        let index = queue.firstIndex(where: { $0.id == currentSong?.id }) ?? 0
+        select(queue[(index + offset + queue.count) % queue.count])
     }
 
     private var tabBar: some View {
@@ -940,20 +945,24 @@ struct ContentView: View {
             else if isResolvingSong { return }
             else { playerStore.resume() }
         } else if let onlineSong = song.onlineSong {
-            // Stop the previous item before any network lookup for the new track.
+            // Cancel URL lookups for the previous selection and silence it immediately.
+            playbackTask?.cancel()
             playbackRequestID = UUID()
             let requestID = playbackRequestID
             playerStore.stop()
             isResolvingSong = true
             currentSong = song
-            Task {
+            playbackTask = Task {
                 defer {
                     if playbackRequestID == requestID { isResolvingSong = false }
                 }
                 do {
                     let url = try await LXMusicURLResolver().resolve(song: onlineSong, quality: .high)
+                    try Task.checkCancellation()
                     guard playbackRequestID == requestID, currentSong?.id == song.id else { return }
                     playerStore.play(url: url, title: onlineSong.title, artist: onlineSong.artist)
+                } catch is CancellationError {
+                    return
                 } catch {
                     guard playbackRequestID == requestID else { return }
                     searchError = error.localizedDescription
