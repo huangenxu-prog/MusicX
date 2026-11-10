@@ -408,6 +408,7 @@ struct ContentView: View {
     }
 
     @State private var isQueuePresented = false
+    @State private var isLyricsPresented = false
     @State private var isShuffleEnabled = false
     @State private var repeatMode = 0
 
