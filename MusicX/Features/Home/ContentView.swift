@@ -733,7 +733,6 @@ struct ContentView: View {
                     .padding(.bottom, 8)
                 }
                 .frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
-            }
             .frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
             .background {
                 playerArtwork
