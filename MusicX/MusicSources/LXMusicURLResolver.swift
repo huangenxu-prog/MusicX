@@ -74,14 +74,24 @@ struct LXMusicURLResolver: MusicURLResolving {
     }
 
     private func isTransientNetworkError(_ error: Error) -> Bool {
-        guard let urlError = error as? URLError else { return false }
-        switch urlError.code {
-        case .timedOut, .networkConnectionLost, .cannotConnectToHost,
-             .notConnectedToInternet, .dnsLookupFailed, .cannotFindHost:
-            return true
-        default:
-            return false
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .timedOut, .networkConnectionLost, .cannotConnectToHost,
+                 .notConnectedToInternet, .dnsLookupFailed, .cannotFindHost:
+                return true
+            default:
+                return false
+            }
         }
+
+        // Treat rate limiting and server-side failures as transient. Do not retry
+        // ordinary 4xx responses, which generally indicate a permanent request issue.
+        if case MusicSourceError.invalidResponse(let message) = error,
+           message.hasPrefix("HTTP "),
+           let status = Int(message.dropFirst(5)) {
+            return status == 429 || (500...599).contains(status)
+        }
+        return false
     }
 
     private struct Backend {
