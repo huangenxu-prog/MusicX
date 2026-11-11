@@ -289,7 +289,7 @@ struct ContentView: View {
                             .overlay(Circle().stroke(.white.opacity(0.32), lineWidth: 1))
                     }.buttonStyle(.plain)
                 }
-                .padding(.top, 18)
+                .padding(.top, 24)
                 .padding(.trailing, 16)
                 .frame(maxWidth: .infinity, alignment: .trailing)
             }
