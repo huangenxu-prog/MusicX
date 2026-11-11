@@ -752,8 +752,8 @@ struct ContentView: View {
                         }
                     }
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(currentSong?.title ?? "尚未播放").font(.system(size: 13, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
-                        Text(currentSong?.artist ?? "选择一首歌曲开始聆听").font(.system(size: 10)).foregroundStyle(.white.opacity(0.70)).lineLimit(1)
+                        Text(currentSong?.title ?? "尚未播放").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
+                        Text(currentSong?.artist ?? "选择一首歌曲开始聆听").font(.system(size: 11)).foregroundStyle(.white.opacity(0.70)).lineLimit(1)
                     }
                 }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
             }.buttonStyle(.plain)
@@ -1289,7 +1289,7 @@ struct ContentView: View {
                             .symbolEffect(.bounce, value: selectedTab == tab)
                             .shadow(color: selectedTab == tab ? Color.cyan.opacity(0.78) : .clear,
                                     radius: selectedTab == tab ? 8 : 0, y: 0)
-                        Text(tab.rawValue).font(.system(size: 12, weight: .semibold)).frame(height: 15)
+                        Text(tab.rawValue).font(.system(size: 13, weight: .semibold)).frame(height: 15)
                             .shadow(color: selectedTab == tab ? Color.cyan.opacity(0.55) : .clear,
                                     radius: selectedTab == tab ? 6 : 0, y: 0)
                     }
