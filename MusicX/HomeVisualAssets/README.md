@@ -1,18 +1,12 @@
 # MusicX Home Visual Assets
 
-The generated Xcode asset pack is provided separately as `MusicX_Home_Assets_Xcode.zip`.
+The current homepage branch uses one vector artwork sheet and a small SwiftUI crop view:
 
-Extract the archive and copy each `*.imageset` directory into the existing `MusicX/Assets.xcassets/` directory. Do not replace the existing asset catalog; merge the image-set folders into it.
+- `MusicX/Assets.xcassets/HomeArtworkSheet.imageset/`
+- `MusicX/Features/Home/HomeArtwork.swift`
 
-The SwiftUI home screen references these asset names:
+The sheet contains 24 distinct artwork tiles. `HomeArtwork(name:)` crops the correct tile for the homepage card's aspect ratio. The asset names are listed in `HomeArtwork.swift`.
 
-- `home_hero`
-- `daily_recommend`, `featured_playlist`
-- `chart_hot`, `chart_rising`, `chart_new`
-- `album_01` through `album_05`
-- `playlist_relax`, `playlist_night`, `playlist_drive`
-- `song_01` through `song_06`
-- `guess_01` through `guess_03`
-- `player_cover`
+A separate high-resolution photographic pack is available as `MusicX_Home_Assets_Xcode.zip`. It contains individual JPG image sets for replacing the vector artwork when the photographic art direction is ready to be wired into the app. Do not copy it over the existing asset catalog; merge only the selected image sets.
 
-No build or IPA release is triggered by this documentation change.
+No build, IPA, release, or main-branch update is performed by these changes.
