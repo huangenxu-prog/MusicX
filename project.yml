@@ -25,6 +25,8 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.huangenxu.musicx
         MARKETING_VERSION: "1.10"
         CURRENT_PROJECT_VERSION: "110"
+        INFOPLIST_KEY_CFBundleShortVersionString: "1.10"
+        INFOPLIST_KEY_CFBundleVersion: "110"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_KEY_UILaunchStoryboardName: LaunchScreen
