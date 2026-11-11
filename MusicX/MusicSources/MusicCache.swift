@@ -66,6 +66,12 @@ actor MusicCache {
         for url in files {
             let values = try? url.resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey])
             let size = values?.fileSize ?? 0
+            if let data = try? Data(contentsOf: url),
+               let entry = try? JSONDecoder().decode(Entry.self, from: data),
+               entry.expiresAt <= Date() {
+                try? FileManager.default.removeItem(at: url)
+                continue
+            }
             total += size
             candidates.append((url, values?.contentModificationDate ?? .distantPast, size))
         }
