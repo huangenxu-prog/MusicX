@@ -309,6 +309,9 @@ struct ContentView: View {
             .resizable()
             .aspectRatio(1536.0 / 564.0, contentMode: .fit)
             .frame(maxWidth: .infinity)
+            // Extend the banner into the status-bar safe area without moving its bottom edge.
+            .scaleEffect(x: 1, y: 1.10, anchor: .top)
+            .offset(y: -15)
             .clipped()
             .accessibilityLabel("发现音乐，好音乐，总在心里")
     }
