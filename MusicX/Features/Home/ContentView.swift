@@ -820,8 +820,12 @@ struct ContentView: View {
                             ),
                             in: 0...max(playerStore.duration, 1),
                             onEditingChanged: { editing in
-                                isSeekingProgress = editing
-                                if !editing {
+                                if editing {
+                                    // Start the preview thumb at the actual playback position.
+                                    seekPreviewTime = min(playerStore.currentTime, playerStore.duration)
+                                    isSeekingProgress = true
+                                } else {
+                                    isSeekingProgress = false
                                     playerStore.seek(to: seekPreviewTime)
                                 }
                             }
@@ -829,7 +833,7 @@ struct ContentView: View {
                         .tint(MusicXTheme.blue)
                         .disabled(playerStore.duration <= 0)
                         HStack {
-                            Text(playerTime(playerStore.currentTime))
+                            Text(playerTime(isSeekingProgress ? seekPreviewTime : playerStore.currentTime))
                             Spacer()
                             Text(playerTime(playerStore.duration))
                         }
