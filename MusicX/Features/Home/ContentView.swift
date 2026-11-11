@@ -187,8 +187,8 @@ struct ContentView: View {
                     miniPlayer
                     tabBar
                 }
-                .padding(.top, 6)
-                .padding(.bottom, 2)
+                .padding(.top, 8)
+                .padding(.bottom, 0)
                 .background {
                     LinearGradient(colors: [MusicXTheme.background.opacity(0.02), MusicXTheme.background.opacity(0.78)],
                                    startPoint: .top, endPoint: .bottom)
@@ -378,7 +378,7 @@ struct ContentView: View {
 
     private func staticAlbumTile(index: Int, width: CGFloat) -> some View {
         let titles = ["DUO", "最伟大的作品", "宇宙的有趣", "A-Lin", "幼鸟指南"]
-        let artists = ["陈奕迅", "周杰伦", "告五人", "A-Lin", "毛不易"]
+        let artists = ["陈奕迅", "周杰伦", "告五人", "LINK", "毛不易"]
         return Button { discoveryRoute = .album(title: titles[index], artist: artists[index]) } label: {
             ZStack(alignment: .bottomLeading) {
                 HomeArtwork(name: "album_0\(index + 1)")
