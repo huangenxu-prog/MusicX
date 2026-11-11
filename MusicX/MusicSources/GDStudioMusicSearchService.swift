@@ -11,7 +11,7 @@ struct GDStudioMusicSearchService {
     func search(keyword: String, source: MusicSource, page: Int = 1, count: Int = 20, albumOnly: Bool = false) async throws -> [MusicSong] {
         let query = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return [] }
-        let cacheKey = "search|\\(source.rawValue)|\\(query.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current))|\\(page)|\\(count)|\\(albumOnly)"
+        let cacheKey = "search|\(source.rawValue)|\(query.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current))|\(page)|\(count)|\(albumOnly)"
         if let cached: [MusicSong] = await MusicCache.shared.value(for: cacheKey) {
             return cached
         }
