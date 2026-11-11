@@ -294,7 +294,7 @@ struct ContentView: View {
                 forYouSection
             }
             .padding(.top, 0)
-            .padding(.bottom, 24)
+            .padding(.bottom, 8)
         }
         .scrollBounceBehavior(.basedOnSize)
         .ignoresSafeArea(edges: .top)
@@ -311,8 +311,7 @@ struct ContentView: View {
             .frame(maxWidth: .infinity)
             // Extend the banner into the status-bar safe area without moving its bottom edge.
             .scaleEffect(x: 1, y: 1.10, anchor: .top)
-            .offset(y: -15)
-            .clipped()
+            .offset(y: -27)
             .accessibilityLabel("发现音乐，好音乐，总在心里")
     }
 
@@ -522,7 +521,7 @@ struct ContentView: View {
                         }.buttonStyle(.plain)
                     }
                 }.padding(.horizontal, 14)
-            }.frame(height: (UIScreen.main.bounds.width - 52) / 3 + 51)
+            }.frame(height: (UIScreen.main.bounds.width - 52) / 3 + 44)
         }
     }
 
