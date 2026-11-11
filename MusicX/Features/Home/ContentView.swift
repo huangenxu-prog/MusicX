@@ -659,9 +659,15 @@ struct ContentView: View {
                 }
                 .buttonStyle(.plain)
                 Button { if currentSong != nil { playerStore.togglePlayback() } } label: {
-                    Image(systemName: playerStore.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: 19, weight: .semibold)).foregroundStyle(.white)
-                        .frame(width: 42, height: 44)
+                    Group {
+                        if isResolvingSong || playerStore.isBuffering {
+                            ProgressView().tint(.white)
+                        } else {
+                            Image(systemName: playerStore.isPlaying ? "pause.fill" : "play.fill")
+                                .font(.system(size: 19, weight: .semibold)).foregroundStyle(.white)
+                        }
+                    }
+                    .frame(width: 42, height: 44)
                 }
                 .buttonStyle(.plain)
                 .disabled(currentSong == nil)
@@ -849,9 +855,15 @@ struct ContentView: View {
                                 .foregroundStyle(.white).frame(maxWidth: .infinity)
                         }
                         Button { if currentSong != nil { playerStore.togglePlayback() } } label: {
-                            Image(systemName: playerStore.isPlaying ? "pause.fill" : "play.fill")
-                                .font(.system(size: 28, weight: .bold)).foregroundStyle(MusicXTheme.background)
-                                .frame(width: 74, height: 74).background(.white, in: Circle())
+                            Group {
+                                if isResolvingSong || playerStore.isBuffering {
+                                    ProgressView().tint(MusicXTheme.background)
+                                } else {
+                                    Image(systemName: playerStore.isPlaying ? "pause.fill" : "play.fill")
+                                        .font(.system(size: 28, weight: .bold)).foregroundStyle(MusicXTheme.background)
+                                }
+                            }
+                            .frame(width: 74, height: 74).background(.white, in: Circle())
                         }
                         .frame(maxWidth: .infinity)
                         Button { stepSong(by: 1) } label: {

@@ -13,6 +13,7 @@ extension Notification.Name {
 @MainActor
 final class PlayerStore: ObservableObject {
     @Published private(set) var isPlaying = false
+    @Published private(set) var isBuffering = false
     @Published private(set) var currentTime: TimeInterval = 0
     @Published private(set) var duration: TimeInterval = 0
     @Published private(set) var errorMessage: String?
@@ -69,6 +70,7 @@ final class PlayerStore: ObservableObject {
                     self.wantsPlayback = false
                     self.player.pause()
                     self.isPlaying = false
+                    self.isBuffering = false
                     self.errorMessage = item.error?.localizedDescription ?? "歌曲加载失败，请尝试重新播放"
                     self.updateNowPlayingInfo()
                 }
@@ -86,6 +88,8 @@ final class PlayerStore: ObservableObject {
                 guard let self else { return }
                 self.recordDiagnostic("player-time-control=\(player.timeControlStatus.rawValue)")
                 let shouldBePlaying = self.wantsPlayback && player.timeControlStatus == .playing
+                let shouldBeBuffering = self.wantsPlayback && player.timeControlStatus == .waitingToPlayAtSpecifiedRate
+                self.isBuffering = shouldBeBuffering
                 if self.isPlaying != shouldBePlaying {
                     self.isPlaying = shouldBePlaying
                     if shouldBePlaying { self.errorMessage = nil }
@@ -276,6 +280,7 @@ final class PlayerStore: ObservableObject {
         currentTime = 0
         duration = 0
         isPlaying = false
+        isBuffering = true
         recordDiagnostic("play-request")
         player.playImmediately(atRate: 1.0)
         updateNowPlayingInfo()
@@ -296,6 +301,7 @@ final class PlayerStore: ObservableObject {
         recordDiagnostic("resume-request")
         player.playImmediately(atRate: 1.0)
         isPlaying = false
+        isBuffering = true
         errorMessage = nil
         updateNowPlayingInfo()
     }
@@ -304,6 +310,7 @@ final class PlayerStore: ObservableObject {
         wantsPlayback = false
         player.pause()
         isPlaying = false
+        isBuffering = false
         currentTime = max(0, player.currentTime().seconds.isFinite ? player.currentTime().seconds : currentTime)
         updateNowPlayingInfo()
     }
@@ -334,6 +341,7 @@ final class PlayerStore: ObservableObject {
         player.replaceCurrentItem(with: nil)
         oldItem?.cancelPendingSeeks()
         isPlaying = false
+        isBuffering = false
         currentTime = 0
         duration = 0
         hasPublishedDuration = false
