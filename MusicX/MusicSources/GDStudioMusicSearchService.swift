@@ -8,7 +8,7 @@ struct GDStudioMusicSearchService {
         self.session = session
     }
 
-    func search(keyword: String, source: MusicSource, page: Int = 1, count: Int = 20) async throws -> [MusicSong] {
+    func search(keyword: String, source: MusicSource, page: Int = 1, count: Int = 20, albumOnly: Bool = false) async throws -> [MusicSong] {
         let query = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return [] }
         let startedAt = Date()
@@ -26,7 +26,7 @@ struct GDStudioMusicSearchService {
         }
         components.queryItems = [
             URLQueryItem(name: "types", value: "search"),
-            URLQueryItem(name: "source", value: gdSource(source)),
+            URLQueryItem(name: "source", value: gdSource(source) + (albumOnly ? "_album" : "")),
             URLQueryItem(name: "name", value: query),
             URLQueryItem(name: "count", value: String(count)),
             URLQueryItem(name: "pages", value: String(page))
