@@ -229,10 +229,10 @@ struct ContentView: View {
                 onTogglePlayback: { playerStore.togglePlayback() },
                 onOpenPlayer: { isPlayerPresented = true },
                 onQueueChanged: { playbackQueueSongs = $0.map { AppSong(id: stableSongID($0), title: $0.title, artist: $0.artist, album: $0.album ?? "", tint: MusicXTheme.blue, onlineSong: $0) }; hasCustomPlaybackQueue = true }, 
-                onSelectChart: { discoveryRoute = .chart($0) },
                 currentTime: playerStore.currentTime,
                 duration: playerStore.duration,
-                onOpenPlaylist: { discoveryRoute = .playlist($0) })
+                onOpenPlaylist: { discoveryRoute = .playlist($0) },
+                onSelectChart: { discoveryRoute = .chart($0) })
         }
         .task { await loadHomeSongs() }
     }
