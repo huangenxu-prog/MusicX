@@ -263,7 +263,7 @@ struct ContentView: View {
             ZStack(alignment: .topLeading) {
                 Image("OceanHero")
                     .resizable().scaledToFill()
-                    .frame(width: proxy.size.width, height: 178)
+                    .frame(width: proxy.size.width, height: 168)
                     .clipped()
                     .overlay {
                         LinearGradient(colors: [.black.opacity(0.08), .clear, MusicXTheme.background.opacity(0.86)],
@@ -432,15 +432,15 @@ struct ContentView: View {
                 let gap: CGFloat = 11
                 let width = max(0, (proxy.size.width - inset * 2 - gap * 2) / 3)
                 HStack(spacing: gap) {
-                    editorialPlaylistCard(title: "午后放松", subtitle: "轻音乐 · 治愈 · 放松", tint: Color(red: 0.82, green: 0.56, blue: 0.34), symbol: "cup.and.saucer.fill", width: width)
-                    editorialPlaylistCard(title: "深夜独白", subtitle: "安静 · 思考 · 陪伴", tint: Color(red: 0.28, green: 0.42, blue: 0.78), symbol: "moon.stars.fill", width: width)
-                    editorialPlaylistCard(title: "车载必听", subtitle: "旅途 · 驾驶 · 精选", tint: Color(red: 0.18, green: 0.58, blue: 0.67), symbol: "car.fill", width: width)
+                    editorialPlaylistCard(title: "午后放松", subtitle: "轻音乐 · 治愈 · 放松", tint: Color(red: 0.82, green: 0.56, blue: 0.34), symbol: "cup.and.saucer.fill", artwork: songs.first?.onlineSong, width: width)
+                    editorialPlaylistCard(title: "深夜独白", subtitle: "安静 · 思考 · 陪伴", tint: Color(red: 0.28, green: 0.42, blue: 0.78), symbol: "moon.stars.fill", artwork: songs.dropFirst().first?.onlineSong, width: width)
+                    editorialPlaylistCard(title: "车载必听", subtitle: "旅途 · 驾驶 · 精选", tint: Color(red: 0.18, green: 0.58, blue: 0.67), symbol: "car.fill", artwork: songs.dropFirst(2).first?.onlineSong, width: width)
                 }.padding(.horizontal, inset)
             }.frame(height: 78)
         }
     }
 
-        private func editorialPlaylistCard(title: String, subtitle: String, tint: Color, symbol: String, width: CGFloat) -> some View {
+        private func editorialPlaylistCard(title: String, subtitle: String, tint: Color, symbol: String, artwork: MusicSong?, width: CGFloat) -> some View {
         Button { discoveryRoute = .playlists } label: {
             VStack(alignment: .leading, spacing: 8) {
                 Image(systemName: symbol).font(.system(size: 23, weight: .light)).foregroundStyle(.white.opacity(0.94))
@@ -450,7 +450,15 @@ struct ContentView: View {
             }.padding(9).frame(width: width, height: 78, alignment: .leading)
                 .background {
                     RoundedRectangle(cornerRadius: 20, style: .continuous).fill(.ultraThinMaterial)
-                        .overlay(LinearGradient(colors: [tint.opacity(0.55), tint.opacity(0.13)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                        .overlay {
+                            if let artworkURL = artwork?.artworkURL {
+                                AsyncImage(url: artworkURL) { phase in
+                                    if let image = phase.image { image.resizable().scaledToFill() }
+                                    else { tint.opacity(0.5) }
+                                }.frame(width: width, height: 78).clipped()
+                            }
+                        }
+                        .overlay(LinearGradient(colors: [tint.opacity(0.52), Color.black.opacity(0.38)], startPoint: .topLeading, endPoint: .bottomTrailing)
                             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous)))
                 }
                 .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(.white.opacity(0.24), lineWidth: 1))
