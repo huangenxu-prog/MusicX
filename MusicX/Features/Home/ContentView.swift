@@ -348,7 +348,7 @@ struct ContentView: View {
 
     private var newMusicSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            homeSectionTitle("新歌速递", action: { discoveryRoute = .daily })
+            homeSectionTitle("新歌速递", action: { discoveryRoute = .daily }).padding(.horizontal, 14)
             if isLoadingHomeSongs && songs.isEmpty {
                 ProgressView().tint(MusicXTheme.blue).frame(maxWidth: .infinity).padding(.vertical, 24)
             } else if let homeLoadError, songs.isEmpty {
@@ -362,9 +362,9 @@ struct ContentView: View {
                             Rectangle().fill(.white.opacity(0.12)).frame(height: 0.5).padding(.leading, 42)
                         }
                     }
-                }
+                }.padding(.horizontal, 20)
             }
-        }.padding(.horizontal, 14)
+        }
     }
 
     private var albumSection: some View {
@@ -410,7 +410,7 @@ struct ContentView: View {
                     chartTile("热歌榜", subtitle: "当下最热的50首", rank: "01", icon: "crown.fill", color: Color(red: 0.95, green: 0.47, blue: 0.38), artwork: nil, width: width)
                     chartTile("飙升榜", subtitle: "近期热度上升", rank: "02", icon: "flame.fill", color: Color(red: 0.61, green: 0.35, blue: 0.91), artwork: nil, width: width)
                     chartTile("新歌榜", subtitle: "最新发布的50首", rank: "03", icon: "waveform", color: Color(red: 0.05, green: 0.70, blue: 0.83), artwork: nil, width: width)
-                }.padding(.horizontal, 20)
+                }.padding(.horizontal, 14)
             }.frame(height: 60)
         }
     }
@@ -430,7 +430,7 @@ struct ContentView: View {
                 }.buttonStyle(.plain)
             }.padding(.horizontal, 14)
             GeometryReader { proxy in
-                let width = max(0, (proxy.size.width - 28) / 3)
+                let width = max(0, (proxy.size.width - 44) / 3)
                 HStack(spacing: 8) {
                     editorialPlaylistCard(title: "午后放松", subtitle: "轻音乐 · 治愈 · 放松", tint: Color(red: 0.82, green: 0.56, blue: 0.34), symbol: "cup.and.saucer.fill", artwork: songs.first?.onlineSong, width: width)
                     editorialPlaylistCard(title: "深夜独白", subtitle: "安静 · 思考 · 陪伴", tint: Color(red: 0.28, green: 0.42, blue: 0.78), symbol: "moon.stars.fill", artwork: songs.dropFirst().first?.onlineSong, width: width)
