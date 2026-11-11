@@ -71,6 +71,70 @@ struct GDStudioMusicSearchService {
     }
 
     
+    /// Searches for a real NetEase playlist, then loads its tracks by playlist ID.
+    func playlistTracks(keyword: String, count: Int = 50) async throws -> [MusicSong] {
+        var searchComponents = URLComponents(string: "https://music.163.com/api/search/get/web")
+        searchComponents?.queryItems = [
+            URLQueryItem(name: "s", value: keyword),
+            URLQueryItem(name: "type", value: "1000"),
+            URLQueryItem(name: "limit", value: "5"),
+            URLQueryItem(name: "offset", value: "0")
+        ]
+        guard let searchURL = searchComponents?.url else {
+            throw MusicSourceError.invalidResponse("无法生成歌单搜索请求")
+        }
+        var searchRequest = URLRequest(url: searchURL)
+        searchRequest.timeoutInterval = 12
+        searchRequest.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148", forHTTPHeaderField: "User-Agent")
+        searchRequest.setValue("https://music.163.com/", forHTTPHeaderField: "Referer")
+        let (searchData, searchResponse) = try await session.data(for: searchRequest)
+        guard let searchHTTP = searchResponse as? HTTPURLResponse, (200..<300).contains(searchHTTP.statusCode) else {
+            throw MusicSourceError.invalidResponse("网易云歌单搜索 HTTP \\((searchResponse as? HTTPURLResponse)?.statusCode ?? -1)")
+        }
+        let searchRoot = try JSONSerialization.jsonObject(with: searchData) as? [String: Any]
+        let searchResult = searchRoot?["result"] as? [String: Any]
+        guard let playlists = searchResult?["playlists"] as? [[String: Any]],
+              let playlistID = playlists.first?["id"] else {
+            throw MusicSourceError.invalidResponse("没有找到匹配的真实歌单")
+        }
+        var detailComponents = URLComponents(string: "https://music.163.com/api/playlist/detail")
+        detailComponents?.queryItems = [URLQueryItem(name: "id", value: String(describing: playlistID))]
+        guard let detailURL = detailComponents?.url else {
+            throw MusicSourceError.invalidResponse("无法生成歌单详情请求")
+        }
+        var detailRequest = URLRequest(url: detailURL)
+        detailRequest.timeoutInterval = 12
+        detailRequest.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148", forHTTPHeaderField: "User-Agent")
+        detailRequest.setValue("https://music.163.com/", forHTTPHeaderField: "Referer")
+        let (detailData, detailResponse) = try await session.data(for: detailRequest)
+        guard let detailHTTP = detailResponse as? HTTPURLResponse, (200..<300).contains(detailHTTP.statusCode) else {
+            throw MusicSourceError.invalidResponse("网易云歌单详情 HTTP \\((detailResponse as? HTTPURLResponse)?.statusCode ?? -1)")
+        }
+        let detailRoot = try JSONSerialization.jsonObject(with: detailData) as? [String: Any]
+        let detailResult = detailRoot?["result"] as? [String: Any] ?? detailRoot?["playlist"] as? [String: Any]
+        guard let rows = detailResult?["tracks"] as? [[String: Any]] else {
+            throw MusicSourceError.invalidResponse("网易云没有返回歌单曲目")
+        }
+        return rows.prefix(count).compactMap { row in
+            guard let id = row["id"] else { return nil }
+            let artists = (row["ar"] as? [[String: Any]] ?? row["artists"] as? [[String: Any]] ?? [])
+                .compactMap { $0["name"] as? String }.joined(separator: " / ")
+            let albumInfo = row["al"] as? [String: Any] ?? row["album"] as? [String: Any] ?? [:]
+            let albumName = albumInfo["name"] as? String
+            let artwork = (albumInfo["picUrl"] as? String).flatMap(URL.init(string:))
+            let duration = (row["dt"] as? Double).map { $0 / 1000 }
+                ?? (row["duration"] as? Double).map { $0 / 1000 }
+            return MusicSong(
+                source: .netease, sourceID: String(describing: id),
+                title: row["name"] as? String ?? "未知歌曲",
+                artist: artists.isEmpty ? "未知歌手" : artists,
+                album: albumName, artworkURL: artwork, duration: duration,
+                hash: nil, albumID: albumInfo["id"].map { String(describing: $0) },
+                pictureID: nil, lyricID: String(describing: id)
+            )
+        }
+    }
+
     /// Reads the public NetEase playlist endpoints used for its live charts.
     /// Returned track IDs remain NetEase IDs and are resolved for playback by GD Studio.
     func toplist(_ chartName: String, count: Int = 50) async throws -> [MusicSong] {
