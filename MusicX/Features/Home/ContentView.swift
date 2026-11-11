@@ -1183,8 +1183,7 @@ struct ContentView: View {
     private func playNextAfterNaturalFinish() {
         guard let currentSong else { return }
         if repeatMode == 2 {
-            playerStore.seek(to: 0)
-            playerStore.resume()
+            playerStore.replayCurrentTrack()
             return
         }
         let queue = playbackQueue
