@@ -791,7 +791,6 @@ struct ContentView: View {
         return CGFloat(min(max(playerStore.currentTime / playerStore.duration, 0), 1))
     }
 
-    @State private var isLyricsPresented = false
     @State private var playerDisplayMode: PlayerDisplayMode = .artwork
     @State private var isShuffleEnabled = false
     @State private var repeatMode = 0
@@ -1036,50 +1035,6 @@ struct ContentView: View {
         }
         .preferredColorScheme(.dark)
         .task(id: currentSong?.id) { await loadPlayerMetadata() }
-    }
-
-    private var lyricsSheet: some View {
-        NavigationStack {
-            ZStack {
-                MusicXTheme.background.ignoresSafeArea()
-                if lyricLines.isEmpty {
-                    VStack(spacing: 12) {
-                        Image(systemName: "quote.bubble").font(.system(size: 34, weight: .light)).foregroundStyle(MusicXTheme.blue)
-                        Text(lyricsUnavailable ? "暂时没有找到歌词" : "正在获取歌词")
-                            .font(.system(size: 18, weight: .semibold)).foregroundStyle(.white)
-                        Text(lyricsUnavailable ? "当前音源没有提供可用的歌词数据。" : "请稍候，正在从音源读取歌词。")
-                            .font(.system(size: 13)).foregroundStyle(MusicXTheme.muted)
-                    }.padding(30)
-                } else {
-                    ScrollViewReader { proxy in
-                        ScrollView {
-                            VStack(spacing: 22) {
-                                ForEach(Array(lyricLines.enumerated()), id: \.element.id) { index, line in
-                                    Text(line.text)
-                                        .font(.system(size: index == activeLyricIndex ? 21 : 16, weight: index == activeLyricIndex ? .bold : .medium))
-                                        .foregroundStyle(index == activeLyricIndex ? .white : MusicXTheme.muted)
-                                        .multilineTextAlignment(.center)
-                                        .frame(maxWidth: .infinity)
-                                        .id(line.id)
-                                }
-                            }.padding(.horizontal, 24).padding(.vertical, 42)
-                        }
-                        .onChange(of: playerStore.currentTime) { _, _ in
-                            if lyricLines.indices.contains(activeLyricIndex) {
-                                withAnimation(.easeInOut(duration: 0.25)) { proxy.scrollTo(lyricLines[activeLyricIndex].id, anchor: .center) }
-                            }
-                        }
-                    }
-                }
-            }
-            .navigationTitle(currentSong?.title ?? "歌词")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) { Button("完成") { isLyricsPresented = false } }
-            }
-        }
-        .presentationDetents([.medium, .large])
-        .preferredColorScheme(.dark)
     }
 
     private var activeLyricIndex: Int {
