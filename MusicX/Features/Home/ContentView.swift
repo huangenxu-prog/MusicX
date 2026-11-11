@@ -236,7 +236,7 @@ struct ContentView: View {
 
     private var homePage: some View {
         ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 27) {
+            VStack(alignment: .leading, spacing: 15) {
                 heroAndRecommendation
                 chartSection
                 newMusicSection
@@ -255,77 +255,50 @@ struct ContentView: View {
             heroHeader
             recommendationSection.padding(.bottom, 18)
         }
-        .frame(height: 390)
+        .frame(height: 178)
     }
 
     private var heroHeader: some View {
         GeometryReader { proxy in
-            let size = proxy.size
             ZStack(alignment: .topLeading) {
-                ZStack {
-                    LinearGradient(colors: [
-                        Color(red: 0.015, green: 0.035, blue: 0.13),
-                        Color(red: 0.08, green: 0.14, blue: 0.34),
-                        Color(red: 0.36, green: 0.16, blue: 0.42),
-                        Color(red: 0.92, green: 0.39, blue: 0.43),
-                        Color(red: 0.025, green: 0.11, blue: 0.25)
-                    ], startPoint: .topLeading, endPoint: .bottomTrailing)
-                    RadialGradient(colors: [.white.opacity(0.78), Color(red: 1, green: 0.60, blue: 0.49).opacity(0.78), .clear],
-                                   center: UnitPoint(x: 0.68, y: 0.43), startRadius: 1, endRadius: size.width * 0.43)
-                        .blendMode(.screen)
-                    Ellipse().fill(Color(red: 0.95, green: 0.40, blue: 0.65).opacity(0.42))
-                        .frame(width: size.width * 1.15, height: size.height * 0.24).blur(radius: 32)
-                        .rotationEffect(.degrees(-7)).offset(x: size.width * 0.12, y: size.height * 0.28)
-                    LinearGradient(colors: [Color(red: 0.06, green: 0.20, blue: 0.40), MusicXTheme.background],
-                                   startPoint: .top, endPoint: .bottom)
-                        .frame(height: size.height * 0.44).frame(maxHeight: .infinity, alignment: .bottom)
-                    Canvas { context, canvasSize in
-                        for index in 0..<12 {
-                            let y = canvasSize.height * (0.68 + CGFloat(index) * 0.027)
-                            var path = Path()
-                            path.move(to: CGPoint(x: 0, y: y))
-                            path.addCurve(to: CGPoint(x: canvasSize.width, y: y + CGFloat(index % 3 - 1) * 6),
-                                          control1: CGPoint(x: canvasSize.width * 0.28, y: y - 8),
-                                          control2: CGPoint(x: canvasSize.width * 0.72, y: y + 9))
-                            context.stroke(path, with: .color(.white.opacity(0.055)), lineWidth: 1)
-                        }
-                        let sun = CGPoint(x: canvasSize.width * 0.68, y: canvasSize.height * 0.43)
-                        var reflection = Path()
-                        reflection.move(to: CGPoint(x: sun.x - 4, y: sun.y + 8))
-                        reflection.addLine(to: CGPoint(x: sun.x - canvasSize.width * 0.13, y: canvasSize.height))
-                        reflection.addLine(to: CGPoint(x: sun.x + canvasSize.width * 0.13, y: canvasSize.height))
-                        reflection.addLine(to: CGPoint(x: sun.x + 4, y: sun.y + 8))
-                        reflection.closeSubpath()
-                        context.fill(reflection, with: .linearGradient(
-                            Gradient(colors: [Color.orange.opacity(0.26), Color.pink.opacity(0.015)]),
-                            startPoint: sun, endPoint: CGPoint(x: sun.x, y: canvasSize.height)))
+                Image("OceanHero")
+                    .resizable().scaledToFill()
+                    .frame(width: proxy.size.width, height: 178)
+                    .clipped()
+                    .overlay {
+                        LinearGradient(colors: [.black.opacity(0.08), .clear, MusicXTheme.background.opacity(0.86)],
+                                       startPoint: .top, endPoint: .bottom)
                     }
-                }
-                LinearGradient(colors: [.black.opacity(0.12), .clear, MusicXTheme.background.opacity(0.90)],
-                               startPoint: .top, endPoint: .bottom)
                 VStack(alignment: .leading, spacing: 0) {
-                    HStack(spacing: 12) {
+                    HStack(spacing: 10) {
                         Spacer()
                         Button { isSettingsAlertPresented = true } label: {
-                            Image(systemName: "bell").font(.system(size: 17, weight: .medium)).foregroundStyle(.white)
-                                .frame(width: 42, height: 42).background(.ultraThinMaterial, in: Circle())
-                                .overlay(Circle().stroke(.white.opacity(0.28), lineWidth: 1))
+                            Image(systemName: "bell").font(.system(size: 16, weight: .medium)).foregroundStyle(.white)
+                                .frame(width: 36, height: 36).background(.ultraThinMaterial, in: Circle())
+                                .overlay(Circle().stroke(.white.opacity(0.30), lineWidth: 1))
                         }.buttonStyle(.plain)
                         Button { isPlayerPresented = true } label: {
-                            Image(systemName: "waveform").font(.system(size: 18, weight: .medium)).foregroundStyle(.white)
-                                .frame(width: 42, height: 42).background(.ultraThinMaterial, in: Circle())
-                                .overlay(Circle().stroke(.white.opacity(0.28), lineWidth: 1))
+                            Image(systemName: "waveform").font(.system(size: 17, weight: .medium)).foregroundStyle(.white)
+                                .frame(width: 36, height: 36).background(.ultraThinMaterial, in: Circle())
+                                .overlay(Circle().stroke(.white.opacity(0.30), lineWidth: 1))
                         }.buttonStyle(.plain)
                     }
-                    Spacer()
-                    Text("发现音乐").font(.system(size: 36, weight: .bold, design: .rounded)).foregroundStyle(.white)
-                        .shadow(color: .black.opacity(0.24), radius: 10, y: 2)
-                    Text("好音乐，总在这里").font(.system(size: 15, weight: .medium)).foregroundStyle(.white.opacity(0.88)).padding(.top, 5)
+                    .padding(.top, 42)
+                    Text("发现音乐")
+                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .shadow(color: .black.opacity(0.25), radius: 8, y: 2)
+                        .padding(.top, 4)
+                    Text("好音乐，总在这里")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.90))
+                        .padding(.top, 2)
+                    Spacer(minLength: 0)
                 }
-                .padding(.horizontal, 22).padding(.top, 58).padding(.bottom, 145)
+                .padding(.horizontal, 22)
             }
         }
-        .frame(height: 390).frame(maxWidth: .infinity).clipped()
+        .frame(height: 178).frame(maxWidth: .infinity).clipped()
     }
 
         private var recommendationSection: some View {
@@ -339,7 +312,7 @@ struct ContentView: View {
                 recommendationTile(title: "精选歌单", subtitle: "用音乐，遇见更好的自己", icon: "music.note.list",
                     colors: [Color(red: 0.43, green: 0.26, blue: 0.63), Color(red: 0.20, green: 0.13, blue: 0.38)], route: .playlists, width: width)
             }.padding(.horizontal, inset)
-        }.frame(height: 132)
+        }.frame(height: 64)
     }
 
     private func recommendationTile(title: String, subtitle: String, icon: String, colors: [Color], route: MusicDiscoveryRoute, width: CGFloat) -> some View {
@@ -348,19 +321,22 @@ struct ContentView: View {
                 RoundedRectangle(cornerRadius: 24, style: .continuous).fill(.ultraThinMaterial)
                 LinearGradient(colors: colors.map { $0.opacity(0.76) }, startPoint: .topLeading, endPoint: .bottomTrailing)
                 Circle().fill(.white.opacity(0.10)).frame(width: 120, height: 120).blur(radius: 15).offset(x: width - 90, y: -35)
-                Image(systemName: icon).font(.system(size: 38, weight: .light)).foregroundStyle(.white.opacity(0.22))
+                Image(systemName: icon).font(.system(size: 24, weight: .light)).foregroundStyle(.white.opacity(0.22))
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing).padding(13)
-                VStack(alignment: .leading, spacing: 0) {
-                    Image(systemName: icon).font(.system(size: 18, weight: .semibold)).foregroundStyle(.white)
-                        .frame(width: 35, height: 35).background(.white.opacity(0.18), in: Circle())
-                    Spacer(minLength: 8)
-                    Text(title).font(.system(size: 18, weight: .bold)).foregroundStyle(.white).lineLimit(1)
-                    Text(subtitle).font(.system(size: 10, weight: .medium)).foregroundStyle(.white.opacity(0.82))
-                        .lineLimit(1).minimumScaleFactor(0.76).padding(.top, 4)
-                }.padding(14)
-            }.frame(width: width, height: 132)
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(.white.opacity(0.30), lineWidth: 1))
+                HStack(spacing: 9) {
+                    Image(systemName: icon).font(.system(size: 16, weight: .semibold)).foregroundStyle(.white)
+                        .frame(width: 29, height: 29).background(.white.opacity(0.18), in: Circle())
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(title).font(.system(size: 15, weight: .bold)).foregroundStyle(.white).lineLimit(1)
+                        Text(subtitle).font(.system(size: 9, weight: .medium)).foregroundStyle(.white.opacity(0.82))
+                            .lineLimit(1).minimumScaleFactor(0.76)
+                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right").font(.system(size: 11, weight: .bold)).foregroundStyle(.white.opacity(0.85))
+                }.padding(.horizontal, 10)
+            }.frame(width: width, height: 64)
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(.white.opacity(0.30), lineWidth: 1))
                 .shadow(color: colors.first?.opacity(0.20) ?? .clear, radius: 14, y: 5)
         }.buttonStyle(.plain)
     }
