@@ -467,7 +467,7 @@ struct ContentView: View {
                 let cardWidth = (UIScreen.main.bounds.width - 56) / 3
                 HStack(spacing: 12) {
                     ForEach(0..<min(songs.count, 6), id: \.self) { index in
-                        let song = songs.suffix(6)[index]
+                        let song = Array(songs.suffix(6))[index]
                         Button { select(song) } label: {
                             VStack(alignment: .leading, spacing: 7) {
                                 Image("guess_0\((index % 3) + 1)").resizable().scaledToFill().frame(width: cardWidth, height: cardWidth).clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
