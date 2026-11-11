@@ -181,11 +181,16 @@ struct ContentView: View {
         .background(MusicXTheme.background.ignoresSafeArea())
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if !(selectedTab == .search && searchFieldFocused) {
-                VStack(spacing: 0) {
+                VStack(spacing: 10) {
                     miniPlayer
                     tabBar
                 }
-                .background(.ultraThinMaterial)
+                .padding(.top, 8)
+                .padding(.bottom, 5)
+                .background {
+                    LinearGradient(colors: [MusicXTheme.background.opacity(0.02), MusicXTheme.background.opacity(0.88)], startPoint: .top, endPoint: .bottom)
+                        .ignoresSafeArea(edges: .bottom)
+                }
             }
         }
         .preferredColorScheme(.dark)
@@ -230,132 +235,55 @@ struct ContentView: View {
 
     private var homePage: some View {
         ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 30) {
+            VStack(alignment: .leading, spacing: 38) {
                 heroHeader
                 recommendationSection
+                chartSection
                 newMusicSection
                 albumSection
-                chartSection
+                editorialPlaylistSection
+                forYouSection
             }
-            .padding(.bottom, 28)
+            .padding(.bottom, 44)
         }
         .ignoresSafeArea(edges: .top)
     }
 
-    private var heroHeader: some View {
+        private var heroHeader: some View {
         ZStack(alignment: .bottomLeading) {
-            LinearGradient(
-                colors: [
-                    Color(red: 0.12, green: 0.25, blue: 0.47),
-                    Color(red: 0.07, green: 0.13, blue: 0.25),
-                    MusicXTheme.background
-                ],
-                startPoint: .topTrailing,
-                endPoint: .bottomLeading
-            )
-
-            GeometryReader { proxy in
-                Circle()
-                    .fill(Color(red: 0.34, green: 0.59, blue: 0.98).opacity(0.20))
-                    .frame(width: 230, height: 230)
-                    .blur(radius: 2)
-                    .offset(x: proxy.size.width - 150, y: 20)
-                Circle()
-                    .stroke(.white.opacity(0.09), lineWidth: 1)
-                    .frame(width: 190, height: 190)
-                    .offset(x: proxy.size.width - 115, y: 72)
-                Image(systemName: "waveform")
-                    .font(.system(size: 116, weight: .ultraLight))
-                    .foregroundStyle(.white.opacity(0.10))
-                    .rotationEffect(.degrees(-12))
-                    .offset(x: proxy.size.width - 170, y: 85)
-            }
-            .allowsHitTesting(false)
-
+            Image("OceanHero").resizable().scaledToFill()
+                .overlay(LinearGradient(colors: [.black.opacity(0.12), .clear, MusicXTheme.background.opacity(0.78)], startPoint: .top, endPoint: .bottom))
             VStack(alignment: .leading, spacing: 0) {
-                HStack(alignment: .center) {
-                    HStack(spacing: 7) {
-                        Image(systemName: "waveform")
-                            .font(.system(size: 12, weight: .bold))
-                        Text("MUSICX")
-                            .font(.system(size: 12, weight: .bold, design: .rounded))
-                            .tracking(2.2)
-                    }
-                    .foregroundStyle(.white.opacity(0.72))
-
+                HStack {
+                    Text("MUSICX").font(.system(size: 12, weight: .bold, design: .rounded)).tracking(2.8).foregroundStyle(.white.opacity(0.78))
                     Spacer()
-
                     Button { isSettingsAlertPresented = true } label: {
-                        Image(systemName: "slider.horizontal.3")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .frame(width: 42, height: 42)
-                            .background(.white.opacity(0.10), in: Circle())
-                            .overlay(Circle().stroke(.white.opacity(0.12), lineWidth: 1))
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("播放设置")
+                        Image(systemName: "slider.horizontal.3").font(.system(size: 16, weight: .semibold)).foregroundStyle(.white)
+                            .frame(width: 42, height: 42).background(.ultraThinMaterial, in: Circle())
+                            .overlay(Circle().stroke(.white.opacity(0.30), lineWidth: 1))
+                    }.buttonStyle(.plain).accessibilityLabel("播放设置")
+                    Button { isPlayerPresented = true } label: {
+                        Image(systemName: "waveform").font(.system(size: 17, weight: .medium)).foregroundStyle(.white)
+                            .frame(width: 42, height: 42).background(.ultraThinMaterial, in: Circle())
+                            .overlay(Circle().stroke(.white.opacity(0.30), lineWidth: 1))
+                    }.buttonStyle(.plain).accessibilityLabel("打开播放器")
                 }
-
                 Spacer()
-
-                Text("LISTEN TO YOUR MOOD")
-                    .font(.system(size: 10, weight: .bold))
-                    .tracking(2.4)
-                    .foregroundStyle(Color(red: 0.66, green: 0.79, blue: 1))
-
-                Text("发现好音乐")
-                    .font(.system(size: 38, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .padding(.top, 9)
-
-                Text("让每一次聆听，都有新的发现")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.66))
-                    .padding(.top, 7)
+                Text("发现音乐").font(.system(size: 38, weight: .bold, design: .rounded)).foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.22), radius: 12, y: 3)
+                Text("好音乐，总在这里").font(.system(size: 15, weight: .medium)).foregroundStyle(.white.opacity(0.82)).padding(.top, 7)
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 58)
-            .padding(.bottom, 28)
+            .padding(.horizontal, 24).padding(.top, 72).padding(.bottom, 34)
         }
-        .frame(height: 284)
-        .clipped()
+        .frame(height: 390).frame(maxWidth: .infinity).clipped()
     }
 
-    private var recommendationSection: some View {
-        VStack(alignment: .leading, spacing: 15) {
-            HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("为你推荐")
-                        .font(.system(size: 23, weight: .bold))
-                        .foregroundStyle(.white)
-                    Text("从这里，开始今天的音乐")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(MusicXTheme.muted)
-                }
-                Spacer()
-                Text("精选")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Color(red: 0.65, green: 0.79, blue: 1))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(MusicXTheme.blue.opacity(0.14), in: Capsule())
-            }
-
-            HStack(spacing: 12) {
-                recommendationTile(
-                    title: "每日推荐", subtitle: "遇见此刻喜欢的旋律",
-                    icon: "sparkles",
-                    colors: [Color(red: 0.18, green: 0.39, blue: 0.68), Color(red: 0.10, green: 0.19, blue: 0.34)],
-                    route: .daily
-                )
-                recommendationTile(
-                    title: "精选歌单", subtitle: "按心情开启播放",
-                    icon: "square.stack.fill",
-                    colors: [Color(red: 0.39, green: 0.25, blue: 0.53), Color(red: 0.19, green: 0.13, blue: 0.31)],
-                    route: .playlists
-                )
-            }
+        private var recommendationSection: some View {
+        HStack(spacing: 14) {
+            recommendationTile(title: "每日推荐", subtitle: "为你精选 · 每日更新", icon: "sparkles",
+                colors: [Color(red: 0.16, green: 0.43, blue: 0.72), Color(red: 0.08, green: 0.20, blue: 0.39)], route: .daily)
+            recommendationTile(title: "精选歌单", subtitle: "用音乐，遇见更好的自己", icon: "music.note.list",
+                colors: [Color(red: 0.43, green: 0.26, blue: 0.63), Color(red: 0.20, green: 0.13, blue: 0.38)], route: .playlists)
         }
         .padding(.horizontal, 20)
     }
@@ -363,46 +291,27 @@ struct ContentView: View {
     private func recommendationTile(title: String, subtitle: String, icon: String, colors: [Color], route: MusicDiscoveryRoute) -> some View {
         Button { discoveryRoute = route } label: {
             ZStack(alignment: .topLeading) {
-                LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
-
-                Circle()
-                    .fill(.white.opacity(0.08))
-                    .frame(width: 112, height: 112)
-                    .offset(x: 104, y: -42)
-
+                RoundedRectangle(cornerRadius: 25, style: .continuous).fill(.ultraThinMaterial)
+                LinearGradient(colors: colors.map { $0.opacity(0.72) }, startPoint: .topLeading, endPoint: .bottomTrailing)
+                Circle().fill(.white.opacity(0.10)).frame(width: 150, height: 150).blur(radius: 16).offset(x: 92, y: -55)
+                Image(systemName: icon).font(.system(size: 44, weight: .light)).foregroundStyle(.white.opacity(0.25))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing).padding(18)
                 VStack(alignment: .leading, spacing: 0) {
-                    Image(systemName: icon)
-                        .font(.system(size: 22, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.94))
-                        .frame(width: 42, height: 42)
-                        .background(.white.opacity(0.13), in: RoundedRectangle(cornerRadius: 14))
-
+                    Image(systemName: icon).font(.system(size: 18, weight: .semibold)).foregroundStyle(.white)
+                        .frame(width: 38, height: 38).background(.white.opacity(0.18), in: Circle())
                     Spacer(minLength: 12)
-
-                    Text(title)
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(.white)
-
-                    Text(subtitle)
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.70))
-                        .lineLimit(1)
-                        .padding(.top, 6)
-                }
-                .padding(16)
+                    Text(title).font(.system(size: 19, weight: .bold)).foregroundStyle(.white)
+                    Text(subtitle).font(.system(size: 11, weight: .medium)).foregroundStyle(.white.opacity(0.78)).lineLimit(1).padding(.top, 6)
+                }.padding(17)
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: 164)
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .stroke(.white.opacity(0.10), lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
+            .frame(maxWidth: .infinity).frame(height: 166)
+            .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 25, style: .continuous).stroke(.white.opacity(0.28), lineWidth: 1))
+            .shadow(color: colors.first?.opacity(0.18) ?? .clear, radius: 16, y: 7)
+        }.buttonStyle(.plain)
     }
 
-    private func featuredCard(title: String, subtitle: String, route: MusicDiscoveryRoute, variant: Int) -> some View {
+        private func featuredCard(title: String, subtitle: String, route: MusicDiscoveryRoute, variant: Int) -> some View {
         Button { discoveryRoute = route } label: {
             ZStack(alignment: .bottomLeading) {
                 MountainBackdrop(variant: variant + 1)
@@ -428,54 +337,99 @@ struct ContentView: View {
     }
 
     private var newMusicSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             homeSectionTitle("新歌速递", action: { discoveryRoute = .daily })
             if isLoadingHomeSongs && songs.isEmpty {
-                ProgressView().tint(MusicXTheme.blue).frame(maxWidth: .infinity).padding(.vertical, 20)
+                ProgressView().tint(MusicXTheme.blue).frame(maxWidth: .infinity).padding(.vertical, 24)
             } else if let homeLoadError, songs.isEmpty {
-                Text(homeLoadError).font(.system(size: 13)).foregroundStyle(MusicXTheme.muted).padding(.vertical, 12)
+                Text(homeLoadError).font(.system(size: 13)).foregroundStyle(MusicXTheme.muted).padding(.vertical, 14)
             } else {
                 VStack(spacing: 0) {
-                    ForEach(songs.prefix(3)) { song in
+                    ForEach(Array(songs.prefix(6))) { song in
                         homeSongRow(song)
-                        if song.id != songs.prefix(3).last?.id {
-                            Rectangle().fill(.white.opacity(0.10)).frame(height: 0.5).padding(.leading, 62)
+                        if song.id != songs.prefix(6).last?.id {
+                            Rectangle().fill(.white.opacity(0.12)).frame(height: 0.5).padding(.leading, 70)
                         }
                     }
                 }
             }
-        }
-        .padding(.horizontal, 20)
+        }.padding(.horizontal, 20)
     }
 
     private var albumSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 15) {
             homeSectionTitle("热门专辑", action: { discoveryRoute = .playlists })
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: 14) {
+                HStack(alignment: .top, spacing: 16) {
                     ForEach(Array(songs.prefix(8))) { song in
                         if let onlineSong = song.onlineSong { albumTile(song: onlineSong) }
                     }
-                }
-                .padding(.horizontal, 2)
+                }.padding(.horizontal, 2)
             }
-        }
-        .padding(.horizontal, 20)
+        }.padding(.horizontal, 20)
     }
 
     private var chartSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 16) {
             homeSectionTitle("排行榜", action: { discoveryRoute = .charts })
-            VStack(spacing: 9) {
-                chartTile("热歌榜", subtitle: "正在流行的热门歌曲", icon: "chart.bar.fill", color: MusicXTheme.blue)
-                chartTile("新歌榜", subtitle: "近期发行的新作品", icon: "sparkles", color: .purple)
-                chartTile("飙升榜", subtitle: "热度正在快速上升", icon: "chart.line.uptrend.xyaxis", color: .teal)
+            HStack(spacing: 12) {
+                chartTile("热歌榜", subtitle: "最热门的歌曲", rank: "01", icon: "crown.fill", color: Color(red: 0.95, green: 0.47, blue: 0.38))
+                chartTile("飙升榜", subtitle: "近期热度上升", rank: "02", icon: "flame.fill", color: Color(red: 0.61, green: 0.35, blue: 0.91))
+                chartTile("新歌榜", subtitle: "最新发布作品", rank: "03", icon: "waveform", color: Color(red: 0.05, green: 0.70, blue: 0.83))
             }
-        }
-        .padding(.horizontal, 20)
+        }.padding(.horizontal, 20)
     }
 
-    private var searchPage: some View {
+    private var editorialPlaylistSection: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            homeSectionTitle("精选歌单 · 编辑推荐", action: { discoveryRoute = .playlists })
+            HStack(spacing: 12) {
+                editorialPlaylistCard(title: "午后放松", subtitle: "轻音乐 · 治愈 · 放松", tint: Color(red: 0.82, green: 0.56, blue: 0.34), symbol: "cup.and.saucer.fill")
+                editorialPlaylistCard(title: "深夜独白", subtitle: "安静 · 思考 · 陪伴", tint: Color(red: 0.28, green: 0.42, blue: 0.78), symbol: "moon.stars.fill")
+                editorialPlaylistCard(title: "车载必听", subtitle: "旅途 · 驾驶 · 精选", tint: Color(red: 0.18, green: 0.58, blue: 0.67), symbol: "car.fill")
+            }
+        }.padding(.horizontal, 20)
+    }
+
+    private func editorialPlaylistCard(title: String, subtitle: String, tint: Color, symbol: String) -> some View {
+        Button { discoveryRoute = .playlists } label: {
+            VStack(alignment: .leading, spacing: 9) {
+                Image(systemName: symbol).font(.system(size: 25, weight: .light)).foregroundStyle(.white.opacity(0.94))
+                    .frame(maxWidth: .infinity, alignment: .leading).frame(height: 54)
+                Text(title).font(.system(size: 15, weight: .bold)).foregroundStyle(.white).lineLimit(1)
+                Text(subtitle).font(.system(size: 10, weight: .medium)).foregroundStyle(.white.opacity(0.72)).lineLimit(1)
+            }.padding(13).frame(maxWidth: .infinity, alignment: .leading)
+                .background {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous).fill(.ultraThinMaterial)
+                        .overlay(LinearGradient(colors: [tint.opacity(0.52), tint.opacity(0.12)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous)))
+                }
+                .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(.white.opacity(0.22), lineWidth: 1))
+        }.buttonStyle(.plain)
+    }
+
+    private var forYouSection: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            homeSectionTitle("猜你喜欢", action: { discoveryRoute = .daily })
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 15) {
+                    ForEach(Array(songs.suffix(6))) { song in
+                        if let onlineSong = song.onlineSong {
+                            Button { select(song) } label: {
+                                VStack(alignment: .leading, spacing: 7) {
+                                    songArtwork(onlineSong, tint: song.tint, size: 142)
+                                    Text(song.title).font(.system(size: 14, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
+                                    Text(song.artist).font(.system(size: 12)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
+                                }.frame(width: 142, alignment: .leading)
+                            }.buttonStyle(.plain)
+                        }
+                    }
+                }.padding(.horizontal, 2)
+            }
+        }.padding(.horizontal, 20)
+    }
+
+        private var searchPage: some View {
         ScrollViewReader { proxy in
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
@@ -614,33 +568,20 @@ struct ContentView: View {
     }
 
     private func homeSongRow(_ song: AppSong) -> some View {
-        HStack(spacing: 13) {
-            songArtwork(song.onlineSong, tint: song.tint, size: 58)
-            Button { select(song) } label: {
-                VStack(alignment: .leading, spacing: 4) {
+        Button { select(song) } label: {
+            HStack(spacing: 14) {
+                songArtwork(song.onlineSong, tint: song.tint, size: 54)
+                VStack(alignment: .leading, spacing: 5) {
                     Text(song.title).font(.system(size: 16, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
                     Text(song.artist).font(.system(size: 13)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .buttonStyle(.plain)
-            Button { select(song) } label: {
-                Image(systemName: currentSong?.id == song.id && playerStore.isPlaying ? "pause.fill" : "play.fill")
-                    .font(.system(size: 17, weight: .bold)).foregroundStyle(.white)
-                    .frame(width: 48, height: 48)
-                    .background(.white.opacity(0.12), in: Circle())
-            }
-            .buttonStyle(.plain)
-            Button { discoveryRoute = .daily } label: {
-                Image(systemName: "ellipsis").font(.system(size: 18, weight: .bold)).foregroundStyle(.white.opacity(0.82))
-                    .frame(width: 28, height: 44)
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.vertical, 5)
+                }.frame(maxWidth: .infinity, alignment: .leading)
+                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.58)).padding(.trailing, 4)
+            }.contentShape(Rectangle()).padding(.vertical, 8)
+        }.buttonStyle(.plain)
     }
 
-    @ViewBuilder
+        @ViewBuilder
     private func songArtwork(_ song: MusicSong?, tint: Color, size: CGFloat) -> some View {
         if let url = song?.artworkURL {
             AsyncImage(url: url) { phase in
@@ -707,87 +648,60 @@ struct ContentView: View {
         .buttonStyle(.plain)
     }
 
-    private func chartTile(_ title: String, subtitle: String, icon: String, color: Color) -> some View {
+    private func chartTile(_ title: String, subtitle: String, rank: String, icon: String, color: Color) -> some View {
         Button { discoveryRoute = .charts } label: {
-            HStack(spacing: 13) {
-                Image(systemName: icon)
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 46, height: 46)
-                    .background(color.gradient, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-
+            ZStack(alignment: .bottomLeading) {
+                RoundedRectangle(cornerRadius: 22, style: .continuous).fill(.ultraThinMaterial)
+                LinearGradient(colors: [color.opacity(0.70), color.opacity(0.20), Color.black.opacity(0.16)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                Circle().stroke(.white.opacity(0.18), lineWidth: 1).frame(width: 105, height: 105).offset(x: 52, y: -44)
+                Image(systemName: icon).font(.system(size: 44, weight: .light)).foregroundStyle(.white.opacity(0.24))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing).padding(13)
                 VStack(alignment: .leading, spacing: 5) {
-                    Text(title)
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(.white)
-                    Text(subtitle)
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.62))
-                }
-
-                Spacer()
-
-                Image(systemName: "arrow.up.right")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.72))
-                    .frame(width: 32, height: 32)
-                    .background(.white.opacity(0.08), in: Circle())
-            }
-            .padding(.horizontal, 14)
-            .frame(maxWidth: .infinity, minHeight: 72)
-            .background(
-                LinearGradient(
-                    colors: [color.opacity(0.22), color.opacity(0.07)],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                ),
-                in: RoundedRectangle(cornerRadius: 18, style: .continuous)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(color.opacity(0.16), lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
+                    Text(rank).font(.system(size: 27, weight: .heavy, design: .rounded)).foregroundStyle(.white.opacity(0.94))
+                    Text(title).font(.system(size: 15, weight: .bold)).foregroundStyle(.white).lineLimit(1)
+                    Text(subtitle).font(.system(size: 10, weight: .medium)).foregroundStyle(.white.opacity(0.78)).lineLimit(1)
+                }.padding(13)
+            }.frame(maxWidth: .infinity).frame(height: 142)
+                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(.white.opacity(0.28), lineWidth: 1))
+        }.buttonStyle(.plain)
     }
 
-    private var miniPlayer: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 12) {
-                Button { if currentSong != nil { isPlayerPresented = true } } label: {
-                    HStack(spacing: 11) {
-                        songArtwork(currentSong?.onlineSong, tint: currentSong?.tint ?? MusicXTheme.blue, size: 42)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(currentSong?.title ?? "尚未播放").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
-                            Text(currentSong?.artist ?? "选择一首歌曲开始聆听").font(.system(size: 12)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
-                        }
+        private var miniPlayer: some View {
+        HStack(spacing: 12) {
+            Button { if currentSong != nil { isPlayerPresented = true } } label: {
+                HStack(spacing: 12) {
+                    songArtwork(currentSong?.onlineSong, tint: currentSong?.tint ?? MusicXTheme.blue, size: 48)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(currentSong?.title ?? "尚未播放").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
+                        Text(currentSong?.artist ?? "选择一首歌曲开始聆听").font(.system(size: 11)).foregroundStyle(.white.opacity(0.70)).lineLimit(1)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                Button { if currentSong != nil { playerStore.togglePlayback() } } label: {
-                    Group {
-                        if isResolvingSong || playerStore.isBuffering {
-                            ProgressView().tint(.white)
-                        } else {
-                            Image(systemName: playerStore.isPlaying ? "pause.fill" : "play.fill")
-                                .font(.system(size: 19, weight: .semibold)).foregroundStyle(.white)
-                        }
-                    }
-                    .frame(width: 42, height: 44)
-                }
-                .buttonStyle(.plain)
-                .disabled(currentSong == nil)
-            }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 9)
+                }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
+            }.buttonStyle(.plain)
+            Button { stepSong(by: -1) } label: {
+                Image(systemName: "backward.end.fill").font(.system(size: 15, weight: .semibold)).foregroundStyle(.white.opacity(0.88)).frame(width: 30, height: 42)
+            }.buttonStyle(.plain).disabled(playbackQueue.isEmpty)
+            Button { if currentSong != nil { playerStore.togglePlayback() } } label: {
+                Group {
+                    if isResolvingSong || playerStore.isBuffering { ProgressView().tint(.white) }
+                    else { Image(systemName: playerStore.isPlaying ? "pause.fill" : "play.fill").font(.system(size: 18, weight: .bold)).foregroundStyle(.white) }
+                }.frame(width: 46, height: 46).background(.white.opacity(0.18), in: Circle()).overlay(Circle().stroke(.white.opacity(0.34), lineWidth: 1))
+            }.buttonStyle(.plain).disabled(currentSong == nil)
+            Button { stepSong(by: 1) } label: {
+                Image(systemName: "forward.end.fill").font(.system(size: 15, weight: .semibold)).foregroundStyle(.white.opacity(0.88)).frame(width: 30, height: 42)
+            }.buttonStyle(.plain).disabled(playbackQueue.isEmpty)
+            Button { playerDisplayMode = .queue; isPlayerPresented = true } label: {
+                Image(systemName: "list.bullet").font(.system(size: 19, weight: .semibold)).foregroundStyle(.white.opacity(0.88)).frame(width: 28, height: 42)
+            }.buttonStyle(.plain)
         }
-        .background(Color(red: 0.075, green: 0.085, blue: 0.13).opacity(0.98))
-        .overlay(alignment: .top) { Rectangle().fill(.white.opacity(0.06)).frame(height: 0.5) }
+        .padding(.horizontal, 15).frame(height: 76)
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay(Capsule().stroke(.white.opacity(0.28), lineWidth: 1))
+        .shadow(color: MusicXTheme.blue.opacity(0.16), radius: 18, y: 6)
+        .padding(.horizontal, 14)
     }
 
-    private var progressFraction: CGFloat {
+        private var progressFraction: CGFloat {
         guard playerStore.duration > 0 else { return 0 }
         return CGFloat(min(max(playerStore.currentTime / playerStore.duration, 0), 1))
     }
@@ -1328,21 +1242,26 @@ struct ContentView: View {
     }
 
     private var tabBar: some View {
-        HStack {
+        HStack(spacing: 0) {
             ForEach(MainTab.allCases, id: \.self) { tab in
                 Button { selectedTab = tab } label: {
-                    VStack(spacing: 5) {
-                        Image(systemName: tab.symbol).font(.system(size: 19, weight: .semibold))
-                        Text(tab.rawValue).font(.system(size: 11, weight: .semibold))
+                    VStack(spacing: 7) {
+                        Image(systemName: tab.symbol).font(.system(size: 23, weight: .semibold))
+                        Text(tab.rawValue).font(.system(size: 12, weight: .semibold))
                     }
-                    .foregroundStyle(selectedTab == tab ? MusicXTheme.blue : MusicXTheme.muted)
-                    .frame(maxWidth: .infinity).padding(.top, 9).padding(.bottom, 5)
-                }
+                    .foregroundStyle(selectedTab == tab ? Color(red: 0.28, green: 0.72, blue: 1) : .white.opacity(0.70))
+                    .frame(maxWidth: .infinity).frame(height: 92).contentShape(Rectangle())
+                }.buttonStyle(.plain)
             }
-        }.padding(.horizontal, 12).background(MusicXTheme.background.opacity(0.98))
+        }
+        .padding(.horizontal, 10)
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay(Capsule().stroke(.white.opacity(0.30), lineWidth: 1))
+        .shadow(color: MusicXTheme.blue.opacity(0.13), radius: 18, y: 6)
+        .padding(.horizontal, 10)
     }
 
-    private func playDiscoverySong(_ song: MusicSong) {
+        private func playDiscoverySong(_ song: MusicSong) {
         // Keep the discovery route mounted while playback starts.
         let appSong = AppSong(id: stableSongID(song), title: song.title, artist: song.artist,
                               album: song.album ?? "", tint: MusicXTheme.blue, onlineSong: song)
