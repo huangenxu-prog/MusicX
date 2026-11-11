@@ -310,18 +310,25 @@ struct ContentView: View {
             let width = max(0, (proxy.size.width - inset * 2 - gap) / 2)
             HStack(spacing: gap) {
                 recommendationTile(title: "每日推荐", subtitle: "为你精选 · 每日更新", icon: "sparkles",
-                    colors: [Color(red: 0.16, green: 0.43, blue: 0.72), Color(red: 0.08, green: 0.20, blue: 0.39)], route: .daily, width: width)
+                    colors: [Color(red: 0.16, green: 0.43, blue: 0.72), Color(red: 0.08, green: 0.20, blue: 0.39)], route: .daily, artwork: songs.first?.onlineSong, width: width)
                 recommendationTile(title: "精选歌单", subtitle: "用音乐，遇见更好的自己", icon: "music.note.list",
-                    colors: [Color(red: 0.43, green: 0.26, blue: 0.63), Color(red: 0.20, green: 0.13, blue: 0.38)], route: .playlists, width: width)
+                    colors: [Color(red: 0.43, green: 0.26, blue: 0.63), Color(red: 0.20, green: 0.13, blue: 0.38)], route: .playlists, artwork: songs.dropFirst().first?.onlineSong, width: width)
             }.padding(.horizontal, inset)
         }.frame(height: 64)
     }
 
-    private func recommendationTile(title: String, subtitle: String, icon: String, colors: [Color], route: MusicDiscoveryRoute, width: CGFloat) -> some View {
+    private func recommendationTile(title: String, subtitle: String, icon: String, colors: [Color], route: MusicDiscoveryRoute, artwork: MusicSong?, width: CGFloat) -> some View {
         Button { discoveryRoute = route } label: {
             ZStack(alignment: .topLeading) {
-                RoundedRectangle(cornerRadius: 24, style: .continuous).fill(.ultraThinMaterial)
-                LinearGradient(colors: colors.map { $0.opacity(0.76) }, startPoint: .topLeading, endPoint: .bottomTrailing)
+                RoundedRectangle(cornerRadius: 20, style: .continuous).fill(.ultraThinMaterial)
+                if let artworkURL = artwork?.artworkURL {
+                    AsyncImage(url: artworkURL) { phase in
+                        if let image = phase.image { image.resizable().scaledToFill() }
+                        else { LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing) }
+                    }.frame(width: width, height: 60).clipped()
+                }
+                LinearGradient(colors: [colors.first?.opacity(0.58) ?? .black.opacity(0.5), colors.last?.opacity(0.28) ?? .clear],
+                               startPoint: .topLeading, endPoint: .bottomTrailing)
                 Circle().fill(.white.opacity(0.10)).frame(width: 120, height: 120).blur(radius: 15).offset(x: width - 90, y: -35)
                 Image(systemName: icon).font(.system(size: 24, weight: .light)).foregroundStyle(.white.opacity(0.22))
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing).padding(13)
@@ -409,9 +416,9 @@ struct ContentView: View {
                 let gap: CGFloat = 10
                 let width = max(0, (proxy.size.width - inset * 2 - gap * 2) / 3)
                 HStack(spacing: gap) {
-                    chartTile("热歌榜", subtitle: "当下最热的50首", rank: "01", icon: "crown.fill", color: Color(red: 0.95, green: 0.47, blue: 0.38), width: width)
-                    chartTile("飙升榜", subtitle: "近期热度上升", rank: "02", icon: "flame.fill", color: Color(red: 0.61, green: 0.35, blue: 0.91), width: width)
-                    chartTile("新歌榜", subtitle: "最新发布的50首", rank: "03", icon: "waveform", color: Color(red: 0.05, green: 0.70, blue: 0.83), width: width)
+                    chartTile("热歌榜", subtitle: "当下最热的50首", rank: "01", icon: "crown.fill", color: Color(red: 0.95, green: 0.47, blue: 0.38), artwork: songs.first?.onlineSong, width: width)
+                    chartTile("飙升榜", subtitle: "近期热度上升", rank: "02", icon: "flame.fill", color: Color(red: 0.61, green: 0.35, blue: 0.91), artwork: songs.dropFirst().first?.onlineSong, width: width)
+                    chartTile("新歌榜", subtitle: "最新发布的50首", rank: "03", icon: "waveform", color: Color(red: 0.05, green: 0.70, blue: 0.83), artwork: songs.dropFirst(2).first?.onlineSong, width: width)
                 }.padding(.horizontal, inset)
             }.frame(height: 64)
         }
@@ -690,11 +697,18 @@ struct ContentView: View {
         .buttonStyle(.plain)
     }
 
-    private func chartTile(_ title: String, subtitle: String, rank: String, icon: String, color: Color, width: CGFloat) -> some View {
+    private func chartTile(_ title: String, subtitle: String, rank: String, icon: String, color: Color, artwork: MusicSong?, width: CGFloat) -> some View {
         Button { discoveryRoute = .charts } label: {
             ZStack(alignment: .bottomLeading) {
-                RoundedRectangle(cornerRadius: 20, style: .continuous).fill(.ultraThinMaterial)
-                LinearGradient(colors: [color.opacity(0.76), color.opacity(0.22), Color.black.opacity(0.18)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                RoundedRectangle(cornerRadius: 16, style: .continuous).fill(.ultraThinMaterial)
+                if let artworkURL = artwork?.artworkURL {
+                    AsyncImage(url: artworkURL) { phase in
+                        if let image = phase.image { image.resizable().scaledToFill() }
+                        else { color.opacity(0.7) }
+                    }.frame(width: width, height: 64).clipped()
+                }
+                LinearGradient(colors: [color.opacity(0.66), color.opacity(0.24), Color.black.opacity(0.30)],
+                               startPoint: .topLeading, endPoint: .bottomTrailing)
                 Circle().stroke(.white.opacity(0.20), lineWidth: 1).frame(width: 82, height: 82).offset(x: width - 52, y: -56)
                 Image(systemName: icon).font(.system(size: 32, weight: .light)).foregroundStyle(.white.opacity(0.27))
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing).padding(10)
