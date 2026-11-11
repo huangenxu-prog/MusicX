@@ -22,8 +22,8 @@ struct HomeArtwork: View {
                 .resizable()
                 .interpolation(.high)
                 .frame(width: cell * 4, height: cell * 6, alignment: .topLeading)
-                .offset(x: -CGFloat(index % 4) * cell,
-                        y: -CGFloat(index / 4) * cell)
+                .offset(x: -CGFloat(index % 4) * cell - max(0, (cell - proxy.size.width) / 2),
+                        y: -CGFloat(index / 4) * cell - max(0, (cell - proxy.size.height) / 2))
                 .frame(width: proxy.size.width, height: proxy.size.height, alignment: .topLeading)
                 .clipped()
         }
