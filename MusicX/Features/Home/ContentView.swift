@@ -142,6 +142,7 @@ struct ContentView: View {
     @State private var hasCustomPlaybackQueue = false
     @State private var isResolvingSong = false
     @State private var failedPlaybackSongIDs: Set<Int> = []
+    @State private var refreshedPlaybackSongIDs: Set<Int> = []
     @AppStorage("musicx.favoriteIDs") private var favoriteIDs = "1,3"
     @AppStorage("musicx.recentIDs") private var recentIDs = ""
     @AppStorage("musicx.downloadedTracks") private var downloadedTracksJSON = "[]"
@@ -268,7 +269,7 @@ struct ContentView: View {
             playNextAfterNaturalFinish()
         }
         .onReceive(NotificationCenter.default.publisher(for: .musicXPlaybackFailed)) { _ in
-            advanceAfterPlaybackFailure()
+            retryCurrentSongWithFreshURL()
         }
         .fullScreenCover(item: $discoveryRoute) { route in
             MusicDiscoveryPage(route: route, onClose: { discoveryRoute = nil },
@@ -1309,6 +1310,41 @@ struct ContentView: View {
         select(queue[(index + offset + queue.count) % queue.count])
     }
 
+    /// A resolved stream URL can expire before playback starts. Invalidate the cached
+    /// URL and resolve the same track once before giving up and advancing the queue.
+    private func retryCurrentSongWithFreshURL() {
+        guard let song = currentSong, let onlineSong = song.onlineSong,
+              !refreshedPlaybackSongIDs.contains(song.id) else {
+            advanceAfterPlaybackFailure()
+            return
+        }
+        refreshedPlaybackSongIDs.insert(song.id)
+        playbackTask?.cancel()
+        playbackRequestID = UUID()
+        let requestID = playbackRequestID
+        playerStore.pauseForTrackChange()
+        isResolvingSong = true
+        playbackTask = Task {
+            defer {
+                if playbackRequestID == requestID { isResolvingSong = false }
+            }
+            do {
+                let resolver = LXMusicURLResolver()
+                let url = try await resolver.resolveFresh(song: onlineSong, quality: selectedMusicQuality)
+                try Task.checkCancellation()
+                guard playbackRequestID == requestID else { return }
+                playerStore.play(url: url, title: onlineSong.title, artist: onlineSong.artist,
+                                 album: onlineSong.album, artworkURL: onlineSong.artworkURL)
+            } catch is CancellationError {
+                return
+            } catch {
+                guard playbackRequestID == requestID else { return }
+                searchError = "重新获取播放地址失败：\\(error.localizedDescription)"
+                advanceAfterPlaybackFailure()
+            }
+        }
+    }
+
     /// Skip a track that failed after selection or during AVPlayer playback.
     /// Each track is attempted at most once per user-initiated playback selection.
     private func advanceAfterPlaybackFailure() {
@@ -1436,7 +1472,10 @@ struct ContentView: View {
     }
 
     private func select(_ song: AppSong, isFailureFallback: Bool = false) {
-        if !isFailureFallback { failedPlaybackSongIDs.removeAll() }
+        if !isFailureFallback {
+            failedPlaybackSongIDs.removeAll()
+            refreshedPlaybackSongIDs.removeAll()
+        }
         if let localURL = song.localFileURL {
             playbackTask?.cancel()
             playbackRequestID = UUID()
