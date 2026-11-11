@@ -266,8 +266,24 @@ struct ContentView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     Spacer(minLength: 64)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("发现音乐").font(.system(size: 32, weight: .bold, design: .rounded)).foregroundStyle(.white).shadow(color: .black.opacity(0.3), radius: 8, y: 2)
-                        Text("好音乐，总在心里").font(.custom("STLiti", size: 18, relativeTo: .subheadline)).tracking(1.1).foregroundStyle(.white.opacity(0.94))
+                        Text("发现音乐")
+                            .font(.custom("STXingkai", size: 38, relativeTo: .largeTitle))
+                            .tracking(1.2)
+                            .foregroundStyle(LinearGradient(colors: [.white, Color(red: 0.88, green: 0.84, blue: 1.0)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                            .shadow(color: Color(red: 0.43, green: 0.32, blue: 0.95).opacity(0.42), radius: 8, y: 3)
+                        HStack(spacing: 8) {
+                            Text("好音乐，总在心里")
+                                .font(.system(size: 18, weight: .regular, design: .serif))
+                                .tracking(2.0)
+                                .foregroundStyle(.white.opacity(0.94))
+                            HStack(alignment: .center, spacing: 3) {
+                                ForEach([8.0, 14.0, 20.0, 12.0, 7.0], id: \.self) { height in
+                                    Capsule().fill(Color(red: 0.86, green: 0.70, blue: 1.0).opacity(0.9))
+                                        .frame(width: 2.5, height: height)
+                                }
+                            }
+                            .shadow(color: Color.purple.opacity(0.45), radius: 5)
+                        }
                     }
                     Spacer(minLength: 4)
                 }.padding(.horizontal, 22).padding(.bottom, 4)
@@ -383,7 +399,8 @@ struct ContentView: View {
         return Button { discoveryRoute = .album(title: titles[index], artist: artists[index]) } label: {
             ZStack(alignment: .bottomLeading) {
                 HomeArtwork(name: "album_0\(index + 1)")
-                    .frame(width: width, height: 52).scaleEffect(1.04).frame(width: width, height: 52).clipped()
+                    .frame(width: width, height: 64)
+                    .clipped()
                 LinearGradient(colors: [.clear, .black.opacity(0.76)], startPoint: .center, endPoint: .bottom)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(titles[index]).font(.system(size: 10, weight: .bold)).foregroundStyle(.white).lineLimit(1)
@@ -464,7 +481,10 @@ struct ContentView: View {
                         let song = recommendationSongs[index]
                         Button { select(song) } label: {
                             VStack(alignment: .leading, spacing: 7) {
-                                HomeArtwork(name: "guess_0\((index % 3) + 1)").frame(width: cardWidth, height: cardWidth).scaleEffect(1.06).frame(width: cardWidth, height: cardWidth).clipped().clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                HomeArtwork(name: "guess_0\((index % 3) + 1)")
+                                    .frame(width: cardWidth, height: cardWidth)
+                                    .clipped()
+                                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                                 Text(song.title).font(.system(size: 13, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
                                 Text(song.artist).font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
                             }.frame(width: cardWidth, alignment: .leading)
