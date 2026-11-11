@@ -503,7 +503,7 @@ struct ContentView: View {
                 HStack(spacing: 12) {
                     ForEach(0..<min(recommendationSongs.count, 6), id: \.self) { index in
                         let song = recommendationSongs[index]
-                        Button { select(song) } label: {
+                        Button { startsSearchQueue ? playSearchResult(song) : select(song) } label: {
                             VStack(alignment: .leading, spacing: 7) {
                                 songArtwork(song.onlineSong, tint: song.tint, size: cardWidth)
                                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
@@ -616,7 +616,7 @@ struct ContentView: View {
                     emptyState(icon: "music.note.list", title: searchError == nil ? "正在搜索在线音源" : "暂时没有搜索结果", detail: searchError ?? "请稍候")
                 } else {
                     VStack(spacing: 17) {
-                        ForEach(filteredSongs) { song in songRow(song) }
+                        ForEach(filteredSongs) { song in songRow(song, startsSearchQueue: true) }
                     }
                 }
             }
@@ -761,7 +761,7 @@ struct ContentView: View {
         MusicArtworkPlaceholder(seed: "musicx-default", tint: tint)
     }
 
-    private func songRow(_ song: AppSong, number: String? = nil) -> some View {
+    private func songRow(_ song: AppSong, number: String? = nil, startsSearchQueue: Bool = false) -> some View {
         HStack(spacing: 13) {
             RoundedRectangle(cornerRadius: 12)
                 .fill(LinearGradient(colors: [song.tint, song.tint.opacity(0.45)], startPoint: .topLeading, endPoint: .bottomTrailing))
@@ -784,7 +784,7 @@ struct ContentView: View {
                 Image(systemName: favorites.contains(song.id) ? "heart.fill" : "heart")
                     .font(.system(size: 17)).foregroundStyle(favorites.contains(song.id) ? MusicXTheme.blue : MusicXTheme.muted)
             }
-            Button { select(song) } label: {
+            Button { startsSearchQueue ? playSearchResult(song) : select(song) } label: {
                 Image(systemName: currentSong?.id == song.id && playerStore.isPlaying ? "pause.circle.fill" : "play.circle")
                     .font(.system(size: 25)).foregroundStyle(.white.opacity(0.85))
             }
@@ -1499,6 +1499,14 @@ struct ContentView: View {
         .overlay(Capsule().stroke(.white.opacity(0.14), lineWidth: 0.7))
         .shadow(color: MusicXTheme.blue.opacity(0.12), radius: 15, y: 5)
         .padding(.horizontal, 10)
+    }
+
+    private func playSearchResult(_ song: AppSong) {
+        // A search result selection replaces the active queue with this exact
+        // result set, keeping the tapped song at its natural position.
+        playbackQueueSongs = filteredSongs
+        hasCustomPlaybackQueue = true
+        select(song)
     }
 
     private func playDiscoverySong(_ song: MusicSong) {
