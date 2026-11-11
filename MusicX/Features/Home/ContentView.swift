@@ -387,7 +387,90 @@ struct ContentView: View {
         }
     }
 
-        private var searchPage: some View {
+        private var editorialPlaylistSection: some View {
+        VStack(alignment: .leading, spacing: 13) {
+            HStack(spacing: 0) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Capsule().fill(MusicXTheme.blue).frame(width: 5, height: 27)
+                    Text("精选歌单").font(.system(size: 23, weight: .bold)).foregroundStyle(.white)
+                    Text("· 编辑推荐").font(.system(size: 13, weight: .medium)).foregroundStyle(MusicXTheme.muted)
+                    Spacer(minLength: 4)
+                }
+                Button { discoveryRoute = .playlists } label: {
+                    HStack(spacing: 4) { Text("查看更多").font(.system(size: 13, weight: .medium)); Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)) }
+                        .foregroundStyle(MusicXTheme.muted)
+                }.buttonStyle(.plain)
+            }.padding(.horizontal, 20)
+            GeometryReader { proxy in
+                let width = max(0, (proxy.size.width - 64) / 3)
+                HStack(spacing: 12) {
+                    editorialPlaylistCard(title: "午后放松", subtitle: "轻音乐 · 治愈 · 放松", tint: Color(red: 0.82, green: 0.56, blue: 0.34), symbol: "cup.and.saucer.fill", artwork: songs.first?.onlineSong, width: width)
+                    editorialPlaylistCard(title: "深夜独白", subtitle: "安静 · 思考 · 陪伴", tint: Color(red: 0.28, green: 0.42, blue: 0.78), symbol: "moon.stars.fill", artwork: songs.dropFirst().first?.onlineSong, width: width)
+                    editorialPlaylistCard(title: "车载必听", subtitle: "旅途 · 驾驶 · 精选", tint: Color(red: 0.18, green: 0.58, blue: 0.67), symbol: "car.fill", artwork: songs.dropFirst(2).first?.onlineSong, width: width)
+                }.padding(.horizontal, 20)
+            }.frame(height: 104)
+        }
+    }
+
+    private func editorialPlaylistCard(title: String, subtitle: String, tint: Color, symbol: String, artwork: MusicSong?, width: CGFloat) -> some View {
+        Button { discoveryRoute = .playlists } label: {
+            ZStack(alignment: .bottomLeading) {
+                RoundedRectangle(cornerRadius: 18, style: .continuous).fill(tint.opacity(0.55))
+                if let url = artwork?.artworkURL {
+                    AsyncImage(url: url) { phase in
+                        if let image = phase.image { image.resizable().scaledToFill() } else { tint.opacity(0.45) }
+                    }.frame(width: width, height: 104).clipped()
+                } else {
+                    LinearGradient(colors: [tint.opacity(0.8), tint.opacity(0.25)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                }
+                LinearGradient(colors: [.clear, .black.opacity(0.72)], startPoint: .center, endPoint: .bottom)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title).font(.system(size: 14, weight: .bold)).foregroundStyle(.white).lineLimit(1)
+                    Text(subtitle).font(.system(size: 9, weight: .medium)).foregroundStyle(.white.opacity(0.86)).lineLimit(1).minimumScaleFactor(0.7)
+                }.padding(.leading, 10).padding(.bottom, 10)
+                Image(systemName: "play.fill").font(.system(size: 10, weight: .bold)).foregroundStyle(.white)
+                    .frame(width: 26, height: 26).background(.black.opacity(0.35), in: Circle())
+                    .overlay(Circle().stroke(.white.opacity(0.4), lineWidth: 0.8))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing).padding(8)
+            }.frame(width: width, height: 104)
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(.white.opacity(0.26), lineWidth: 1))
+        }.buttonStyle(.plain)
+    }
+
+    private var forYouSection: some View {
+        VStack(alignment: .leading, spacing: 13) {
+            homeSectionTitle("猜你喜欢", action: { songs.shuffle() }, actionTitle: "换一批")
+            ScrollView(.horizontal, showsIndicators: false) {
+                let cardWidth = (UIScreen.main.bounds.width - 64) / 3
+                HStack(spacing: 12) {
+                    ForEach(Array(songs.suffix(6))) { song in
+                        Button { select(song) } label: {
+                            VStack(alignment: .leading, spacing: 7) {
+                                albumArtwork(song.onlineSong, tint: song.tint, width: cardWidth, height: cardWidth)
+                                Text(song.title).font(.system(size: 13, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
+                                Text(song.artist).font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
+                            }.frame(width: cardWidth, alignment: .leading)
+                        }.buttonStyle(.plain)
+                    }
+                }.padding(.horizontal, 20)
+            }.frame(height: (UIScreen.main.bounds.width - 64) / 3 + 46)
+        }
+    }
+
+    private func albumArtwork(_ song: MusicSong?, tint: Color, width: CGFloat, height: CGFloat) -> some View {
+        Group {
+            if let url = song?.artworkURL {
+                AsyncImage(url: url) { phase in
+                    if let image = phase.image { image.resizable().scaledToFill() } else { artworkFallback(tint: tint) }
+                }
+            } else { artworkFallback(tint: tint) }
+        }
+        .frame(width: width, height: height)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private var searchPage: some View {
         ScrollViewReader { proxy in
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
