@@ -359,7 +359,7 @@ struct ContentView: View {
 
     private var albumSection: some View {
         VStack(alignment: .leading, spacing: 13) {
-            homeSectionTitle("热门专辑", action: { discoveryRoute = .playlists })
+            homeSectionTitle("热门专辑", action: { discoveryRoute = .playlists }).padding(.horizontal, 20)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     ForEach(Array(songs.prefix(5))) { song in
@@ -437,7 +437,7 @@ struct ContentView: View {
 
     private var forYouSection: some View {
         VStack(alignment: .leading, spacing: 13) {
-            homeSectionTitle("猜你喜欢", action: { songs.shuffle() }, actionTitle: "换一批")
+            homeSectionTitle("猜你喜欢", action: { songs.shuffle() }, actionTitle: "换一批").padding(.horizontal, 20)
             ScrollView(.horizontal, showsIndicators: false) {
                 let cardWidth = (UIScreen.main.bounds.width - 64) / 3
                 HStack(spacing: 12) {
@@ -623,16 +623,8 @@ struct ContentView: View {
 
         @ViewBuilder
     private func songArtwork(_ song: MusicSong?, tint: Color, size: CGFloat) -> some View {
-        if let url = song?.artworkURL {
-            AsyncImage(url: url) { phase in
-                if let image = phase.image {
-                    image.resizable().scaledToFill()
-                } else {
-                    artworkFallback(tint: tint)
-                }
-            }
-            .frame(width: size, height: size)
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        if let song {
+            SongArtworkView(song: song, tint: tint, size: size)
         } else {
             artworkFallback(tint: tint).frame(width: size, height: size)
         }
@@ -1543,6 +1535,42 @@ struct ContentView: View {
             isDownloading = false
             isDownloadAlertPresented = true
         }
+    }
+}
+
+private struct SongArtworkView: View {
+    let song: MusicSong
+    let tint: Color
+    let size: CGFloat
+    @State private var resolvedURL: URL?
+
+    var body: some View {
+        Group {
+            if let url = resolvedURL ?? song.artworkURL {
+                AsyncImage(url: url) { phase in
+                    if let image = phase.image {
+                        image.resizable().scaledToFill()
+                    } else {
+                        fallback
+                    }
+                }
+            } else {
+                fallback
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .task(id: song.id) {
+            guard song.artworkURL == nil else { resolvedURL = song.artworkURL; return }
+            guard song.pictureID?.isEmpty == false else { return }
+            resolvedURL = try? await GDStudioMetadataService().artworkURL(for: song)
+        }
+    }
+
+    private var fallback: some View {
+        RoundedRectangle(cornerRadius: 12, style: .continuous)
+            .fill(LinearGradient(colors: [tint, tint.opacity(0.38)], startPoint: .topLeading, endPoint: .bottomTrailing))
+            .overlay(Image(systemName: "music.note").font(.system(size: min(22, size * 0.42))).foregroundStyle(.white.opacity(0.82)))
     }
 }
 
