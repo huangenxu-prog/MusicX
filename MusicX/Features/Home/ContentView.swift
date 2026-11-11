@@ -1443,6 +1443,9 @@ struct ContentView: View {
         HStack(spacing: 0) {
             ForEach(MainTab.allCases, id: \.self) { tab in
                 Button {
+                    if tab == .search && selectedTab != .search {
+                        searchSuggestions = ["十年", "突然好想你", "晴天", "青花瓷", "稻香", "后来", "演员", "夜曲", "富士山下", "海阔天空"].shuffled().prefix(5).map { $0 }
+                    }
                     withAnimation(.spring(response: 0.52, dampingFraction: 0.76, blendDuration: 0.18)) {
                         selectedTab = tab
                     }
