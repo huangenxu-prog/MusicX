@@ -10,8 +10,10 @@ enum MusicDiscoveryRoute: Identifiable {
         case .daily: "daily"
         case .playlists: "playlists"
         case .charts: "charts"
+        case .newReleases: "new-releases"
+        case .chart(let name): "chart-\(name)"
         case .playlist(let name): "playlist-\(name)"
-        case .album(let song): "album-\(song.id)"
+        case .album(let title, let artist): "album-\(title)-\(artist)"
         }
     }
 }
@@ -33,7 +35,10 @@ struct MusicDiscoveryPage: View {
     @State private var songs: [MusicSong] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
-    @State private var selectedChart = "热歌榜"
+    private var selectedChart: String {
+        if case .chart(let name) = route { return name }
+        return "热歌榜"
+    }
     private let service = GDStudioMusicSearchService()
 
     private var title: String {
@@ -55,7 +60,7 @@ struct MusicDiscoveryPage: View {
         case .newReleases: "新歌"
         case .playlist(let name):
             name == "轻音乐" ? "纯音乐" : name == "华语流行" ? "周杰伦" : name
-        case .album(let title, let artist): "\\(title) \\(artist)"
+        case .album(let title, let artist): "\(title) \(artist)"
         }
     }
 
@@ -77,7 +82,7 @@ struct MusicDiscoveryPage: View {
                         playlistGrid
                     } else {
                         if case .charts = route { chartTabs }
-                    if case .chart = route { chartTabs }
+                        if case .chart = route { chartTabs }
                         if case .album = route { albumNote }
                         trackList
                     }
