@@ -40,8 +40,8 @@
  <path d="M72 832C275 900 642 855 952 718V1024H72Z" fill="#2815a7" opacity=".24"/>
  <path d="M62 848C280 900 568 868 958 724" fill="none" stroke="url(#wave)" stroke-width="28" opacity=".55" filter="url(#glow)"/>
  <path d="M62 848C280 900 568 868 958 724" fill="none" stroke="url(#wave)" stroke-width="10" opacity=".95"/>
- <rect x="47" y="47" width="930" height="930" rx="204" fill="none" stroke="url(#rim)" stroke-width="12" opacity=".96"/>
- <rect x="60" y="60" width="904" height="904" rx="192" fill="none" stroke="#ffffff" stroke-opacity=".22" stroke-width="3"/>
+
+
  <path d="M92 180C180 82 320 67 460 75" fill="none" stroke="#ffffff" stroke-opacity=".18" stroke-width="5"/>
 </g>
 </svg>
