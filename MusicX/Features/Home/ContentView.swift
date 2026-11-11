@@ -290,16 +290,7 @@ struct ContentView: View {
             }
         }
         .frame(height: 170).frame(maxWidth: .infinity).clipped()
-        .background {
-            GeometryReader { geometry in
-                HomeArtwork(name: "home_hero")
-                    .frame(width: geometry.size.width, height: geometry.size.height + geometry.safeAreaInsets.top)
-                    .clipped()
-                    .overlay(LinearGradient(colors: [.clear, MusicXTheme.background.opacity(0.96)], startPoint: .center, endPoint: .bottom))
-                    .offset(y: -geometry.safeAreaInsets.top)
-            }
-            .ignoresSafeArea(edges: .top)
-        }
+        .background { HomeArtwork(name: "home_hero").overlay(LinearGradient(colors: [.clear, MusicXTheme.background.opacity(0.96)], startPoint: .center, endPoint: .bottom)).ignoresSafeArea(edges: .top) }
     }
 
     private var recommendationSection: some View {
