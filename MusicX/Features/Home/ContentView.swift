@@ -126,6 +126,7 @@ struct ContentView: View {
     @State private var selectedTab: MainTab = .home
     @Namespace private var tabSelectionNamespace
     @State private var searchText = ""
+    @State private var searchSuggestions = ["十年", "突然好想你", "晴天", "青花瓷", "稻香", "后来", "演员", "夜曲", "富士山下", "海阔天空"].shuffled().prefix(5).map { $0 }
     @FocusState private var searchFieldFocused: Bool
     @State private var libraryFilter: LibraryFilter = .favorites
     @State private var currentSong: AppSong?
@@ -561,16 +562,46 @@ struct ContentView: View {
                     }
                 }
             }
-            .padding(.horizontal, 16).frame(height: 54)
-            .background(MusicXTheme.surface, in: RoundedRectangle(cornerRadius: 16))
+            .padding(.horizontal, 18).frame(height: 58)
+            .background {
+                RoundedRectangle(cornerRadius: 30, style: .continuous).fill(.ultraThinMaterial)
+                    .overlay(RoundedRectangle(cornerRadius: 30).fill(LinearGradient(colors: [Color.white.opacity(0.15), Color(red: 0.10, green: 0.20, blue: 0.42).opacity(0.34)], startPoint: .topLeading, endPoint: .bottomTrailing)))
+                    .overlay(RoundedRectangle(cornerRadius: 30).stroke(LinearGradient(colors: [.white.opacity(0.52), MusicXTheme.blue.opacity(0.30), .white.opacity(0.14)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1))
+                    .shadow(color: MusicXTheme.blue.opacity(0.18), radius: 12, y: 4)
+            }
 
             if searchText.isEmpty {
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("热门搜索").font(.system(size: 18, weight: .bold))
-                    FlowTags(tags: ["华语流行", "轻音乐", "经典老歌", "纯音乐", "摇滚"])
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack(spacing: 8) {
+                        Text("🔥").font(.system(size: 19))
+                        Text("热门搜索").font(.system(size: 18, weight: .bold))
+                    }
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 9) {
+                            ForEach(searchSuggestions, id: \\.self) { title in
+                                Button { searchText = title; searchFieldFocused = false } label: {
+                                    Text(title).font(.system(size: 13, weight: .medium)).foregroundStyle(.white.opacity(0.94))
+                                        .padding(.horizontal, 15).padding(.vertical, 9)
+                                        .background(Capsule().fill(.ultraThinMaterial).overlay(Capsule().fill(Color.white.opacity(0.055))))
+                                        .overlay(Capsule().stroke(.white.opacity(0.22), lineWidth: 0.8))
+                                }.buttonStyle(.plain)
+                            }
+                        }
+                    }
+                }.padding(.top, 2)
+
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("音乐分类").font(.system(size: 20, weight: .bold))
+                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                        SearchCategoryCard(title: "华语流行", subtitle: "精选华语流行", asset: "SearchCategory01", symbol: "opticaldisc", tint: Color(red: 0.10, green: 0.48, blue: 0.95)) { searchText = "华语流行" }
+                        SearchCategoryCard(title: "经典老歌", subtitle: "时代金曲回忆", asset: "SearchCategory02", symbol: "mic.fill", tint: Color(red: 0.80, green: 0.22, blue: 0.62)) { searchText = "经典老歌" }
+                        SearchCategoryCard(title: "轻音乐", subtitle: "舒缓 · 放松", asset: "SearchCategory03", symbol: "leaf.fill", tint: Color(red: 0.10, green: 0.58, blue: 0.48)) { searchText = "轻音乐" }
+                        SearchCategoryCard(title: "纯音乐", subtitle: "器乐 · 演奏", asset: "SearchCategory04", symbol: "pianokeys", tint: Color(red: 0.48, green: 0.22, blue: 0.78)) { searchText = "纯音乐" }
+                        SearchCategoryCard(title: "摇滚", subtitle: "激情 · 力量", asset: "SearchCategory05", symbol: "guitars.fill", tint: Color(red: 0.82, green: 0.30, blue: 0.12)) { searchText = "摇滚" }
+                        SearchCategoryCard(title: "欧美音乐", subtitle: "欧美流行精选", asset: "SearchCategory06", symbol: "headphones", tint: Color(red: 0.05, green: 0.58, blue: 0.82)) { searchText = "欧美音乐" }
+                    }
                 }
-                .padding(.top, 4)
-                Text("输入关键词开始搜索").font(.system(size: 14)).foregroundStyle(MusicXTheme.muted)
+                Text("选择分类，发现更多音乐").font(.system(size: 13)).foregroundStyle(MusicXTheme.muted).padding(.top, 1)
             } else {
                 HStack {
                     Text("搜索结果").font(.system(size: 19, weight: .bold))
@@ -1824,6 +1855,32 @@ private struct PlayerLyricLine: Identifiable {
     let id = UUID()
     let time: TimeInterval
     let text: String
+}
+
+private struct SearchCategoryCard: View {
+    let title: String
+    let subtitle: String
+    let asset: String
+    let symbol: String
+    let tint: Color
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            ZStack(alignment: .leading) {
+                Image(asset).resizable().scaledToFill()
+                LinearGradient(colors: [tint.opacity(0.20), tint.opacity(0.02), .black.opacity(0.18)], startPoint: .leading, endPoint: .trailing)
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(title).font(.system(size: 18, weight: .bold)).foregroundStyle(.white)
+                    Text(subtitle).font(.system(size: 11, weight: .medium)).foregroundStyle(.white.opacity(0.82))
+                }.padding(.leading, 15)
+                Image(systemName: symbol).font(.system(size: 42, weight: .light)).foregroundStyle(.white.opacity(0.68))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing).padding(.trailing, 13)
+            }
+            .frame(height: 91).clipShape(RoundedRectangle(cornerRadius: 17, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 17).stroke(.white.opacity(0.22), lineWidth: 0.8))
+        }.buttonStyle(.plain)
+    }
 }
 
 private struct FlowTags: View {
