@@ -41,9 +41,13 @@ private struct DownloadedTrack: Codable, Identifiable {
 }
 
 private enum LibraryFilter: String, CaseIterable {
-    case favorites = "收藏"
     case recent = "最近播放"
-    case downloads = "下载"
+    case favorites = "收藏歌曲"
+}
+
+private enum LibraryContentType: String, CaseIterable {
+    case songs = "歌曲"
+    case artists = "歌手"
 }
 
 private enum PlayerDisplayMode: CaseIterable, Hashable {
@@ -122,7 +126,8 @@ struct ContentView: View {
     @State private var searchText = ""
     @State private var searchSuggestions = ["十年", "突然好想你", "晴天", "青花瓷", "稻香", "后来", "演员", "夜曲", "富士山下", "海阔天空"].shuffled().prefix(4).map { $0 }
     @FocusState private var searchFieldFocused: Bool
-    @State private var libraryFilter: LibraryFilter = .favorites
+    @State private var libraryFilter: LibraryFilter = .recent
+    @State private var libraryContentType: LibraryContentType = .songs
     @State private var currentSong: AppSong?
     @State private var isSeekingProgress = false
     @State private var seekPreviewTime: TimeInterval = 0
@@ -199,11 +204,18 @@ struct ContentView: View {
         return onlineResults
     }
 
+    private var libraryArtists: [(artist: String, song: AppSong, count: Int)] {
+        let grouped = Dictionary(grouping: librarySongs) { $0.artist.trimmingCharacters(in: .whitespacesAndNewlines) }
+        return grouped.keys.filter { !$0.isEmpty }.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }.compactMap { artist in
+            guard let tracks = grouped[artist], let first = tracks.first else { return nil }
+            return (artist: artist, song: first, count: tracks.count)
+        }
+    }
+
     private var librarySongs: [AppSong] {
         switch libraryFilter {
         case .favorites: songs.filter { favorites.contains($0.id) }
         case .recent: recentSongs
-        case .downloads: downloadedSongs
         }
     }
 
@@ -644,30 +656,112 @@ struct ContentView: View {
     }
 
     private var libraryPage: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            pageHeader("音乐库", subtitle: "你的音乐，保存在本地")
+        VStack(alignment: .leading, spacing: 22) {
+            HStack(alignment: .center) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("音乐库")
+                        .font(.system(size: 34, weight: .bold, design: .rounded))
+                    Text("最近听过的音乐与喜欢的歌曲")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(MusicXTheme.muted)
+                }
+                Spacer()
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.9))
+                    .frame(width: 44, height: 44)
+                    .background(.white.opacity(0.07), in: Circle())
+                    .overlay(Circle().stroke(.white.opacity(0.12), lineWidth: 1))
+                    .contentShape(Circle())
+                    .onTapGesture { selectedTab = .search; searchFieldFocused = true }
+            }
+
             HStack(spacing: 8) {
-                ForEach(LibraryFilter.allCases, id: \.self) { filter in
-                    Button { libraryFilter = filter } label: {
-                        Text(filter.rawValue).font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(libraryFilter == filter ? .white : MusicXTheme.muted)
-                            .padding(.horizontal, 15).padding(.vertical, 10)
-                            .background(libraryFilter == filter ? MusicXTheme.blue.opacity(0.22) : MusicXTheme.surface, in: Capsule())
+                ForEach(LibraryContentType.allCases, id: \.self) { type in
+                    Button { libraryContentType = type } label: {
+                        Text(type.rawValue)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(libraryContentType == type ? .white : MusicXTheme.muted)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background {
+                                Capsule().fill(libraryContentType == type
+                                    ? LinearGradient(colors: [MusicXTheme.blue.opacity(0.40), MusicXTheme.blue.opacity(0.18)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                                    : Color.white.opacity(0.045))
+                            }
+                            .overlay(Capsule().stroke(libraryContentType == type ? MusicXTheme.blue.opacity(0.62) : .white.opacity(0.08), lineWidth: 1))
                     }
+                    .buttonStyle(.plain)
                 }
             }
-            if librarySongs.isEmpty {
+
+            HStack(spacing: 10) {
+                Image(systemName: "arrow.up.arrow.down")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(MusicXTheme.muted)
+                ForEach(LibraryFilter.allCases, id: \.self) { filter in
+                    Button { libraryFilter = filter } label: {
+                        Text(filter.rawValue)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(libraryFilter == filter ? .white : MusicXTheme.muted)
+                            .padding(.horizontal, 14).padding(.vertical, 9)
+                            .background(libraryFilter == filter ? MusicXTheme.blue.opacity(0.24) : .white.opacity(0.055), in: Capsule())
+                            .overlay(Capsule().stroke(libraryFilter == filter ? MusicXTheme.blue.opacity(0.48) : .white.opacity(0.08), lineWidth: 0.8))
+                    }
+                    .buttonStyle(.plain)
+                }
                 Spacer()
-                emptyState(
-                    icon: libraryFilter == .downloads ? "arrow.down.circle" : "music.note.list",
-                    title: libraryFilter == .downloads ? "暂无下载歌曲" : "这里还没有内容",
-                    detail: libraryFilter == .favorites ? "喜欢的歌曲会出现在这里" : libraryFilter == .recent ? "播放过的歌曲会记录在这里" : "从正在播放页面下载的歌曲会保存在这里"
-                )
-                Spacer()
+                Text("\(libraryContentType == .songs ? librarySongs.count : libraryArtists.count)")
+                    .font(.system(size: 12, weight: .medium, design: .rounded))
+                    .foregroundStyle(MusicXTheme.muted)
+            }
+
+            if libraryContentType == .songs {
+                if librarySongs.isEmpty {
+                    Spacer()
+                    emptyState(icon: libraryFilter == .favorites ? "heart" : "clock.arrow.circlepath",
+                               title: libraryFilter == .favorites ? "还没有收藏歌曲" : "暂无最近播放",
+                               detail: libraryFilter == .favorites ? "在播放列表中点亮爱心，收藏的歌曲会显示在这里" : "播放过的歌曲会自动保存在这里")
+                    Spacer()
+                } else {
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 16) {
+                            ForEach(librarySongs) { song in songRow(song) }
+                        }
+                        .padding(.top, 4)
+                        .padding(.bottom, 24)
+                    }
+                }
             } else {
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 17) {
-                        ForEach(librarySongs) { song in songRow(song) }
+                if libraryArtists.isEmpty {
+                    Spacer()
+                    emptyState(icon: "person.2", title: "暂无歌手", detail: "最近播放或收藏歌曲后，歌手会自动整理在这里")
+                    Spacer()
+                } else {
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 14) {
+                            ForEach(libraryArtists, id: \.artist) { item in
+                                Button {
+                                    searchText = item.artist
+                                    selectedTab = .search
+                                } label: {
+                                    HStack(spacing: 14) {
+                                        songArtwork(item.song.onlineSong, tint: item.song.tint, size: 58)
+                                            .clipShape(Circle())
+                                        VStack(alignment: .leading, spacing: 5) {
+                                            Text(item.artist).font(.system(size: 16, weight: .semibold)).foregroundStyle(.white)
+                                            Text("\(item.count) 首歌曲").font(.system(size: 12)).foregroundStyle(MusicXTheme.muted)
+                                        }
+                                        Spacer()
+                                        Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)).foregroundStyle(MusicXTheme.muted)
+                                    }
+                                    .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.top, 4)
+                        .padding(.bottom, 24)
                     }
                 }
             }
