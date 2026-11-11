@@ -560,8 +560,12 @@ struct ContentView: View {
             .background {
                 RoundedRectangle(cornerRadius: 30, style: .continuous).fill(.ultraThinMaterial)
                     .overlay(RoundedRectangle(cornerRadius: 30).fill(LinearGradient(colors: [Color.white.opacity(0.15), Color(red: 0.10, green: 0.20, blue: 0.42).opacity(0.34)], startPoint: .topLeading, endPoint: .bottomTrailing)))
-                    .overlay(RoundedRectangle(cornerRadius: 30).stroke(LinearGradient(colors: [.white.opacity(0.52), MusicXTheme.blue.opacity(0.30), .white.opacity(0.14)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1))
-                    .shadow(color: MusicXTheme.blue.opacity(0.18), radius: 12, y: 4)
+                    .overlay(RoundedRectangle(cornerRadius: 30).stroke(LinearGradient(colors: [.white.opacity(0.78), MusicXTheme.blue.opacity(0.52), .white.opacity(0.20)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1.15))
+                    .overlay(alignment: .top) {
+                        Capsule().fill(LinearGradient(colors: [.white.opacity(0.72), MusicXTheme.blue.opacity(0.20), .clear], startPoint: .leading, endPoint: .trailing))
+                            .frame(height: 1.2).padding(.horizontal, 34).padding(.top, 1)
+                    }
+                    .shadow(color: MusicXTheme.blue.opacity(0.30), radius: 16, y: 5)
             }
 
             if searchText.isEmpty {
@@ -572,12 +576,17 @@ struct ContentView: View {
                     }
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 9) {
-                            ForEach(searchSuggestions, id: \.self) { title in
+                            ForEach(Array(searchSuggestions.enumerated()), id: \.element) { index, title in
                                 Button { searchText = title; searchFieldFocused = false } label: {
-                                    Text(title).font(.system(size: 13, weight: .medium)).foregroundStyle(.white.opacity(0.94))
+                                    Text(title).font(.system(size: 13, weight: .medium)).foregroundStyle(.white.opacity(0.96))
                                         .padding(.horizontal, 15).padding(.vertical, 9)
-                                        .background(Capsule().fill(.ultraThinMaterial).overlay(Capsule().fill(Color.white.opacity(0.055))))
-                                        .overlay(Capsule().stroke(.white.opacity(0.22), lineWidth: 0.8))
+                                        .background {
+                                            Capsule().fill(index == 0
+                                                ? LinearGradient(colors: [MusicXTheme.blue.opacity(0.82), Color(red: 0.08, green: 0.25, blue: 0.72).opacity(0.88)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                                                : LinearGradient(colors: [Color.white.opacity(0.16), Color(red: 0.05, green: 0.10, blue: 0.22).opacity(0.62)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                        }
+                                        .overlay(Capsule().stroke(index == 0 ? MusicXTheme.blue.opacity(0.95) : .white.opacity(0.34), lineWidth: 0.9))
+                                        .shadow(color: index == 0 ? MusicXTheme.blue.opacity(0.62) : .black.opacity(0.18), radius: index == 0 ? 11 : 4, y: 2)
                                 }.buttonStyle(.plain)
                             }
                         }
@@ -1866,19 +1875,27 @@ private struct SearchCategoryCard: View {
         Button(action: action) {
             ZStack(alignment: .leading) {
                 Image(asset).resizable().scaledToFill()
-                LinearGradient(colors: [tint.opacity(0.20), tint.opacity(0.02), .black.opacity(0.18)], startPoint: .leading, endPoint: .trailing)
-                VStack(alignment: .leading, spacing: 5) {
+                LinearGradient(colors: [.black.opacity(0.10), tint.opacity(0.06), .black.opacity(0.24)], startPoint: .leading, endPoint: .trailing)
+                VStack(alignment: .leading, spacing: 6) {
                     Text(title).font(.system(size: 18, weight: .bold)).foregroundStyle(.white)
-                    Text(subtitle).font(.system(size: 11, weight: .medium)).foregroundStyle(.white.opacity(0.82))
+                        .shadow(color: .black.opacity(0.30), radius: 5, y: 1)
+                    Text(subtitle).font(.system(size: 11, weight: .medium)).foregroundStyle(.white.opacity(0.90))
+                        .shadow(color: .black.opacity(0.28), radius: 4, y: 1)
                 }.padding(.leading, 15)
-                Image(systemName: symbol).font(.system(size: 42, weight: .light)).foregroundStyle(.white.opacity(0.68))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing).padding(.trailing, 13)
+                RoundedRectangle(cornerRadius: 17, style: .continuous)
+                    .fill(LinearGradient(colors: [.white.opacity(0.18), .clear, tint.opacity(0.10)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .blendMode(.screen)
+                    .allowsHitTesting(false)
             }
             .frame(maxWidth: .infinity)
             .frame(height: 91)
             .clipped()
             .clipShape(RoundedRectangle(cornerRadius: 17, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 17).stroke(.white.opacity(0.22), lineWidth: 0.8))
+            .overlay {
+                RoundedRectangle(cornerRadius: 17, style: .continuous)
+                    .stroke(LinearGradient(colors: [.white.opacity(0.62), tint.opacity(0.60), .white.opacity(0.16)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1)
+            }
+            .shadow(color: tint.opacity(0.22), radius: 9, y: 3)
         }.buttonStyle(.plain)
     }
 }
