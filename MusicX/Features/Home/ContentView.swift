@@ -263,10 +263,10 @@ struct ContentView: View {
                 HomeArtwork(name: "home_hero").frame(width: proxy.size.width, height: 154).clipped()
                     .overlay(LinearGradient(colors: [.black.opacity(0.06), .clear, MusicXTheme.background.opacity(0.82)], startPoint: .top, endPoint: .bottom))
                 VStack(alignment: .leading, spacing: 0) {
-                    Spacer(minLength: 38)
+                    Spacer(minLength: 48)
                     VStack(alignment: .leading, spacing: 4) {
                         Text("发现音乐").font(.system(size: 32, weight: .bold, design: .rounded)).foregroundStyle(.white).shadow(color: .black.opacity(0.3), radius: 8, y: 2)
-                        Text("好音乐，总在这里").font(.system(size: 16, weight: .medium)).foregroundStyle(.white.opacity(0.92))
+                        Text("好音乐，总在这里").font(.custom("STLiti", size: 18, relativeTo: .subheadline)).tracking(1.1).foregroundStyle(.white.opacity(0.94))
                     }
                     Spacer(minLength: 4)
                 }.padding(.horizontal, 22).padding(.bottom, 4)
@@ -391,13 +391,12 @@ struct ContentView: View {
             }
             .frame(width: width, height: 64)
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(.white.opacity(0.22), lineWidth: 0.8))
-        }.buttonStyle(.plain)
+         }.buttonStyle(.plain)
     }
 
     private var chartSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            homeSectionTitle("排行榜", action: { discoveryRoute = .chart("热歌榜") }).padding(.horizontal, 14)
+            homeSectionTitle("排行榜", action: nil).padding(.horizontal, 14)
             GeometryReader { proxy in
                 let width = max(0, (proxy.size.width - 44) / 3)
                 HStack(spacing: 8) {
@@ -611,18 +610,28 @@ struct ContentView: View {
         }
     }
 
-    private func homeSectionTitle(_ title: String, action: @escaping () -> Void, actionTitle: String = "查看全部") -> some View {
-        Button(action: action) {
+    @ViewBuilder
+    private func homeSectionTitle(_ title: String, action: (() -> Void)?, actionTitle: String = "查看全部") -> some View {
+        if let action {
+            Button(action: action) {
+                HStack(spacing: 10) {
+                    Capsule().fill(MusicXTheme.blue).frame(width: 4, height: 21)
+                    Text(title).font(.system(size: 20, weight: .bold)).foregroundStyle(.white)
+                    Spacer()
+                    Text(actionTitle).font(.system(size: 12, weight: .medium)).foregroundStyle(MusicXTheme.muted)
+                    Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)).foregroundStyle(MusicXTheme.muted)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        } else {
             HStack(spacing: 10) {
                 Capsule().fill(MusicXTheme.blue).frame(width: 4, height: 21)
                 Text(title).font(.system(size: 20, weight: .bold)).foregroundStyle(.white)
                 Spacer()
-                Text(actionTitle).font(.system(size: 12, weight: .medium)).foregroundStyle(MusicXTheme.muted)
-                Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)).foregroundStyle(MusicXTheme.muted)
             }
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
     }
 
     private func homeSongRow(_ song: AppSong, artworkName: String? = nil) -> some View {
