@@ -17,6 +17,8 @@ targets:
     info:
       path: MusicX/Info.plist
       properties:
+        CFBundleShortVersionString: "1.10"
+        CFBundleVersion: "110"
         UILaunchStoryboardName: LaunchScreen
         UIBackgroundModes:
           - audio
