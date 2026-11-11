@@ -429,18 +429,36 @@ struct ContentView: View {
     }
 
     private var albumSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        let albums: [(title: String, artist: String)] = [
+            ("DUO", "陈奕迅"),
+            ("最伟大的作品", "周杰伦"),
+            ("宇宙的有趣", "告五人"),
+            ("LINK", "A-Lin"),
+            ("幼鸟指南", "毛不易")
+        ]
+        return VStack(alignment: .leading, spacing: 12) {
             homeSectionTitle("热门专辑", action: { discoveryRoute = .playlists })
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: 10) {
-                    ForEach(0..<min(songs.count, 5), id: \.self) { index in
-                        if let onlineSong = songs[index].onlineSong {
-                            albumTile(song: onlineSong, artworkName: "Album0\(index + 1)")
+                    ForEach(0..<albums.count, id: \.self) { index in
+                        Button { discoveryRoute = .playlists } label: {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Image("Album0\(index + 1)").resizable().scaledToFill()
+                                    .frame(width: 72, height: 72)
+                                    .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+                                    .overlay(RoundedRectangle(cornerRadius: 13).stroke(.white.opacity(0.14), lineWidth: 0.8))
+                                Text(albums[index].title).font(.system(size: 12, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
+                                Text(albums[index].artist).font(.system(size: 10)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
+                            }
+                            .frame(width: 72, alignment: .leading)
                         }
+                        .buttonStyle(.plain)
                     }
-                }.padding(.horizontal, 1)
+                }
+                .padding(.horizontal, 1)
             }
-        }.padding(.horizontal, 16)
+        }
+        .padding(.horizontal, 16)
     }
 
     private var chartSection: some View {
