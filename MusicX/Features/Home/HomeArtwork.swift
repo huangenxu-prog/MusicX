@@ -1,7 +1,8 @@
 import SwiftUI
+import UIKit
 
-/// Crops one tile from the generated 4×6 artwork sheet.
-/// Each tile is square; destination frames crop naturally without stretching.
+/// Prefers individual photographic image sets when they are present in the asset catalog.
+/// Falls back to the bundled 4×6 vector sheet so the homepage remains renderable meanwhile.
 struct HomeArtwork: View {
     let name: String
 
@@ -16,16 +17,29 @@ struct HomeArtwork: View {
 
     var body: some View {
         GeometryReader { proxy in
-            let cell = max(proxy.size.width, proxy.size.height)
-            let index = names.firstIndex(of: name) ?? 0
-            Image("HomeArtworkSheet")
-                .resizable()
-                .interpolation(.high)
-                .frame(width: cell * 4, height: cell * 6, alignment: .topLeading)
-                .offset(x: -CGFloat(index % 4) * cell - max(0, (cell - proxy.size.width) / 2),
-                        y: -CGFloat(index / 4) * cell - max(0, (cell - proxy.size.height) / 2))
-                .frame(width: proxy.size.width, height: proxy.size.height, alignment: .topLeading)
-                .clipped()
+            if UIImage(named: name) != nil {
+                Image(name)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: proxy.size.width, height: proxy.size.height)
+                    .clipped()
+            } else {
+                vectorFallback(in: proxy.size)
+            }
         }
+    }
+
+    @ViewBuilder
+    private func vectorFallback(in size: CGSize) -> some View {
+        let cell = max(size.width, size.height)
+        let index = names.firstIndex(of: name) ?? 0
+        Image("HomeArtworkSheet")
+            .resizable()
+            .interpolation(.high)
+            .frame(width: cell * 4, height: cell * 6, alignment: .topLeading)
+            .offset(x: -CGFloat(index % 4) * cell - max(0, (cell - size.width) / 2),
+                    y: -CGFloat(index / 4) * cell - max(0, (cell - size.height) / 2))
+            .frame(width: size.width, height: size.height, alignment: .topLeading)
+            .clipped()
     }
 }
