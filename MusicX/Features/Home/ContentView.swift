@@ -261,7 +261,7 @@ struct ContentView: View {
     private var heroHeader: some View {
         GeometryReader { proxy in
             ZStack(alignment: .topLeading) {
-                Image("home_hero").resizable().scaledToFill().frame(width: proxy.size.width, height: 112).clipped()
+                HomeArtwork(name: "home_hero").frame(width: proxy.size.width, height: 112).clipped()
                     .overlay(LinearGradient(colors: [.black.opacity(0.06), .clear, MusicXTheme.background.opacity(0.82)], startPoint: .top, endPoint: .bottom))
                 VStack(alignment: .leading, spacing: 0) {
                     HStack {
@@ -279,7 +279,7 @@ struct ContentView: View {
             }
         }
         .frame(height: 112).frame(maxWidth: .infinity).clipped()
-        .background { Image("home_hero").resizable().scaledToFill().overlay(LinearGradient(colors: [.clear, MusicXTheme.background.opacity(0.96)], startPoint: .center, endPoint: .bottom)).ignoresSafeArea(edges: .top) }
+        .background { HomeArtwork(name: "home_hero").overlay(LinearGradient(colors: [.clear, MusicXTheme.background.opacity(0.96)], startPoint: .center, endPoint: .bottom)).ignoresSafeArea(edges: .top) }
     }
 
     private var recommendationSection: some View {
@@ -298,7 +298,7 @@ struct ContentView: View {
         let assetName = title == "每日推荐" ? "daily_recommend" : "featured_playlist"
         return Button { discoveryRoute = route } label: {
             ZStack(alignment: .leading) {
-                Image(assetName).resizable().scaledToFill().frame(width: width, height: 60).clipped()
+                HomeArtwork(name: assetName).frame(width: width, height: 60).clipped()
                 LinearGradient(colors: [colors.last?.opacity(0.70) ?? .black.opacity(0.65), .clear], startPoint: .leading, endPoint: .trailing)
                 VStack(alignment: .leading, spacing: 0) {
                     Image(systemName: icon).font(.system(size: 12, weight: .bold)).foregroundStyle(.white)
@@ -387,7 +387,7 @@ struct ContentView: View {
         let artists = ["陈奕迅", "周杰伦", "告五人", "LINK", "毛不易"]
         return Button { discoveryRoute = .playlists } label: {
             ZStack(alignment: .bottomLeading) {
-                Image("album_0\(index + 1)").resizable().scaledToFill()
+                HomeArtwork(name: "album_0\(index + 1)")
                     .frame(width: width, height: 68).clipped()
                 LinearGradient(colors: [.clear, .black.opacity(0.76)], startPoint: .center, endPoint: .bottom)
                 VStack(alignment: .leading, spacing: 1) {
@@ -443,7 +443,7 @@ struct ContentView: View {
     private func editorialPlaylistCard(title: String, subtitle: String, tint: Color, symbol: String, artwork: MusicSong?, width: CGFloat) -> some View {
         Button { discoveryRoute = .playlists } label: {
             ZStack(alignment: .bottomLeading) {
-                Image(title == "午后放松" ? "playlist_relax" : title == "深夜独白" ? "playlist_night" : "playlist_drive")
+                HomeArtwork(name: title == "午后放松" ? "playlist_relax" : title == "深夜独白" ? "playlist_night" : "playlist_drive")
                     .resizable().scaledToFill().frame(width: width, height: 64).clipped()
                 LinearGradient(colors: [.clear, .black.opacity(0.72)], startPoint: .center, endPoint: .bottom)
                 VStack(alignment: .leading, spacing: 3) {
@@ -470,7 +470,7 @@ struct ContentView: View {
                         let song = Array(songs.suffix(6))[index]
                         Button { select(song) } label: {
                             VStack(alignment: .leading, spacing: 7) {
-                                Image("guess_0\((index % 3) + 1)").resizable().scaledToFill().frame(width: cardWidth, height: cardWidth).clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                HomeArtwork(name: "guess_0\((index % 3) + 1)").frame(width: cardWidth, height: cardWidth).clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                                 Text(song.title).font(.system(size: 13, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
                                 Text(song.artist).font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
                             }.frame(width: cardWidth, alignment: .leading)
@@ -636,7 +636,7 @@ struct ContentView: View {
             HStack(spacing: 9) {
                 Group {
                     if let artworkName {
-                        Image(artworkName).resizable().scaledToFill()
+                        HomeArtwork(name: artworkName)
                     } else {
                         songArtwork(song.onlineSong, tint: song.tint, size: 24)
                     }
@@ -722,7 +722,7 @@ struct ContentView: View {
         let assetName = title == "热歌榜" ? "chart_hot" : title == "飙升榜" ? "chart_rising" : "chart_new"
         return Button { discoveryRoute = .charts } label: {
             ZStack(alignment: .bottomLeading) {
-                Image(assetName).resizable().scaledToFill().frame(width: width, height: 60).clipped()
+                HomeArtwork(name: assetName).frame(width: width, height: 60).clipped()
                 LinearGradient(colors: [color.opacity(0.10), .black.opacity(0.72)], startPoint: .top, endPoint: .bottom)
                 VStack(alignment: .leading, spacing: 0) {
                     Image(systemName: icon).font(.system(size: 11, weight: .bold)).foregroundStyle(.white)
@@ -751,7 +751,7 @@ struct ContentView: View {
                 HStack(spacing: 12) {
                     Group {
                         if currentSong == nil {
-                            Image("player_cover").resizable().scaledToFill().frame(width: 28, height: 28)
+                            HomeArtwork(name: "player_cover").frame(width: 28, height: 28)
                                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                         } else {
                             songArtwork(currentSong?.onlineSong, tint: currentSong?.tint ?? MusicXTheme.blue, size: 28)
