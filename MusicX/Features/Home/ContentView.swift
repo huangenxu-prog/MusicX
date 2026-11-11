@@ -253,10 +253,11 @@ struct ContentView: View {
             .padding(.bottom, 150)
         }
         .scrollBounceBehavior(.basedOnSize)
+        .ignoresSafeArea(edges: .top)
     }
 
     private var heroAndRecommendation: some View {
-        VStack(alignment: .leading, spacing: 10) { heroHeader; recommendationSection }
+        VStack(alignment: .leading, spacing: 0) { heroHeader; recommendationSection }
     }
 
     private var heroHeader: some View {
