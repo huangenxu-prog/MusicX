@@ -1336,8 +1336,13 @@ struct ContentView: View {
                 } label: {
                     VStack(spacing: 3) {
                         Image(systemName: tab.symbol).font(.system(size: 22, weight: .semibold))
-                            .frame(height: 23).symbolEffect(.bounce, value: selectedTab == tab)
+                            .frame(height: 23)
+                            .symbolEffect(.bounce, value: selectedTab == tab)
+                            .shadow(color: selectedTab == tab ? Color.cyan.opacity(0.78) : .clear,
+                                    radius: selectedTab == tab ? 8 : 0, y: 0)
                         Text(tab.rawValue).font(.system(size: 12, weight: .semibold)).frame(height: 15)
+                            .shadow(color: selectedTab == tab ? Color.cyan.opacity(0.55) : .clear,
+                                    radius: selectedTab == tab ? 6 : 0, y: 0)
                     }
                     .foregroundStyle(selectedTab == tab ? Color(red: 0.34, green: 0.78, blue: 1) : .white.opacity(0.72))
                     .frame(maxWidth: .infinity).frame(height: 54)
