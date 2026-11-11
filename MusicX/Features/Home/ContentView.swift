@@ -101,6 +101,11 @@ struct ContentView: View {
     @AppStorage("musicx.favoriteIDs") private var favoriteIDs = "1,3"
     @AppStorage("musicx.recentIDs") private var recentIDs = ""
     @AppStorage("musicx.downloadedTracks") private var downloadedTracksJSON = "[]"
+    @AppStorage("musicx.playbackQuality") private var playbackQualityRaw = MusicQuality.high.rawValue
+
+    private var selectedMusicQuality: MusicQuality {
+        MusicQuality(rawValue: playbackQualityRaw) ?? .high
+    }
     @State private var isDownloading = false
     @State private var downloadMessage: String?
     @State private var isDownloadAlertPresented = false
@@ -185,10 +190,14 @@ struct ContentView: View {
         }
         .preferredColorScheme(.dark)
         .fullScreenCover(isPresented: $isPlayerPresented) { nowPlayingPage }
-        .alert("MusicX 设置", isPresented: $isSettingsAlertPresented) {
-            Button("完成", role: .cancel) { }
+        .confirmationDialog("播放设置", isPresented: $isSettingsAlertPresented, titleVisibility: .visible) {
+            Button("标准音质 · 128 kbps") { playbackQualityRaw = MusicQuality.standard.rawValue }
+            Button("高音质 · 320 kbps") { playbackQualityRaw = MusicQuality.high.rawValue }
+            Button("无损音质") { playbackQualityRaw = MusicQuality.lossless.rawValue }
+            Button("Hi-Res") { playbackQualityRaw = MusicQuality.hires.rawValue }
+            Button("取消", role: .cancel) { }
         } message: {
-            Text("音质、音源与播放偏好设置将在后续版本开放。")
+            Text("当前音质：\(qualityDisplayName(selectedMusicQuality))。不同音源实际支持的最高音质可能不同。")
         }
         .alert("下载歌曲", isPresented: $isDownloadAlertPresented) {
             Button("确定", role: .cancel) { }
@@ -1162,6 +1171,15 @@ struct ContentView: View {
         return items.filter { seen.insert($0.id).inserted }
     }
 
+    private func qualityDisplayName(_ quality: MusicQuality) -> String {
+        switch quality {
+        case .standard: "标准音质"
+        case .high: "高音质"
+        case .lossless: "无损音质"
+        case .hires: "Hi-Res"
+        }
+    }
+
     private func playerTime(_ time: TimeInterval) -> String {
         guard time.isFinite, time >= 0 else { return "0:00" }
         let seconds = Int(time)
@@ -1258,7 +1276,7 @@ struct ContentView: View {
                     if playbackRequestID == requestID { isResolvingSong = false }
                 }
                 do {
-                    let url = try await LXMusicURLResolver().resolve(song: onlineSong, quality: .high)
+                    let url = try await LXMusicURLResolver().resolve(song: onlineSong, quality: selectedMusicQuality)
                     try Task.checkCancellation()
                     guard playbackRequestID == requestID else { return }
                     currentSong = song
@@ -1405,7 +1423,7 @@ struct ContentView: View {
         isDownloading = true
         Task {
             do {
-                let sourceURL = try await LXMusicURLResolver().resolve(song: song, quality: .high)
+                let sourceURL = try await LXMusicURLResolver().resolve(song: song, quality: selectedMusicQuality)
                 let (temporaryURL, response) = try await URLSession.shared.download(from: sourceURL)
                 if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
                     throw URLError(.badServerResponse)
