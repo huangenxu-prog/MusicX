@@ -268,13 +268,13 @@ struct ContentView: View {
                         Spacer()
                         Button { isSettingsAlertPresented = true } label: { Image(systemName: "bell").font(.system(size: 16)).foregroundStyle(.white).frame(width: 36, height: 36).background(.ultraThinMaterial, in: Circle()).overlay(Circle().stroke(.white.opacity(0.32), lineWidth: 1)) }.buttonStyle(.plain)
                         Button { isPlayerPresented = true } label: { Image(systemName: "waveform").font(.system(size: 17)).foregroundStyle(.white).frame(width: 36, height: 36).background(.ultraThinMaterial, in: Circle()).overlay(Circle().stroke(.white.opacity(0.32), lineWidth: 1)) }.buttonStyle(.plain)
-                    }.padding(.top, 8)
-                    Spacer(minLength: 12)
-                    VStack(alignment: .leading, spacing: 5) {
+                    }.padding(.top, 6)
+                    Spacer(minLength: 8)
+                    VStack(alignment: .leading, spacing: 4) {
                         Text("发现音乐").font(.system(size: 28, weight: .bold, design: .rounded)).foregroundStyle(.white).shadow(color: .black.opacity(0.3), radius: 8, y: 2)
                         Text("好音乐，总在这里").font(.system(size: 14, weight: .medium)).foregroundStyle(.white.opacity(0.92))
                     }
-                    Spacer(minLength: 8)
+                    Spacer(minLength: 4)
                 }.padding(.horizontal, 22).padding(.bottom, 4)
             }
         }
@@ -301,14 +301,14 @@ struct ContentView: View {
                 HomeArtwork(name: assetName).frame(width: width, height: 60).clipped()
                 LinearGradient(colors: [colors.last?.opacity(0.70) ?? .black.opacity(0.65), .clear], startPoint: .leading, endPoint: .trailing)
                 VStack(alignment: .leading, spacing: 0) {
-                    Image(systemName: icon).font(.system(size: 12, weight: .bold)).foregroundStyle(.white)
-                        .frame(width: 24, height: 24).background(.white.opacity(0.20), in: Circle())
+                    Image(systemName: icon).font(.system(size: 11, weight: .bold)).foregroundStyle(.white)
+                        .frame(width: 21, height: 21).background(.white.opacity(0.20), in: Circle())
                         .overlay(Circle().stroke(.white.opacity(0.32), lineWidth: 0.8))
-                    Spacer(minLength: 2)
-                    Text(title).font(.system(size: 15, weight: .bold)).foregroundStyle(.white).lineLimit(1)
-                    Text(subtitle).font(.system(size: 9, weight: .medium)).foregroundStyle(.white.opacity(0.92))
+                    Spacer(minLength: 0)
+                    Text(title).font(.system(size: 14, weight: .bold)).foregroundStyle(.white).lineLimit(1)
+                    Text(subtitle).font(.system(size: 8, weight: .medium)).foregroundStyle(.white.opacity(0.92))
                         .lineLimit(1).minimumScaleFactor(0.72).padding(.top, 1)
-                }.padding(.leading, 12).padding(.vertical, 6)
+                }.padding(.leading, 12).padding(.vertical, 4)
                 Image(systemName: "chevron.right").font(.system(size: 10, weight: .bold)).foregroundStyle(.white)
                     .frame(width: 24, height: 24).background(.black.opacity(0.24), in: Circle())
                     .overlay(Circle().stroke(.white.opacity(0.34), lineWidth: 0.8))
