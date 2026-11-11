@@ -286,6 +286,16 @@ final class PlayerStore: ObservableObject {
         updateNowPlayingInfo()
     }
 
+    /// Pause the current stream while retaining its AVPlayer item and Now Playing ownership.
+    /// Used while resolving the next track so the previous song does not continue underneath.
+    func pauseForTrackChange() {
+        wantsPlayback = false
+        player.pause()
+        isPlaying = false
+        isBuffering = false
+        updateNowPlayingInfo()
+    }
+
     func resume() {
         guard player.currentItem != nil else {
             errorMessage = "当前歌曲暂不可播放"
