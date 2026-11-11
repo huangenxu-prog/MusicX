@@ -255,7 +255,7 @@ struct ContentView: View {
             heroHeader
             recommendationSection
         }
-        .frame(height: 168)
+        .frame(height: 188)
     }
 
     private var heroHeader: some View {
@@ -263,7 +263,7 @@ struct ContentView: View {
             ZStack(alignment: .topLeading) {
                 Image("OceanHero")
                     .resizable().scaledToFill()
-                    .frame(width: proxy.size.width, height: 168)
+                    .frame(width: proxy.size.width, height: 188)
                     .clipped()
                     .overlay {
                         LinearGradient(colors: [.black.opacity(0.08), .clear, MusicXTheme.background.opacity(0.86)],
@@ -300,7 +300,7 @@ struct ContentView: View {
                 .padding(.bottom, 62)
             }
         }
-        .frame(height: 168).frame(maxWidth: .infinity).clipped()
+        .frame(height: 188).frame(maxWidth: .infinity).clipped()
     }
 
         private var recommendationSection: some View {
@@ -314,7 +314,7 @@ struct ContentView: View {
                 recommendationTile(title: "精选歌单", subtitle: "用音乐，遇见更好的自己", icon: "music.note.list",
                     colors: [Color(red: 0.43, green: 0.26, blue: 0.63), Color(red: 0.20, green: 0.13, blue: 0.38)], route: .playlists, artwork: songs.dropFirst().first?.onlineSong, width: width)
             }.padding(.horizontal, inset)
-        }.frame(height: 64)
+        }.frame(height: 70)
     }
 
     private func recommendationTile(title: String, subtitle: String, icon: String, colors: [Color], route: MusicDiscoveryRoute, artwork: MusicSong?, width: CGFloat) -> some View {
@@ -325,7 +325,7 @@ struct ContentView: View {
                     AsyncImage(url: artworkURL) { phase in
                         if let image = phase.image { image.resizable().scaledToFill() }
                         else { LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing) }
-                    }.frame(width: width, height: 60).clipped()
+                    }.frame(width: width, height: 70).clipped()
                 }
                 LinearGradient(colors: [colors.first?.opacity(0.58) ?? .black.opacity(0.5), colors.last?.opacity(0.28) ?? .clear],
                                startPoint: .topLeading, endPoint: .bottomTrailing)
@@ -345,7 +345,7 @@ struct ContentView: View {
                 }.padding(.horizontal, 10)
             }.frame(width: width, height: 64)
                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(.white.opacity(0.30), lineWidth: 1))
+                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(.white.opacity(0.30), lineWidth: 1))
                 .shadow(color: colors.first?.opacity(0.20) ?? .clear, radius: 14, y: 5)
         }.buttonStyle(.plain)
     }
@@ -442,9 +442,9 @@ struct ContentView: View {
 
         private func editorialPlaylistCard(title: String, subtitle: String, tint: Color, symbol: String, artwork: MusicSong?, width: CGFloat) -> some View {
         Button { discoveryRoute = .playlists } label: {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 4) {
                 Image(systemName: symbol).font(.system(size: 23, weight: .light)).foregroundStyle(.white.opacity(0.94))
-                    .frame(maxWidth: .infinity, alignment: .leading).frame(height: 12)
+                     .frame(maxWidth: .infinity, alignment: .leading).frame(height: 24)
                 Text(title).font(.system(size: 12, weight: .bold)).foregroundStyle(.white).lineLimit(1).minimumScaleFactor(0.78)
                 Text(subtitle).font(.system(size: 9, weight: .medium)).foregroundStyle(.white.opacity(0.76)).lineLimit(1).minimumScaleFactor(0.65)
             }.padding(9).frame(width: width, height: 78, alignment: .leading)
@@ -627,14 +627,14 @@ struct ContentView: View {
     private func homeSongRow(_ song: AppSong) -> some View {
         Button { select(song) } label: {
             HStack(spacing: 14) {
-                songArtwork(song.onlineSong, tint: song.tint, size: 42)
+                songArtwork(song.onlineSong, tint: song.tint, size: 34)
                 VStack(alignment: .leading, spacing: 5) {
                     Text(song.title).font(.system(size: 16, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
                     Text(song.artist).font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
                 }.frame(maxWidth: .infinity, alignment: .leading)
                 Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.58)).padding(.trailing, 4)
-            }.contentShape(Rectangle()).padding(.vertical, 5)
+            }.contentShape(Rectangle()).padding(.vertical, 3)
         }.buttonStyle(.plain)
     }
 
