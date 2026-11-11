@@ -189,6 +189,7 @@ struct ContentView: View {
                 }
                 .padding(.top, 8)
                 .padding(.bottom, 0)
+                .zIndex(20)
                 .background {
                     LinearGradient(colors: [MusicXTheme.background.opacity(0.02), MusicXTheme.background.opacity(0.78)],
                                    startPoint: .top, endPoint: .bottom)
@@ -250,8 +251,7 @@ struct ContentView: View {
             .padding(.top, 18)
             .padding(.bottom, 28)
         }
-        .scrollBounceBehavior(.basedOnSize)
-        .ignoresSafeArea(edges: .top)
+        .scrollBounceBehavior(.never)
     }
 
     private var heroAndRecommendation: some View {
@@ -290,7 +290,16 @@ struct ContentView: View {
             }
         }
         .frame(height: 170).frame(maxWidth: .infinity).clipped()
-        .background { HomeArtwork(name: "home_hero").overlay(LinearGradient(colors: [.clear, MusicXTheme.background.opacity(0.96)], startPoint: .center, endPoint: .bottom)).ignoresSafeArea(edges: .top) }
+        .background {
+            GeometryReader { geometry in
+                HomeArtwork(name: "home_hero")
+                    .frame(width: geometry.size.width, height: geometry.size.height + geometry.safeAreaInsets.top)
+                    .clipped()
+                    .overlay(LinearGradient(colors: [.clear, MusicXTheme.background.opacity(0.96)], startPoint: .center, endPoint: .bottom))
+                    .offset(y: -geometry.safeAreaInsets.top)
+            }
+            .ignoresSafeArea(edges: .top)
+        }
     }
 
     private var recommendationSection: some View {
