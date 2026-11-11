@@ -261,9 +261,15 @@ final class PlayerStore: ObservableObject {
         let requestID = artworkRequestID
         if let artworkURL {
             artworkTask = Task { [weak self] in
-                guard let (data, _) = try? await URLSession.shared.data(from: artworkURL),
-                      !Task.isCancelled,
-                      let image = UIImage(data: data) else { return }
+                let cacheKey = "artwork-data|\(artworkURL.absoluteString)"
+                var data: Data? = await MusicCache.shared.value(for: cacheKey)
+                if data == nil,
+                   let (downloaded, response) = try? await URLSession.shared.data(from: artworkURL),
+                   (response as? HTTPURLResponse).map({ (200..<300).contains($0.statusCode) }) ?? true {
+                    data = downloaded
+                    await MusicCache.shared.insert(downloaded, for: cacheKey, ttl: 7 * 24 * 60 * 60)
+                }
+                guard !Task.isCancelled, let data, let image = UIImage(data: data) else { return }
                 guard let self, self.artworkRequestID == requestID else { return }
                 self.artworkImage = image
                 self.updateNowPlayingInfo()
