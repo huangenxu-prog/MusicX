@@ -237,7 +237,7 @@ struct ContentView: View {
 
     private var homePage: some View {
         ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 15) {
+            VStack(alignment: .leading, spacing: 12) {
                 heroAndRecommendation
                 chartSection
                 newMusicSection
@@ -347,7 +347,7 @@ struct ContentView: View {
     }
 
     private var newMusicSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             homeSectionTitle("新歌速递", action: { discoveryRoute = .daily })
             if isLoadingHomeSongs && songs.isEmpty {
                 ProgressView().tint(MusicXTheme.blue).frame(maxWidth: .infinity).padding(.vertical, 24)
@@ -378,7 +378,7 @@ struct ContentView: View {
                         staticAlbumTile(index: index, width: width)
                     }
                 }.padding(.horizontal, 20)
-            }.frame(height: 76)
+            }.frame(height: 68)
         }
     }
 
@@ -388,14 +388,14 @@ struct ContentView: View {
         return Button { discoveryRoute = .playlists } label: {
             ZStack(alignment: .bottomLeading) {
                 Image("album_0\(index + 1)").resizable().scaledToFill()
-                    .frame(width: width, height: 76).clipped()
+                    .frame(width: width, height: 68).clipped()
                 LinearGradient(colors: [.clear, .black.opacity(0.76)], startPoint: .center, endPoint: .bottom)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(titles[index]).font(.system(size: 9, weight: .bold)).foregroundStyle(.white).lineLimit(1)
                     Text(artists[index]).font(.system(size: 8, weight: .medium)).foregroundStyle(.white.opacity(0.86)).lineLimit(1)
                 }.padding(.horizontal, 5).padding(.bottom, 5)
             }
-            .frame(width: width, height: 76)
+            .frame(width: width, height: 68)
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(.white.opacity(0.22), lineWidth: 0.8))
         }.buttonStyle(.plain)
@@ -416,7 +416,7 @@ struct ContentView: View {
     }
 
         private var editorialPlaylistSection: some View {
-        VStack(alignment: .leading, spacing: 13) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 0) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Capsule().fill(MusicXTheme.blue).frame(width: 4, height: 21)
@@ -651,7 +651,7 @@ struct ContentView: View {
                     Text(playerTime(duration)).font(.system(size: 10, weight: .medium, design: .rounded)).monospacedDigit().foregroundStyle(MusicXTheme.muted)
                 }
                 Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)).foregroundStyle(.white.opacity(0.58))
-            }.contentShape(Rectangle()).padding(.vertical, 3)
+            }.contentShape(Rectangle()).padding(.vertical, 0)
         }.buttonStyle(.plain)
     }
 
