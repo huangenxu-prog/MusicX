@@ -677,41 +677,51 @@ struct ContentView: View {
 
     private func albumTile(song: MusicSong) -> some View {
         Button { discoveryRoute = .album(song) } label: {
-            VStack(alignment: .leading, spacing: 7) {
-                songArtwork(song, tint: MusicXTheme.blue, size: 82)
-                    .overlay(RoundedRectangle(cornerRadius: 15).stroke(.white.opacity(0.08), lineWidth: 1))
-                Text(song.album?.isEmpty == false ? song.album! : song.title)
-                    .font(.system(size: 14, weight: .semibold)).lineLimit(1)
-                Text(song.artist).font(.system(size: 12)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
-            }
-            .frame(width: 82, alignment: .leading)
-        }
-        .buttonStyle(.plain)
+            ZStack(alignment: .bottomLeading) {
+                songArtwork(song, tint: MusicXTheme.blue, size: 132)
+                LinearGradient(colors: [.clear, .black.opacity(0.76)], startPoint: .center, endPoint: .bottom)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(song.album?.isEmpty == false ? song.album! : song.title).font(.system(size: 13, weight: .bold)).foregroundStyle(.white).lineLimit(1)
+                    Text(song.artist).font(.system(size: 11, weight: .medium)).foregroundStyle(.white.opacity(0.82)).lineLimit(1)
+                }.padding(.leading, 9).padding(.bottom, 9)
+                Image(systemName: "chevron.right").font(.system(size: 9, weight: .bold)).foregroundStyle(.white)
+                    .frame(width: 24, height: 24).background(.black.opacity(0.36), in: Circle())
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing).padding(7)
+            }.frame(width: 132, height: 132)
+                .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 15, style: .continuous).stroke(.white.opacity(0.18), lineWidth: 1))
+        }.buttonStyle(.plain)
     }
 
     private func chartTile(_ title: String, subtitle: String, rank: String, icon: String, color: Color, artwork: MusicSong?, width: CGFloat) -> some View {
         Button { discoveryRoute = .charts } label: {
             ZStack(alignment: .bottomLeading) {
-                RoundedRectangle(cornerRadius: 16, style: .continuous).fill(.ultraThinMaterial)
-                if let artworkURL = artwork?.artworkURL {
-                    AsyncImage(url: artworkURL) { phase in
-                        if let image = phase.image { image.resizable().scaledToFill() }
-                        else { color.opacity(0.7) }
-                    }.frame(width: width, height: 64).clipped()
+                RoundedRectangle(cornerRadius: 18, style: .continuous).fill(color.opacity(0.42))
+                if let url = artwork?.artworkURL {
+                    AsyncImage(url: url) { phase in
+                        if let image = phase.image { image.resizable().scaledToFill() } else { color.opacity(0.5) }
+                    }.frame(width: width, height: 112).clipped()
+                } else {
+                    LinearGradient(colors: [color.opacity(0.85), color.opacity(0.28)], startPoint: .topLeading, endPoint: .bottomTrailing)
                 }
-                LinearGradient(colors: [color.opacity(0.66), color.opacity(0.24), Color.black.opacity(0.30)],
-                               startPoint: .topLeading, endPoint: .bottomTrailing)
-                Circle().stroke(.white.opacity(0.20), lineWidth: 1).frame(width: 82, height: 82).offset(x: width - 52, y: -56)
-                Image(systemName: icon).font(.system(size: 32, weight: .light)).foregroundStyle(.white.opacity(0.27))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing).padding(10)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(rank).font(.system(size: 18, weight: .heavy, design: .rounded)).foregroundStyle(.white)
-                    Text(title).font(.system(size: 11, weight: .bold)).foregroundStyle(.white).lineLimit(1).minimumScaleFactor(0.75)
-                    Text(subtitle).font(.system(size: 9, weight: .medium)).foregroundStyle(.white.opacity(0.82)).lineLimit(1).minimumScaleFactor(0.65)
-                }.padding(10)
-            }.frame(width: width, height: 64)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(.white.opacity(0.30), lineWidth: 1))
+                LinearGradient(colors: [color.opacity(0.34), .black.opacity(0.70)], startPoint: .top, endPoint: .bottom)
+                VStack(alignment: .leading, spacing: 2) {
+                    Image(systemName: icon).font(.system(size: 15, weight: .bold)).foregroundStyle(.white)
+                    Text(rank).font(.system(size: 22, weight: .heavy, design: .rounded)).foregroundStyle(.white)
+                    Text(title).font(.system(size: 13, weight: .bold)).foregroundStyle(.white).lineLimit(1)
+                    Text(subtitle).font(.system(size: 9, weight: .medium)).foregroundStyle(.white.opacity(0.88)).lineLimit(1).minimumScaleFactor(0.72)
+                }.padding(.leading, 11).padding(.bottom, 12)
+                HStack(spacing: 2) {
+                    ForEach(0..<7, id: \.self) { index in
+                        Capsule().fill(color.opacity(0.95)).frame(width: 3, height: CGFloat([7, 12, 17, 10, 20, 13, 8][index]))
+                    }
+                }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing).padding(.trailing, 38).padding(.bottom, 12)
+                Image(systemName: "chevron.right").font(.system(size: 9, weight: .bold)).foregroundStyle(.white)
+                    .frame(width: 23, height: 23).background(.black.opacity(0.32), in: Circle())
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing).padding(7)
+            }.frame(width: width, height: 112)
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(.white.opacity(0.30), lineWidth: 1))
         }.buttonStyle(.plain)
     }
 
