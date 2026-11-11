@@ -34,6 +34,8 @@ jobs:
         run: |
           mkdir -p MusicX/Assets.xcassets/hero_title.imageset
           base64 -D assets/hero-calligraphy/exact-banner.jpg.b64 > MusicX/Assets.xcassets/hero_title.imageset/hero_title.jpg
+          test -s MusicX/Assets.xcassets/hero_title.imageset/hero_title.jpg
+          sips -g pixelWidth -g pixelHeight MusicX/Assets.xcassets/hero_title.imageset/hero_title.jpg
           cat > MusicX/Assets.xcassets/hero_title.imageset/Contents.json <<'JSON'
           {
             "images" : [
