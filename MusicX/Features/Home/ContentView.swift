@@ -112,6 +112,12 @@ private struct MusicXPageBackground: View {
             )
         }
         .ignoresSafeArea()
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(Color(red: 0.018, green: 0.040, blue: 0.095))
+                .frame(height: 2)
+                .allowsHitTesting(false)
+        }
         .allowsHitTesting(false)
     }
 }
@@ -502,8 +508,9 @@ struct ContentView: View {
                                 Text(song.title)
                                     .font(.system(size: 13, weight: .semibold))
                                     .foregroundStyle(.white)
-                                    .lineLimit(2)
-                                    .frame(height: 34, alignment: .topLeading)
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
+                                    .frame(height: 17, alignment: .topLeading)
                                 Text(song.artist)
                                     .font(.system(size: 11))
                                     .foregroundStyle(MusicXTheme.muted)
@@ -512,7 +519,7 @@ struct ContentView: View {
                         }.buttonStyle(.plain)
                     }
                 }.padding(.horizontal, 14)
-            }.frame(height: (UIScreen.main.bounds.width - 52) / 3 + 68)
+            }.frame(height: (UIScreen.main.bounds.width - 52) / 3 + 51)
         }
     }
 
@@ -710,9 +717,7 @@ struct ContentView: View {
     }
 
     private func artworkFallback(tint: Color) -> some View {
-        RoundedRectangle(cornerRadius: 12, style: .continuous)
-            .fill(LinearGradient(colors: [tint, tint.opacity(0.38)], startPoint: .topLeading, endPoint: .bottomTrailing))
-            .overlay(Image(systemName: "music.note").font(.system(size: 20)).foregroundStyle(.white.opacity(0.82)))
+        MusicArtworkPlaceholder(seed: "musicx-default", tint: tint)
     }
 
     private func songRow(_ song: AppSong, number: String? = nil) -> some View {
@@ -1607,16 +1612,78 @@ private struct SongArtworkView: View {
         .frame(width: size, height: size)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .task(id: song.id) {
-            guard song.artworkURL == nil else { resolvedURL = song.artworkURL; return }
-            guard song.pictureID?.isEmpty == false else { return }
-            resolvedURL = try? await GDStudioMetadataService().artworkURL(for: song)
+            // Prefer the provider-normalized artwork URL when an image ID exists;
+            // retain the original NetEase picUrl as a fallback if metadata lookup fails.
+            guard song.pictureID?.isEmpty == false else {
+                resolvedURL = song.artworkURL
+                return
+            }
+            if let metadataURL = try? await GDStudioMetadataService().artworkURL(for: song) {
+                resolvedURL = metadataURL
+            }
         }
     }
 
     private var fallback: some View {
-        RoundedRectangle(cornerRadius: 12, style: .continuous)
-            .fill(LinearGradient(colors: [tint, tint.opacity(0.38)], startPoint: .topLeading, endPoint: .bottomTrailing))
-            .overlay(Image(systemName: "music.note").font(.system(size: min(22, size * 0.42))).foregroundStyle(.white.opacity(0.82)))
+        MusicArtworkPlaceholder(seed: song.id, tint: tint)
+    }
+}
+
+/// Branded fallback artwork used only when a remote album cover is absent or unavailable.
+private struct MusicArtworkPlaceholder: View {
+    let seed: String
+    let tint: Color
+
+    private let palettes: [[Color]] = [
+        [Color(red: 0.12, green: 0.36, blue: 0.68), Color(red: 0.035, green: 0.10, blue: 0.25), Color(red: 0.34, green: 0.72, blue: 0.98)],
+        [Color(red: 0.34, green: 0.25, blue: 0.62), Color(red: 0.10, green: 0.08, blue: 0.28), Color(red: 0.68, green: 0.50, blue: 0.96)],
+        [Color(red: 0.08, green: 0.42, blue: 0.48), Color(red: 0.025, green: 0.13, blue: 0.22), Color(red: 0.30, green: 0.82, blue: 0.78)],
+        [Color(red: 0.42, green: 0.25, blue: 0.38), Color(red: 0.16, green: 0.07, blue: 0.20), Color(red: 0.94, green: 0.52, blue: 0.66)]
+    ]
+
+    private var paletteIndex: Int {
+        Int(seed.utf8.reduce(UInt64(14695981039346656037)) { ($0 ^ UInt64($1)) &* 1099511628211 } % UInt64(palettes.count))
+    }
+
+    var body: some View {
+        GeometryReader { proxy in
+            let side = min(proxy.size.width, proxy.size.height)
+            let palette = palettes[paletteIndex]
+            ZStack {
+                LinearGradient(colors: [palette[0], palette[1]], startPoint: .topLeading, endPoint: .bottomTrailing)
+                Circle()
+                    .fill(palette[2].opacity(0.34))
+                    .frame(width: side * 0.72, height: side * 0.72)
+                    .blur(radius: side * 0.12)
+                    .offset(x: side * 0.18, y: -side * 0.20)
+                Circle()
+                    .stroke(.white.opacity(0.13), lineWidth: max(1, side * 0.008))
+                    .frame(width: side * 0.72, height: side * 0.72)
+                Circle()
+                    .stroke(.white.opacity(0.10), lineWidth: max(1, side * 0.006))
+                    .frame(width: side * 0.54, height: side * 0.54)
+                Circle()
+                    .fill(.white.opacity(0.07))
+                    .frame(width: side * 0.30, height: side * 0.30)
+                Image(systemName: "waveform")
+                    .font(.system(size: side * 0.27, weight: .light))
+                    .foregroundStyle(.white.opacity(0.90))
+                    .shadow(color: palette[2].opacity(0.45), radius: side * 0.08)
+                HStack(spacing: max(2, side * 0.018)) {
+                    ForEach(Array([0.30, 0.52, 0.76, 0.46, 0.64, 0.36].enumerated()), id: \.offset) { _, height in
+                        Capsule().fill(.white.opacity(0.46)).frame(width: max(2, side * 0.018), height: side * height * 0.10)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                .padding(side * 0.10)
+                LinearGradient(colors: [.white.opacity(0.10), .clear, .black.opacity(0.12)], startPoint: .topLeading, endPoint: .bottomTrailing)
+            }
+            .frame(width: proxy.size.width, height: proxy.size.height)
+            .clipped()
+        }
+        .background(tint.opacity(0.12))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .accessibilityLabel("MusicX 默认专辑封面")
     }
 }
 
