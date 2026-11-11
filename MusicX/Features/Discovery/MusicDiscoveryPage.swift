@@ -320,14 +320,24 @@ struct MusicDiscoveryPage: View {
         errorMessage = nil
         defer { isLoading = false }
         do {
-            let source: MusicSource = .netease
-            let isAlbum: Bool
-            if case .album = route { isAlbum = true } else { isAlbum = false }
-            let result = try await service.search(keyword: query, source: source, count: 30, albumOnly: isAlbum)
+            let result: [MusicSong]
+            switch route {
+            case .charts:
+                result = try await service.toplist("热歌榜", count: 50)
+            case .chart(let name):
+                result = try await service.toplist(name, count: 50)
+            case .newReleases:
+                result = try await service.toplist("新歌榜", count: 50)
+            case .album:
+                result = try await service.search(keyword: query, source: .netease, count: 50, albumOnly: true)
+            default:
+                result = try await service.search(keyword: query, source: .netease, count: 30)
+            }
             guard !Task.isCancelled else { return }
             songs = result
             onQueueChanged(songs)
             if songs.isEmpty { errorMessage = "音源没有返回匹配的歌曲，请稍后重试" }
-        } catch { errorMessage = error.localizedDescription }
-    }
-}
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }}
