@@ -96,6 +96,7 @@ struct ContentView: View {
     @State private var playbackRequestID = UUID()
     @State private var playbackTask: Task<Void, Never>?
     @State private var playbackQueueSongs: [AppSong] = []
+    @State private var hasCustomPlaybackQueue = false
     @State private var isResolvingSong = false
     @AppStorage("musicx.favoriteIDs") private var favoriteIDs = "1,3"
     @AppStorage("musicx.recentIDs") private var recentIDs = ""
@@ -210,7 +211,7 @@ struct ContentView: View {
                 isPlaying: playerStore.isPlaying,
                 onTogglePlayback: { playerStore.togglePlayback() },
                 onOpenPlayer: { isPlayerPresented = true },
-                onQueueChanged: { playbackQueueSongs = $0.map { AppSong(id: stableSongID($0), title: $0.title, artist: $0.artist, album: $0.album ?? "", tint: MusicXTheme.blue, onlineSong: $0) } },
+                onQueueChanged: { playbackQueueSongs = $0.map { AppSong(id: stableSongID($0), title: $0.title, artist: $0.artist, album: $0.album ?? "", tint: MusicXTheme.blue, onlineSong: $0) }; hasCustomPlaybackQueue = true }, 
                 currentTime: playerStore.currentTime,
                 duration: playerStore.duration,
                 onOpenPlaylist: { discoveryRoute = .playlist($0) })
@@ -1025,6 +1026,10 @@ struct ContentView: View {
                 Text("播放队列").font(.system(size: 20, weight: .bold)).foregroundStyle(.white)
                 Spacer()
                 Text("\(playbackQueue.count) 首").font(.system(size: 12, weight: .medium)).foregroundStyle(MusicXTheme.muted)
+                Button("清空") { clearQueue() }
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(MusicXTheme.muted)
+                    .disabled(playbackQueue.isEmpty || (playbackQueue.count == 1 && currentSong != nil))
             }
             .padding(.horizontal, 6)
             if playbackQueue.isEmpty {
@@ -1036,21 +1041,32 @@ struct ContentView: View {
                     LazyVStack(spacing: 8) {
                         ForEach(playbackQueue) { song in
                             let active = song.id == currentSong?.id
-                            Button { select(song) } label: {
-                                HStack(spacing: 12) {
-                                    songArtwork(song.onlineSong, tint: song.tint, size: 42)
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(song.title).font(.system(size: 14, weight: .semibold)).foregroundStyle(active ? MusicXTheme.blue : .white).lineLimit(1)
-                                        Text(song.artist).font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
+                            HStack(spacing: 8) {
+                                Button { select(song) } label: {
+                                    HStack(spacing: 12) {
+                                        songArtwork(song.onlineSong, tint: song.tint, size: 42)
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(song.title).font(.system(size: 14, weight: .semibold)).foregroundStyle(active ? MusicXTheme.blue : .white).lineLimit(1)
+                                            Text(song.artist).font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
+                                        }
+                                        Spacer(minLength: 4)
+                                        if active { Image(systemName: playerStore.isPlaying ? "waveform" : "pause.fill").font(.system(size: 13, weight: .semibold)).foregroundStyle(MusicXTheme.blue) }
                                     }
-                                    Spacer(minLength: 4)
-                                    if active { Image(systemName: playerStore.isPlaying ? "waveform" : "pause.fill").font(.system(size: 13, weight: .semibold)).foregroundStyle(MusicXTheme.blue) }
+                                    .contentShape(Rectangle())
                                 }
-                                .padding(.horizontal, 10).padding(.vertical, 9)
-                                .background(active ? MusicXTheme.blue.opacity(0.14) : .clear, in: RoundedRectangle(cornerRadius: 12))
-                                .contentShape(Rectangle())
+                                .buttonStyle(.plain)
+                                Button { removeFromQueue(song) } label: {
+                                    Image(systemName: "xmark")
+                                        .font(.system(size: 11, weight: .semibold))
+                                        .foregroundStyle(MusicXTheme.muted)
+                                        .frame(width: 30, height: 38)
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(active)
+                                .opacity(active ? 0.25 : 1)
                             }
-                            .buttonStyle(.plain)
+                            .padding(.horizontal, 10).padding(.vertical, 9)
+                            .background(active ? MusicXTheme.blue.opacity(0.14) : .clear, in: RoundedRectangle(cornerRadius: 12))
                         }
                     }
                     .padding(.bottom, 8)
@@ -1138,7 +1154,7 @@ struct ContentView: View {
     }
 
     private var playbackQueue: [AppSong] {
-        var items = playbackQueueSongs.isEmpty ? songs + onlineResults : playbackQueueSongs
+        var items = hasCustomPlaybackQueue ? playbackQueueSongs : (songs + onlineResults)
         if let currentSong, !items.contains(where: { $0.id == currentSong.id }) {
             items.insert(currentSong, at: 0)
         }
@@ -1156,17 +1172,44 @@ struct ContentView: View {
         let queue = playbackQueue
         guard !queue.isEmpty else { return }
         let index = queue.firstIndex(where: { $0.id == currentSong?.id }) ?? 0
+        if isShuffleEnabled && queue.count > 1 {
+            let candidates = queue.filter { $0.id != currentSong?.id }
+            if let next = candidates.randomElement() { select(next) }
+            return
+        }
         select(queue[(index + offset + queue.count) % queue.count])
     }
 
     private func playNextAfterNaturalFinish() {
-        let queue = playbackQueue
-        guard let currentID = currentSong?.id,
-              let index = queue.firstIndex(where: { $0.id == currentID }),
-              queue.indices.contains(index + 1) else {
+        guard let currentSong else { return }
+        if repeatMode == 2 {
+            playerStore.seek(to: 0)
+            playerStore.resume()
             return
         }
-        select(queue[index + 1])
+        let queue = playbackQueue
+        guard let index = queue.firstIndex(where: { $0.id == currentSong.id }) else { return }
+        if isShuffleEnabled && queue.count > 1 {
+            let candidates = queue.filter { $0.id != currentSong.id }
+            if let next = candidates.randomElement() { select(next) }
+            return
+        }
+        let nextIndex = index + 1
+        if queue.indices.contains(nextIndex) { select(queue[nextIndex]) }
+        else if repeatMode == 1, let first = queue.first { select(first) }
+    }
+
+    private func removeFromQueue(_ song: AppSong) {
+        if !hasCustomPlaybackQueue {
+            playbackQueueSongs = playbackQueue
+            hasCustomPlaybackQueue = true
+        }
+        playbackQueueSongs.removeAll { $0.id == song.id }
+    }
+
+    private func clearQueue() {
+        hasCustomPlaybackQueue = true
+        playbackQueueSongs = currentSong.map { [$0] } ?? []
     }
 
     private var tabBar: some View {
