@@ -34,3 +34,4 @@ targets:
         INFOPLIST_KEY_UILaunchStoryboardName: LaunchScreen
         SWIFT_EMIT_LOC_STRINGS: YES
         TARGETED_DEVICE_FAMILY: "1"
+# Build trigger: verify home hero top bleed and reduced bottom whitespace.
