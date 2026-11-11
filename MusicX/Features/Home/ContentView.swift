@@ -1288,7 +1288,7 @@ struct ContentView: View {
         HStack(spacing: 0) {
             ForEach(MainTab.allCases, id: \.self) { tab in
                 Button {
-                    withAnimation(.spring(response: 0.42, dampingFraction: 0.78)) {
+                    withAnimation(.spring(response: 0.52, dampingFraction: 0.76, blendDuration: 0.18)) {
                         selectedTab = tab
                     }
                 } label: {
@@ -1296,30 +1296,30 @@ struct ContentView: View {
                         Image(systemName: tab.symbol).font(.system(size: 22, weight: .semibold))
                             .frame(height: 23)
                             .symbolEffect(.bounce, value: selectedTab == tab)
-                            .shadow(color: selectedTab == tab ? Color.cyan.opacity(0.78) : .clear,
-                                    radius: selectedTab == tab ? 8 : 0, y: 0)
+                            .shadow(color: selectedTab == tab ? Color.cyan.opacity(0.48) : .clear,
+                                    radius: selectedTab == tab ? 6 : 0, y: 0)
                         Text(tab.rawValue).font(.system(size: 13, weight: .semibold)).frame(height: 15)
-                            .shadow(color: selectedTab == tab ? Color.cyan.opacity(0.55) : .clear,
+                            .shadow(color: selectedTab == tab ? Color.cyan.opacity(0.34) : .clear,
                                     radius: selectedTab == tab ? 6 : 0, y: 0)
                     }
                     .foregroundStyle(selectedTab == tab ? Color(red: 0.34, green: 0.78, blue: 1) : .white.opacity(0.72))
                     .frame(maxWidth: .infinity).frame(height: 54)
-                    .scaleEffect(selectedTab == tab ? 1.025 : 1)
+                    .scaleEffect(selectedTab == tab ? 1.035 : 1)
                     .background {
                         if selectedTab == tab {
                             RoundedRectangle(cornerRadius: 26, style: .continuous)
                                 .fill(.ultraThinMaterial)
                                 .overlay {
                                     RoundedRectangle(cornerRadius: 26, style: .continuous)
-                                        .fill(LinearGradient(colors: [Color.cyan.opacity(0.18), Color.blue.opacity(0.09), .white.opacity(0.025)],
+                                        .fill(LinearGradient(colors: [Color.cyan.opacity(0.11), Color.blue.opacity(0.055), .white.opacity(0.018)],
                                                              startPoint: .topLeading, endPoint: .bottomTrailing))
                                 }
                                 .overlay {
                                     RoundedRectangle(cornerRadius: 26, style: .continuous)
-                                        .stroke(LinearGradient(colors: [.white.opacity(0.30), Color.cyan.opacity(0.20), .white.opacity(0.045)],
+                                        .stroke(LinearGradient(colors: [.white.opacity(0.20), Color.cyan.opacity(0.12), .white.opacity(0.03)],
                                                                startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1)
                                 }
-                                .shadow(color: Color.cyan.opacity(0.14), radius: 11, y: 2)
+                                .shadow(color: Color.cyan.opacity(0.08), radius: 9, y: 2)
                                 .matchedGeometryEffect(id: "active-tab-glass", in: tabSelectionNamespace)
                         }
                     }
