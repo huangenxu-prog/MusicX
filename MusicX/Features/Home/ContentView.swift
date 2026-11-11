@@ -351,7 +351,7 @@ struct ContentView: View {
                 VStack(spacing: 5) {
                     ForEach(0..<min(songs.count, 6), id: \.self) { index in
                         let song = songs[index]
-                        homeSongRow(song, artworkName: "song_0\(index + 1)")
+                        homeSongRow(song)
                         if song.id != songs.prefix(6).last?.id {
                             Rectangle().fill(.white.opacity(0.12)).frame(height: 0.5).padding(.leading, 42)
                         }
@@ -632,7 +632,7 @@ struct ContentView: View {
                     if let artworkName {
                         HomeArtwork(name: artworkName)
                     } else {
-                        songArtwork(song.onlineSong, tint: song.tint, size: 24)
+                        songArtwork(song.onlineSong, tint: song.tint, size: 30)
                     }
                 }
                 .frame(width: 30, height: 30)
