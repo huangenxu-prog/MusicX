@@ -192,7 +192,7 @@ struct GDStudioMusicSearchService {
                 duration: duration,
                 hash: nil,
                 albumID: albumInfo["id"].map { String(describing: $0) },
-                pictureID: nil,
+                pictureID: (albumInfo["pic_str"] ?? albumInfo["pic"]).map { String(describing: $0) },
                 lyricID: String(describing: id)
             )
         }
