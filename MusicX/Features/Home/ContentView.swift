@@ -239,19 +239,31 @@ struct ContentView: View {
     }
 
     private var homePage: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 15) {
-                heroAndRecommendation
-                chartSection
-                newMusicSection
-                albumSection
-                editorialPlaylistSection
-                forYouSection
+        ZStack(alignment: .top) {
+            Image("home_hero")
+                .resizable()
+                .scaledToFill()
+                .frame(maxWidth: .infinity)
+                .frame(height: 170)
+                .clipped()
+                .overlay(LinearGradient(colors: [.black.opacity(0.06), .clear, MusicXTheme.background.opacity(0.92)], startPoint: .top, endPoint: .bottom))
+                .ignoresSafeArea(edges: .top)
+
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 15) {
+                    HomeScrollBounceDisabler().frame(width: 0, height: 0)
+                    heroAndRecommendation
+                    chartSection
+                    newMusicSection
+                    albumSection
+                    editorialPlaylistSection
+                    forYouSection
+                }
+                .padding(.top, 0)
+                .padding(.bottom, 150)
             }
-            .padding(.top, 18)
-            .padding(.bottom, 28)
+            .scrollBounceBehavior(.basedOnSize)
         }
-        .scrollBounceBehavior(.basedOnSize)
     }
 
     private var heroAndRecommendation: some View {
@@ -259,38 +271,29 @@ struct ContentView: View {
     }
 
     private var heroHeader: some View {
-        GeometryReader { proxy in
-            ZStack(alignment: .topLeading) {
-                HomeArtwork(name: "home_hero").frame(width: proxy.size.width, height: 170).clipped()
-                    .overlay(LinearGradient(colors: [.black.opacity(0.06), .clear, MusicXTheme.background.opacity(0.82)], startPoint: .top, endPoint: .bottom))
-                VStack(alignment: .leading, spacing: 0) {
-                    Spacer(minLength: 64)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("发现音乐")
-                            .font(.custom("STXingkai-SC-Bold", size: 38, relativeTo: .largeTitle))
-                            .tracking(1.2)
-                            .foregroundStyle(LinearGradient(colors: [.white, Color(red: 0.88, green: 0.84, blue: 1.0)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                            .shadow(color: Color(red: 0.43, green: 0.32, blue: 0.95).opacity(0.42), radius: 8, y: 3)
-                        HStack(spacing: 8) {
-                            Text("好音乐，总在心里")
-                                .font(.system(size: 18, weight: .regular, design: .serif))
-                                .tracking(2.0)
-                                .foregroundStyle(.white.opacity(0.94))
-                            HStack(alignment: .center, spacing: 3) {
-                                ForEach([8.0, 14.0, 20.0, 12.0, 7.0], id: \.self) { height in
-                                    Capsule().fill(Color(red: 0.86, green: 0.70, blue: 1.0).opacity(0.9))
-                                        .frame(width: 2.5, height: height)
-                                }
-                            }
-                            .shadow(color: Color.purple.opacity(0.45), radius: 5)
-                        }
+        VStack(alignment: .leading, spacing: 5) {
+            Image("hero_title")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 205, height: 54, alignment: .leading)
+            HStack(spacing: 8) {
+                Text("好音乐，总在心里")
+                    .font(.system(size: 18, weight: .regular, design: .serif))
+                    .tracking(2.0)
+                    .foregroundStyle(.white.opacity(0.94))
+                HStack(alignment: .center, spacing: 3) {
+                    ForEach([8.0, 14.0, 20.0, 12.0, 7.0], id: \.self) { height in
+                        Capsule().fill(Color(red: 0.86, green: 0.70, blue: 1.0).opacity(0.9))
+                            .frame(width: 2.5, height: height)
                     }
-                    Spacer(minLength: 4)
-                }.padding(.horizontal, 22).padding(.bottom, 4)
+                }
+                .shadow(color: Color.purple.opacity(0.45), radius: 5)
             }
         }
-        .frame(height: 170).frame(maxWidth: .infinity).clipped()
-        .background { HomeArtwork(name: "home_hero").overlay(LinearGradient(colors: [.clear, MusicXTheme.background.opacity(0.96)], startPoint: .center, endPoint: .bottom)).ignoresSafeArea(edges: .top) }
+        .padding(.horizontal, 22)
+        .padding(.top, 14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(height: 170, alignment: .top)
     }
 
     private var recommendationSection: some View {
@@ -398,7 +401,9 @@ struct ContentView: View {
         let artists = ["陈奕迅", "周杰伦", "告五人", "LINK", "毛不易"]
         return Button { discoveryRoute = .album(title: titles[index], artist: artists[index]) } label: {
             ZStack(alignment: .bottomLeading) {
-                HomeArtwork(name: "album_0\(index + 1)")
+                Image("album_0\(index + 1)")
+                    .resizable()
+                    .scaledToFill()
                     .frame(width: width, height: 64)
                     .clipped()
                 LinearGradient(colors: [.clear, .black.opacity(0.76)], startPoint: .center, endPoint: .bottom)
@@ -481,10 +486,13 @@ struct ContentView: View {
                         let song = recommendationSongs[index]
                         Button { select(song) } label: {
                             VStack(alignment: .leading, spacing: 7) {
-                                HomeArtwork(name: "guess_0\((index % 3) + 1)")
+                                Image("guess_0\((index % 3) + 1)")
+                                    .resizable()
+                                    .scaledToFill()
                                     .frame(width: cardWidth, height: cardWidth)
                                     .clipped()
                                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                    .compositingGroup()
                                 Text(song.title).font(.system(size: 13, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
                                 Text(song.artist).font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
                             }.frame(width: cardWidth, alignment: .leading)
