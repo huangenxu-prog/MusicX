@@ -70,6 +70,59 @@ struct GDStudioMusicSearchService {
         return songs
     }
 
+    
+    /// Reads the public NetEase playlist endpoints used for its live charts.
+    /// Returned track IDs remain NetEase IDs and are resolved for playback by GD Studio.
+    func toplist(_ chartName: String, count: Int = 50) async throws -> [MusicSong] {
+        let playlistID: String
+        switch chartName {
+        case "新歌榜": playlistID = "3779629"
+        case "飙升榜": playlistID = "19723756"
+        default: playlistID = "3778678"
+        }
+        var components = URLComponents(string: "https://music.163.com/api/playlist/detail")
+        components?.queryItems = [URLQueryItem(name: "id", value: playlistID)]
+        guard let url = components?.url else {
+            throw MusicSourceError.invalidResponse("无法生成网易云榜单请求")
+        }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 12
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148", forHTTPHeaderField: "User-Agent")
+        request.setValue("https://music.163.com/", forHTTPHeaderField: "Referer")
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            throw MusicSourceError.invalidResponse("网易云榜单 HTTP \\((response as? HTTPURLResponse)?.statusCode ?? -1)")
+        }
+        let root = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        let result = root?["result"] as? [String: Any] ?? root?["playlist"] as? [String: Any]
+        guard let rows = result?["tracks"] as? [[String: Any]] else {
+            throw MusicSourceError.invalidResponse("网易云没有返回榜单曲目")
+        }
+        return rows.prefix(count).compactMap { row in
+            guard let id = row["id"] else { return nil }
+            let artists = (row["ar"] as? [[String: Any]] ?? row["artists"] as? [[String: Any]] ?? [])
+                .compactMap { $0["name"] as? String }.joined(separator: " / ")
+            let albumInfo = row["al"] as? [String: Any] ?? row["album"] as? [String: Any] ?? [:]
+            let albumName = albumInfo["name"] as? String
+            let artwork = (albumInfo["picUrl"] as? String).flatMap(URL.init(string:))
+            let duration = (row["dt"] as? Double).map { $0 / 1000 }
+                ?? (row["duration"] as? Double).map { $0 / 1000 }
+            return MusicSong(
+                source: .netease,
+                sourceID: String(describing: id),
+                title: row["name"] as? String ?? "未知歌曲",
+                artist: artists.isEmpty ? "未知歌手" : artists,
+                album: albumName,
+                artworkURL: artwork,
+                duration: duration,
+                hash: nil,
+                albumID: albumInfo["id"].map { String(describing: $0) },
+                pictureID: nil,
+                lyricID: String(describing: id)
+            )
+        }
+    }
+
     private func gdSource(_ source: MusicSource) -> String {
         switch source {
         case .netease: "netease"
