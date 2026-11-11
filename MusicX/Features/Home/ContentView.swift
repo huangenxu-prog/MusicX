@@ -173,7 +173,7 @@ struct ContentView: View {
         let available = uniqueLibrarySongs(stored + songs + onlineResults + playbackQueueSongs + (currentSong.map { [$0] } ?? []))
         let ids = recentIDs.split(separator: ",").compactMap { Int($0) }
         let ordered = ids.compactMap { id in available.first { $0.id == id } }
-        return ordered.isEmpty ? stored.map(appSong(from:)) : ordered
+        return ordered.isEmpty ? stored.map { appSong(from: $0) } : ordered
     }
 
     private var favoriteSongs: [AppSong] {
@@ -200,10 +200,10 @@ struct ContentView: View {
                 album: song.album ?? "", tint: MusicXTheme.blue, onlineSong: song)
     }
 
-    private func persistLibrarySongs(_ items: [MusicSong], key: WritableKeyPath<ContentView, String>) {
+    private func encodedLibrarySongs(_ items: [MusicSong]) -> String {
         guard let data = try? JSONEncoder().encode(items),
-              let value = String(data: data, encoding: .utf8) else { return }
-        self[keyPath: key] = value
+              let value = String(data: data, encoding: .utf8) else { return "[]" }
+        return value
     }
 
     private var downloadedTracks: [DownloadedTrack] {
@@ -726,11 +726,7 @@ struct ContentView: View {
                             .foregroundStyle(libraryContentType == type ? .white : MusicXTheme.muted)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
-                            .background {
-                                Capsule().fill(AnyShapeStyle(libraryContentType == type
-                                    ? AnyShapeStyle(LinearGradient(colors: [MusicXTheme.blue.opacity(0.40), MusicXTheme.blue.opacity(0.18)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                                    : AnyShapeStyle(Color.white.opacity(0.045))))
-                            }
+                            .background(libraryContentType == type ? MusicXTheme.blue.opacity(0.25) : Color.white.opacity(0.045), in: Capsule())
                             .overlay(Capsule().stroke(libraryContentType == type ? MusicXTheme.blue.opacity(0.62) : .white.opacity(0.08), lineWidth: 1))
                     }
                     .buttonStyle(.plain)
@@ -1708,7 +1704,7 @@ struct ContentView: View {
             var stored = decodeLibrarySongs(recentSongsJSON)
             stored.removeAll { stableSongID($0) == song.id }
             stored.insert(onlineSong, at: 0)
-            persistLibrarySongs(Array(stored.prefix(50)), key: \\.recentSongsJSON)
+            recentSongsJSON = encodedLibrarySongs(Array(stored.prefix(50)))
         }
     }
 
@@ -1827,7 +1823,7 @@ struct ContentView: View {
             }
         }
         favoriteIDs = ids.sorted().map { String($0) }.joined(separator: ",")
-        persistLibrarySongs(stored, key: \\.favoriteSongsJSON)
+        favoriteSongsJSON = encodedLibrarySongs(stored)
     }
 
     private func downloadCurrentSong() {
