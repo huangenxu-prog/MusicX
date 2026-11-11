@@ -230,14 +230,14 @@ struct ContentView: View {
 
     private var homePage: some View {
         ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 30) {
                 heroHeader
                 recommendationSection
                 newMusicSection
                 albumSection
                 chartSection
             }
-            .padding(.bottom, 18)
+            .padding(.bottom, 28)
         }
         .ignoresSafeArea(edges: .top)
     }
@@ -245,55 +245,114 @@ struct ContentView: View {
     private var heroHeader: some View {
         ZStack(alignment: .bottomLeading) {
             LinearGradient(
-                colors: [Color(red: 0.10, green: 0.20, blue: 0.39), Color(red: 0.06, green: 0.10, blue: 0.19), MusicXTheme.background],
-                startPoint: .topTrailing, endPoint: .bottomLeading
+                colors: [
+                    Color(red: 0.12, green: 0.25, blue: 0.47),
+                    Color(red: 0.07, green: 0.13, blue: 0.25),
+                    MusicXTheme.background
+                ],
+                startPoint: .topTrailing,
+                endPoint: .bottomLeading
             )
-            VStack(alignment: .leading, spacing: 5) {
-                HStack {
-                    Spacer()
-                    Button { isSettingsAlertPresented = true } label: {
+
+            GeometryReader { proxy in
+                Circle()
+                    .fill(Color(red: 0.34, green: 0.59, blue: 0.98).opacity(0.20))
+                    .frame(width: 230, height: 230)
+                    .blur(radius: 2)
+                    .offset(x: proxy.size.width - 150, y: 20)
+                Circle()
+                    .stroke(.white.opacity(0.09), lineWidth: 1)
+                    .frame(width: 190, height: 190)
+                    .offset(x: proxy.size.width - 115, y: 72)
+                Image(systemName: "waveform")
+                    .font(.system(size: 116, weight: .ultraLight))
+                    .foregroundStyle(.white.opacity(0.10))
+                    .rotationEffect(.degrees(-12))
+                    .offset(x: proxy.size.width - 170, y: 85)
+            }
+            .allowsHitTesting(false)
+
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(alignment: .center) {
+                    HStack(spacing: 7) {
                         Image(systemName: "waveform")
-                            .font(.system(size: 22, weight: .semibold))
-                            .foregroundStyle(.white.opacity(0.9))
-                            .frame(width: 44, height: 44)
+                            .font(.system(size: 12, weight: .bold))
+                        Text("MUSICX")
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                            .tracking(2.2)
+                    }
+                    .foregroundStyle(.white.opacity(0.72))
+
+                    Spacer()
+
+                    Button { isSettingsAlertPresented = true } label: {
+                        Image(systemName: "slider.horizontal.3")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 42, height: 42)
+                            .background(.white.opacity(0.10), in: Circle())
+                            .overlay(Circle().stroke(.white.opacity(0.12), lineWidth: 1))
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("设置")
+                    .accessibilityLabel("播放设置")
                 }
+
                 Spacer()
-                Text("发现音乐")
+
+                Text("LISTEN TO YOUR MOOD")
+                    .font(.system(size: 10, weight: .bold))
+                    .tracking(2.4)
+                    .foregroundStyle(Color(red: 0.66, green: 0.79, blue: 1))
+
+                Text("发现好音乐")
                     .font(.system(size: 38, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
-                Text("好音乐，总在这里")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.62))
+                    .padding(.top, 9)
+
+                Text("让每一次聆听，都有新的发现")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.66))
+                    .padding(.top, 7)
             }
             .padding(.horizontal, 24)
-            .padding(.top, 54)
-            .padding(.bottom, 22)
+            .padding(.top, 58)
+            .padding(.bottom, 28)
         }
-        .frame(height: 250)
+        .frame(height: 284)
         .clipped()
     }
 
     private var recommendationSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 15) {
             HStack(alignment: .firstTextBaseline) {
-                Text("为你推荐").font(.system(size: 25, weight: .bold)).foregroundStyle(.white)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("为你推荐")
+                        .font(.system(size: 23, weight: .bold))
+                        .foregroundStyle(.white)
+                    Text("从这里，开始今天的音乐")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(MusicXTheme.muted)
+                }
                 Spacer()
-                Text("每日精选").font(.system(size: 13, weight: .medium)).foregroundStyle(MusicXTheme.muted)
+                Text("精选")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Color(red: 0.65, green: 0.79, blue: 1))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(MusicXTheme.blue.opacity(0.14), in: Capsule())
             }
-            HStack(spacing: 14) {
+
+            HStack(spacing: 12) {
                 recommendationTile(
-                    title: "每日推荐", subtitle: "发现今天的好音乐",
+                    title: "每日推荐", subtitle: "遇见此刻喜欢的旋律",
                     icon: "sparkles",
-                    colors: [Color(red: 0.20, green: 0.43, blue: 0.70), Color(red: 0.10, green: 0.19, blue: 0.36)],
+                    colors: [Color(red: 0.18, green: 0.39, blue: 0.68), Color(red: 0.10, green: 0.19, blue: 0.34)],
                     route: .daily
                 )
                 recommendationTile(
-                    title: "精选歌单", subtitle: "按心情聆听",
+                    title: "精选歌单", subtitle: "按心情开启播放",
                     icon: "square.stack.fill",
-                    colors: [Color(red: 0.39, green: 0.23, blue: 0.49), Color(red: 0.20, green: 0.13, blue: 0.31)],
+                    colors: [Color(red: 0.39, green: 0.25, blue: 0.53), Color(red: 0.19, green: 0.13, blue: 0.31)],
                     route: .playlists
                 )
             }
@@ -305,20 +364,40 @@ struct ContentView: View {
         Button { discoveryRoute = route } label: {
             ZStack(alignment: .topLeading) {
                 LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
+
+                Circle()
+                    .fill(.white.opacity(0.08))
+                    .frame(width: 112, height: 112)
+                    .offset(x: 104, y: -42)
+
                 VStack(alignment: .leading, spacing: 0) {
                     Image(systemName: icon)
-                        .font(.system(size: 28, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.92))
+                        .font(.system(size: 22, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.94))
+                        .frame(width: 42, height: 42)
+                        .background(.white.opacity(0.13), in: RoundedRectangle(cornerRadius: 14))
+
                     Spacer(minLength: 12)
-                    Text(title).font(.system(size: 21, weight: .bold)).foregroundStyle(.white)
-                    Text(subtitle).font(.system(size: 13, weight: .medium)).foregroundStyle(.white.opacity(0.68)).lineLimit(1)
-                        .padding(.top, 7)
+
+                    Text(title)
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(.white)
+
+                    Text(subtitle)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.70))
+                        .lineLimit(1)
+                        .padding(.top, 6)
                 }
-                .padding(18)
+                .padding(16)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 188)
-            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .frame(height: 164)
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(.white.opacity(0.10), lineWidth: 1)
+            )
         }
         .buttonStyle(.plain)
     }
@@ -385,12 +464,12 @@ struct ContentView: View {
     }
 
     private var chartSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             homeSectionTitle("排行榜", action: { discoveryRoute = .charts })
-            HStack(spacing: 10) {
-                chartTile("热歌榜", subtitle: "最受欢迎的歌曲", icon: "chart.bar.fill", color: MusicXTheme.blue)
-                chartTile("新歌榜", subtitle: "最新发布的歌曲", icon: "flame.fill", color: .purple)
-                chartTile("飙升榜", subtitle: "热度快速上升", icon: "chart.line.uptrend.xyaxis", color: .teal)
+            VStack(spacing: 9) {
+                chartTile("热歌榜", subtitle: "正在流行的热门歌曲", icon: "chart.bar.fill", color: MusicXTheme.blue)
+                chartTile("新歌榜", subtitle: "近期发行的新作品", icon: "sparkles", color: .purple)
+                chartTile("飙升榜", subtitle: "热度正在快速上升", icon: "chart.line.uptrend.xyaxis", color: .teal)
             }
         }
         .padding(.horizontal, 20)
@@ -630,25 +709,44 @@ struct ContentView: View {
 
     private func chartTile(_ title: String, subtitle: String, icon: String, color: Color) -> some View {
         Button { discoveryRoute = .charts } label: {
-            HStack(spacing: 9) {
+            HStack(spacing: 13) {
                 Image(systemName: icon)
-                    .font(.system(size: 22, weight: .semibold))
+                    .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(.white)
                     .frame(width: 46, height: 46)
-                    .background(color.gradient, in: RoundedRectangle(cornerRadius: 12))
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title).font(.system(size: 14, weight: .bold)).foregroundStyle(.white).lineLimit(1)
-                    Text(subtitle).font(.system(size: 10)).foregroundStyle(.white.opacity(0.72)).lineLimit(1)
+                    .background(color.gradient, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(title)
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(.white)
+                    Text(subtitle)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.62))
                 }
-                Spacer(minLength: 0)
-                Image(systemName: "play.fill").font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(.white).frame(width: 30, height: 30)
-                    .background(.white.opacity(0.16), in: Circle())
+
+                Spacer()
+
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.72))
+                    .frame(width: 32, height: 32)
+                    .background(.white.opacity(0.08), in: Circle())
             }
-            .padding(10)
-            .frame(maxWidth: .infinity, minHeight: 76)
-            .background(LinearGradient(colors: [color.opacity(0.34), color.opacity(0.12)], startPoint: .topLeading, endPoint: .bottomTrailing), in: RoundedRectangle(cornerRadius: 17))
-            .overlay(RoundedRectangle(cornerRadius: 17).stroke(color.opacity(0.18), lineWidth: 1))
+            .padding(.horizontal, 14)
+            .frame(maxWidth: .infinity, minHeight: 72)
+            .background(
+                LinearGradient(
+                    colors: [color.opacity(0.22), color.opacity(0.07)],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                ),
+                in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(color.opacity(0.16), lineWidth: 1)
+            )
         }
         .buttonStyle(.plain)
     }
