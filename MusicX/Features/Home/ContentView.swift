@@ -1335,7 +1335,10 @@ struct ContentView: View {
             }
         }
         .padding(.horizontal, 9)
-        .background(.ultraThinMaterial.opacity(0.70), in: Capsule())
+        .background {
+            Capsule().fill(.ultraThinMaterial.opacity(0.70))
+                .overlay(Capsule().fill(LinearGradient(colors: [Color(red: 0.06, green: 0.16, blue: 0.34).opacity(0.46), Color(red: 0.20, green: 0.10, blue: 0.34).opacity(0.34)], startPoint: .leading, endPoint: .trailing)))
+        }
         .overlay(Capsule().stroke(.white.opacity(0.14), lineWidth: 0.7))
         .shadow(color: MusicXTheme.blue.opacity(0.12), radius: 15, y: 5)
         .padding(.horizontal, 10)
