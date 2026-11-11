@@ -253,9 +253,9 @@ struct ContentView: View {
     private var heroAndRecommendation: some View {
         ZStack(alignment: .bottom) {
             heroHeader
-            recommendationSection.padding(.bottom, 18)
+            recommendationSection
         }
-        .frame(height: 178)
+        .frame(height: 168)
     }
 
     private var heroHeader: some View {
@@ -300,7 +300,7 @@ struct ContentView: View {
                 .padding(.bottom, 62)
             }
         }
-        .frame(height: 178).frame(maxWidth: .infinity).clipped()
+        .frame(height: 168).frame(maxWidth: .infinity).clipped()
     }
 
         private var recommendationSection: some View {
