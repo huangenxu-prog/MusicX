@@ -271,24 +271,12 @@ struct ContentView: View {
     }
 
     private var heroHeader: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            Image("hero_title")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 245, height: 74, alignment: .leading)
-            HStack(spacing: 9) {
-                Capsule().fill(.white.opacity(0.72)).frame(width: 22, height: 1.5)
-                Text("好音乐，总在这里")
-                    .font(.system(size: 18, weight: .regular, design: .serif))
-                    .tracking(2.0)
-                    .foregroundStyle(.white.opacity(0.96))
-                Capsule().fill(.white.opacity(0.72)).frame(width: 22, height: 1.5)
-            }
-        }
-        .padding(.horizontal, 22)
-        .padding(.top, 14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(height: 170, alignment: .top)
+        Image("hero_title")
+            .resizable()
+            .aspectRatio(512.0 / 146.0, contentMode: .fit)
+            .frame(maxWidth: .infinity)
+            .frame(height: 112, alignment: .top)
+            .clipped()
     }
 
     private var recommendationSection: some View {
