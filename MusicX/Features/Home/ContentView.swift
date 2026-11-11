@@ -80,6 +80,41 @@ private enum PlayerDisplayMode: CaseIterable, Hashable {
     }
 }
 
+private struct MusicXPageBackground: View {
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                colors: [
+                    Color(red: 0.018, green: 0.040, blue: 0.095),
+                    Color(red: 0.025, green: 0.055, blue: 0.115),
+                    Color(red: 0.014, green: 0.030, blue: 0.075)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            RadialGradient(
+                colors: [Color(red: 0.08, green: 0.24, blue: 0.48).opacity(0.30), .clear],
+                center: .top,
+                startRadius: 12,
+                endRadius: 470
+            )
+            RadialGradient(
+                colors: [Color(red: 0.12, green: 0.20, blue: 0.48).opacity(0.20), .clear],
+                center: .bottomTrailing,
+                startRadius: 8,
+                endRadius: 420
+            )
+            RadialGradient(
+                colors: [Color(red: 0.20, green: 0.10, blue: 0.36).opacity(0.12), .clear],
+                center: .bottomLeading,
+                startRadius: 4,
+                endRadius: 360
+            )
+        }
+        .allowsHitTesting(false)
+    }
+}
+
 struct ContentView: View {
     @State private var selectedTab: MainTab = .home
     @Namespace private var tabSelectionNamespace
@@ -170,7 +205,7 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            MusicXTheme.background.ignoresSafeArea()
+            MusicXPageBackground()
             Group {
                 switch selectedTab {
                 case .home: homePage
@@ -178,9 +213,10 @@ struct ContentView: View {
                 case .library: libraryPage
                 }
             }
+            .ignoresSafeArea(edges: selectedTab == .home ? .top : [])
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(MusicXTheme.background.ignoresSafeArea())
+         .background { MusicXPageBackground() }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if !(selectedTab == .search && searchFieldFocused) {
                 VStack(spacing: 8) {
@@ -191,7 +227,8 @@ struct ContentView: View {
                 .padding(.bottom, 0)
                 .zIndex(20)
                 .background {
-                    LinearGradient(colors: [MusicXTheme.background.opacity(0.02), MusicXTheme.background.opacity(0.78)],
+                    LinearGradient(colors: [Color(red: 0.015, green: 0.035, blue: 0.085).opacity(0.02),
+                                                   Color(red: 0.012, green: 0.025, blue: 0.065).opacity(0.90)],
                                    startPoint: .top, endPoint: .bottom)
                         .ignoresSafeArea(edges: .bottom)
                 }
