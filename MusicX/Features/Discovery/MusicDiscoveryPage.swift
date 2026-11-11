@@ -59,7 +59,14 @@ struct MusicDiscoveryPage: View {
         case .chart(let name): name == "新歌榜" ? "新歌" : name == "飙升榜" ? "飙升" : "热歌"
         case .newReleases: "新歌"
         case .playlist(let name):
-            name == "轻音乐" ? "纯音乐" : name == "华语流行" ? "周杰伦" : name
+            switch name {
+            case "轻音乐": "轻音乐"
+            case "华语流行": "华语流行"
+            case "午后放松": "午后放松"
+            case "深夜独白": "深夜"
+            case "车载必听": "车载"
+            default: name
+            }
         case .album(let title, let artist): "\(title) \(artist)"
         }
     }
@@ -330,6 +337,8 @@ struct MusicDiscoveryPage: View {
                 result = try await service.toplist("新歌榜", count: 50)
             case .album:
                 result = try await service.search(keyword: query, source: .netease, count: 50, albumOnly: true)
+            case .playlist:
+                result = try await service.playlistTracks(keyword: query, count: 50)
             default:
                 result = try await service.search(keyword: query, source: .netease, count: 30)
             }
