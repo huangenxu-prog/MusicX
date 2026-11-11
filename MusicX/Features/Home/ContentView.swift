@@ -112,12 +112,6 @@ private struct MusicXPageBackground: View {
             )
         }
         .ignoresSafeArea()
-        .overlay(alignment: .top) {
-            Rectangle()
-                .fill(Color(red: 0.018, green: 0.040, blue: 0.095))
-                .frame(height: 2)
-                .allowsHitTesting(false)
-        }
         .allowsHitTesting(false)
     }
 }
@@ -126,7 +120,7 @@ struct ContentView: View {
     @State private var selectedTab: MainTab = .home
     @Namespace private var tabSelectionNamespace
     @State private var searchText = ""
-    @State private var searchSuggestions = ["十年", "突然好想你", "晴天", "青花瓷", "稻香", "后来", "演员", "夜曲", "富士山下", "海阔天空"].shuffled().prefix(5).map { $0 }
+    @State private var searchSuggestions = ["十年", "突然好想你", "晴天", "青花瓷", "稻香", "后来", "演员", "夜曲", "富士山下", "海阔天空"].shuffled().prefix(4).map { $0 }
     @FocusState private var searchFieldFocused: Bool
     @State private var libraryFilter: LibraryFilter = .favorites
     @State private var currentSong: AppSong?
@@ -1444,7 +1438,7 @@ struct ContentView: View {
             ForEach(MainTab.allCases, id: \.self) { tab in
                 Button {
                     if tab == .search && selectedTab != .search {
-                        searchSuggestions = ["十年", "突然好想你", "晴天", "青花瓷", "稻香", "后来", "演员", "夜曲", "富士山下", "海阔天空"].shuffled().prefix(5).map { $0 }
+                        searchSuggestions = ["十年", "突然好想你", "晴天", "青花瓷", "稻香", "后来", "演员", "夜曲", "富士山下", "海阔天空"].shuffled().prefix(4).map { $0 }
                     }
                     withAnimation(.spring(response: 0.52, dampingFraction: 0.76, blendDuration: 0.18)) {
                         selectedTab = tab
@@ -1880,7 +1874,10 @@ private struct SearchCategoryCard: View {
                 Image(systemName: symbol).font(.system(size: 42, weight: .light)).foregroundStyle(.white.opacity(0.68))
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing).padding(.trailing, 13)
             }
-            .frame(height: 91).clipShape(RoundedRectangle(cornerRadius: 17, style: .continuous))
+            .frame(maxWidth: .infinity)
+            .frame(height: 91)
+            .clipped()
+            .clipShape(RoundedRectangle(cornerRadius: 17, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 17).stroke(.white.opacity(0.22), lineWidth: 0.8))
         }.buttonStyle(.plain)
     }
