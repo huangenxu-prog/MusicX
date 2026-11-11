@@ -111,6 +111,7 @@ private struct MusicXPageBackground: View {
                 endRadius: 360
             )
         }
+        .ignoresSafeArea()
         .allowsHitTesting(false)
     }
 }
@@ -287,7 +288,7 @@ struct ContentView: View {
                 forYouSection
             }
             .padding(.top, 0)
-            .padding(.bottom, 150)
+            .padding(.bottom, 24)
         }
         .scrollBounceBehavior(.basedOnSize)
         .ignoresSafeArea(edges: .top)
@@ -496,20 +497,22 @@ struct ContentView: View {
                         let song = recommendationSongs[index]
                         Button { select(song) } label: {
                             VStack(alignment: .leading, spacing: 7) {
-                                Image("guess_0\((index % 3) + 1)")
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: cardWidth, height: cardWidth)
-                                    .clipped()
+                                songArtwork(song.onlineSong, tint: song.tint, size: cardWidth)
                                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                                    .compositingGroup()
-                                Text(song.title).font(.system(size: 13, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
-                                Text(song.artist).font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
+                                Text(song.title)
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(.white)
+                                    .lineLimit(2)
+                                    .frame(height: 34, alignment: .topLeading)
+                                Text(song.artist)
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(MusicXTheme.muted)
+                                    .lineLimit(1)
                             }.frame(width: cardWidth, alignment: .leading)
                         }.buttonStyle(.plain)
                     }
                 }.padding(.horizontal, 14)
-            }.frame(height: (UIScreen.main.bounds.width - 52) / 3 + 46)
+            }.frame(height: (UIScreen.main.bounds.width - 52) / 3 + 68)
         }
     }
 
