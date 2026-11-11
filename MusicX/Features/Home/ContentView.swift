@@ -1346,6 +1346,7 @@ struct ContentView: View {
                     }
                     .foregroundStyle(selectedTab == tab ? Color(red: 0.34, green: 0.78, blue: 1) : .white.opacity(0.72))
                     .frame(maxWidth: .infinity).frame(height: 54)
+                    .scaleEffect(selectedTab == tab ? 1.025 : 1)
                     .background {
                         if selectedTab == tab {
                             RoundedRectangle(cornerRadius: 26, style: .continuous)
@@ -1365,7 +1366,10 @@ struct ContentView: View {
                         }
                     }
                     .contentShape(Rectangle())
-                }.buttonStyle(.plain)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(tab.rawValue)
+                .accessibilityAddTraits(selectedTab == tab ? .isSelected : [])
             }
         }
         .padding(.horizontal, 9)
