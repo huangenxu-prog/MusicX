@@ -169,16 +169,26 @@ struct ContentView: View {
     }
 
     private var recentSongs: [AppSong] {
-        let stored = decodeLibrarySongs(recentSongsJSON)
-        let available = uniqueLibrarySongs(stored + songs + onlineResults + playbackQueueSongs + (currentSong.map { [$0] } ?? []))
+        let stored = decodeLibrarySongs(recentSongsJSON).map { appSong(from: $0) }
+        var available = stored
+        available.append(contentsOf: songs)
+        available.append(contentsOf: onlineResults)
+        available.append(contentsOf: playbackQueueSongs)
+        if let currentSong { available.append(currentSong) }
+        available = uniqueLibrarySongs(available)
         let ids = recentIDs.split(separator: ",").compactMap { Int($0) }
         let ordered = ids.compactMap { id in available.first { $0.id == id } }
-        return ordered.isEmpty ? stored.map { appSong(from: $0) } : ordered
+        return ordered.isEmpty ? stored : ordered
     }
 
     private var favoriteSongs: [AppSong] {
-        let stored = decodeLibrarySongs(favoriteSongsJSON)
-        let available = uniqueLibrarySongs(stored + songs + onlineResults + playbackQueueSongs + (currentSong.map { [$0] } ?? []))
+        let stored = decodeLibrarySongs(favoriteSongsJSON).map { appSong(from: $0) }
+        var available = stored
+        available.append(contentsOf: songs)
+        available.append(contentsOf: onlineResults)
+        available.append(contentsOf: playbackQueueSongs)
+        if let currentSong { available.append(currentSong) }
+        available = uniqueLibrarySongs(available)
         let ids = favorites
         let current = available.filter { ids.contains($0.id) }
         return uniqueLibrarySongs(stored + current).filter { ids.contains($0.id) }
@@ -557,7 +567,7 @@ struct ContentView: View {
                 HStack(spacing: 12) {
                     ForEach(0..<min(recommendationSongs.count, 6), id: \.self) { index in
                         let song = recommendationSongs[index]
-                        Button { startsSearchQueue ? playSearchResult(song) : select(song) } label: {
+                        Button { select(song) } label: {
                             VStack(alignment: .leading, spacing: 7) {
                                 songArtwork(song.onlineSong, tint: song.tint, size: cardWidth)
                                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
