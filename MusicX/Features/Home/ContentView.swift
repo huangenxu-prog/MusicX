@@ -198,6 +198,9 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: .musicXRemotePreviousTrack)) { _ in
             stepSong(by: -1)
         }
+        .onReceive(NotificationCenter.default.publisher(for: .musicXPlaybackDidFinish)) { _ in
+            playNextAfterNaturalFinish()
+        }
         .fullScreenCover(item: $discoveryRoute) { route in
             MusicDiscoveryPage(route: route, onClose: { discoveryRoute = nil },
                 onPlay: { playDiscoverySong($0) },
@@ -1125,6 +1128,16 @@ struct ContentView: View {
         select(queue[(index + offset + queue.count) % queue.count])
     }
 
+    private func playNextAfterNaturalFinish() {
+        let queue = playbackQueue
+        guard let currentID = currentSong?.id,
+              let index = queue.firstIndex(where: { $0.id == currentID }),
+              queue.indices.contains(index + 1) else {
+            return
+        }
+        select(queue[index + 1])
+    }
+
     private var tabBar: some View {
         HStack {
             ForEach(MainTab.allCases, id: \.self) { tab in
@@ -1207,7 +1220,7 @@ struct ContentView: View {
         let sourceResults = [await netease ?? [], await qq ?? [], await kuwo ?? []]
         // Interleave only providers with an implemented playback resolver.
         var merged: [MusicSong] = []
-        let maxCount = sourceResults.map(\\.count).max() ?? 0
+        let maxCount = sourceResults.map(\.count).max() ?? 0
         for index in 0..<maxCount {
             for source in sourceResults where source.indices.contains(index) {
                 merged.append(source[index])
@@ -1219,7 +1232,7 @@ struct ContentView: View {
         // Collapse cross-provider duplicates, preserving the first playable source.
         var seen = Set<String>()
         let uniqueResults = merged.filter { item in
-            let key = "\\(normalizedSearchKey(item.title))|\\(normalizedSearchKey(item.artist))"
+            let key = "\(normalizedSearchKey(item.title))|\(normalizedSearchKey(item.artist))"
             return !key.isEmpty && seen.insert(key).inserted
         }
         let results = Array(uniqueResults.prefix(50))

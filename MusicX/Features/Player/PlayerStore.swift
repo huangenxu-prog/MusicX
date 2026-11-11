@@ -7,6 +7,7 @@ import UIKit
 extension Notification.Name {
     static let musicXRemoteNextTrack = Notification.Name("MusicXRemoteNextTrack")
     static let musicXRemotePreviousTrack = Notification.Name("MusicXRemotePreviousTrack")
+    static let musicXPlaybackDidFinish = Notification.Name("MusicXPlaybackDidFinish")
 }
 
 @MainActor
@@ -62,7 +63,15 @@ final class PlayerStore: ObservableObject {
         itemStatusObservation = item.observe(\.status, options: [.initial, .new]) { [weak self] item, _ in
             Task { @MainActor [weak self] in
                 let error = item.error?.localizedDescription ?? "no-error"
-                self?.recordDiagnostic("item-status=\(item.status.rawValue) \(error)")
+                guard let self, item === self.player.currentItem else { return }
+                self.recordDiagnostic("item-status=\(item.status.rawValue) \(error)")
+                if item.status == .failed {
+                    self.wantsPlayback = false
+                    self.player.pause()
+                    self.isPlaying = false
+                    self.errorMessage = item.error?.localizedDescription ?? "歌曲加载失败，请尝试重新播放"
+                    self.updateNowPlayingInfo()
+                }
             }
         }
     }
@@ -74,7 +83,14 @@ final class PlayerStore: ObservableObject {
         configureRemoteCommands()
         playerStatusObservation = player.observe(\.timeControlStatus, options: [.initial, .new]) { [weak self] player, _ in
             Task { @MainActor [weak self] in
-                self?.recordDiagnostic("player-time-control=\(player.timeControlStatus.rawValue)")
+                guard let self else { return }
+                self.recordDiagnostic("player-time-control=\(player.timeControlStatus.rawValue)")
+                let shouldBePlaying = self.wantsPlayback && player.timeControlStatus == .playing
+                if self.isPlaying != shouldBePlaying {
+                    self.isPlaying = shouldBePlaying
+                    if shouldBePlaying { self.errorMessage = nil }
+                    self.updateNowPlayingInfo()
+                }
             }
         }
         let center = NotificationCenter.default
@@ -125,6 +141,7 @@ final class PlayerStore: ObservableObject {
                 self.isPlaying = false
                 self.currentTime = self.duration
                 self.updateNowPlayingInfo()
+                NotificationCenter.default.post(name: .musicXPlaybackDidFinish, object: nil)
             }
         }
 
@@ -258,7 +275,7 @@ final class PlayerStore: ObservableObject {
         player.replaceCurrentItem(with: item)
         currentTime = 0
         duration = 0
-        isPlaying = true
+        isPlaying = false
         recordDiagnostic("play-request")
         player.playImmediately(atRate: 1.0)
         updateNowPlayingInfo()
@@ -278,7 +295,7 @@ final class PlayerStore: ObservableObject {
         wantsPlayback = true
         recordDiagnostic("resume-request")
         player.playImmediately(atRate: 1.0)
-        isPlaying = true
+        isPlaying = false
         errorMessage = nil
         updateNowPlayingInfo()
     }
@@ -291,7 +308,7 @@ final class PlayerStore: ObservableObject {
         updateNowPlayingInfo()
     }
 
-    func togglePlayback() { isPlaying ? pause() : resume() }
+    func togglePlayback() { wantsPlayback ? pause() : resume() }
 
     func seek(to seconds: TimeInterval) {
         guard duration > 0 else { return }

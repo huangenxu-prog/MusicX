@@ -32,14 +32,15 @@ struct LXMusicURLResolver: MusicURLResolving {
                     provider: backend.name, duration: Date().timeIntervalSince(startedAt),
                     result: "empty_url"
                 )
-            } catch is CancellationError {
-                MusicSourceDiagnostics.shared.record(
-                    event: "resolve", source: song.source.rawValue,
-                    provider: backend.name, duration: Date().timeIntervalSince(startedAt),
-                    result: "cancelled"
-                )
-                throw CancellationError()
             } catch {
+                if Task.isCancelled || error is CancellationError || (error as? URLError)?.code == .cancelled {
+                    MusicSourceDiagnostics.shared.record(
+                        event: "resolve", source: song.source.rawValue,
+                        provider: backend.name, duration: Date().timeIntervalSince(startedAt),
+                        result: "cancelled"
+                    )
+                    throw CancellationError()
+                }
                 failures.append(error.localizedDescription)
                 MusicSourceDiagnostics.shared.record(
                     event: "resolve", source: song.source.rawValue,
@@ -209,7 +210,7 @@ struct LXMusicURLResolver: MusicURLResolving {
         }
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
-        request.timeoutInterval = 10
+        request.timeoutInterval = 8
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
         return try await send(request)
@@ -221,7 +222,7 @@ struct LXMusicURLResolver: MusicURLResolving {
         }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.timeoutInterval = 10
+        request.timeoutInterval = 8
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
@@ -229,7 +230,9 @@ struct LXMusicURLResolver: MusicURLResolving {
     }
 
     private func send(_ request: URLRequest) async throws -> Any {
+        try Task.checkCancellation()
         let (data, response) = try await session.data(for: request)
+        try Task.checkCancellation()
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
             let status = (response as? HTTPURLResponse)?.statusCode ?? -1
             throw MusicSourceError.invalidResponse("HTTP \(status)")
