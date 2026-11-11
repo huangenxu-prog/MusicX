@@ -1267,9 +1267,9 @@ struct ContentView: View {
             playbackTask?.cancel()
             playbackRequestID = UUID()
             let requestID = playbackRequestID
-            // Keep the current AVPlayer item and Now Playing session alive while
-            // the next stream URL resolves. Stopping here releases lock-screen ownership
-            // and can leave background playback silent during network resolution.
+            // Pause the old stream but retain its AVPlayer item and Now Playing
+            // ownership while the next stream URL resolves.
+            playerStore.pauseForTrackChange()
             isResolvingSong = true
             playbackTask = Task {
                 defer {
