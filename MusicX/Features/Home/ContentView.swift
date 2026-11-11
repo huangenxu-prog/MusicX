@@ -372,7 +372,7 @@ struct ContentView: View {
                         staticAlbumTile(index: index, width: width)
                     }
                 }.padding(.horizontal, 14)
-            }.frame(height: 52)
+            }.frame(height: 64)
         }
     }
 
@@ -385,12 +385,12 @@ struct ContentView: View {
                     .frame(width: width, height: 52).clipped()
                 LinearGradient(colors: [.clear, .black.opacity(0.76)], startPoint: .center, endPoint: .bottom)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(titles[index]).font(.system(size: 9, weight: .bold)).foregroundStyle(.white).lineLimit(1)
-                    Text(artists[index]).font(.system(size: 8, weight: .medium)).foregroundStyle(.white.opacity(0.86)).lineLimit(1)
+                    Text(titles[index]).font(.system(size: 10, weight: .bold)).foregroundStyle(.white).lineLimit(1)
+                    Text(artists[index]).font(.system(size: 9, weight: .medium)).foregroundStyle(.white.opacity(0.86)).lineLimit(1)
                 }.padding(.horizontal, 5).padding(.bottom, 5)
             }
-            .frame(width: width, height: 52)
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .frame(width: width, height: 64)
+            .clipShape(RoundedRectangle(cornerRadius: 10), style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(.white.opacity(0.22), lineWidth: 0.8))
         }.buttonStyle(.plain)
     }
@@ -405,7 +405,7 @@ struct ContentView: View {
                     chartTile("飙升榜", subtitle: "近期热度上升", rank: "02", icon: "flame.fill", color: Color(red: 0.61, green: 0.35, blue: 0.91), width: width)
                     chartTile("新歌榜", subtitle: "最新发布的50首", rank: "03", icon: "waveform", color: Color(red: 0.05, green: 0.70, blue: 0.83), width: width)
                 }.padding(.horizontal, 14)
-            }.frame(height: 60)
+            }.frame(height: 70)
         }
     }
 
@@ -414,8 +414,8 @@ struct ContentView: View {
             HStack(spacing: 0) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Capsule().fill(MusicXTheme.blue).frame(width: 4, height: 21)
-                    Text("精选歌单").font(.system(size: 18, weight: .bold)).foregroundStyle(.white)
-                    Text("· 编辑推荐").font(.system(size: 11, weight: .medium)).foregroundStyle(MusicXTheme.muted)
+                    Text("精选歌单").font(.system(size: 20, weight: .bold)).foregroundStyle(.white)
+                    Text("· 编辑推荐").font(.system(size: 12, weight: .medium)).foregroundStyle(MusicXTheme.muted)
                     Spacer(minLength: 4)
                 }
                 Button { discoveryRoute = .playlists } label: {
@@ -430,7 +430,7 @@ struct ContentView: View {
                     editorialPlaylistCard(title: "深夜独白", subtitle: "安静 · 思考 · 陪伴", width: width)
                     editorialPlaylistCard(title: "车载必听", subtitle: "旅途 · 驾驶 · 精选", width: width)
                 }.padding(.horizontal, 14)
-            }.frame(height: 64)
+            }.frame(height: 76)
         }
     }
 
@@ -438,18 +438,18 @@ struct ContentView: View {
         Button { discoveryRoute = .playlist(title) } label: {
             ZStack(alignment: .bottomLeading) {
                 HomeArtwork(name: title == "午后放松" ? "playlist_relax" : title == "深夜独白" ? "playlist_night" : "playlist_drive")
-                    .frame(width: width, height: 64).clipped()
+                    .frame(width: width, height: 76).clipped()
                 LinearGradient(colors: [.clear, .black.opacity(0.72)], startPoint: .center, endPoint: .bottom)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(title).font(.system(size: 12, weight: .bold)).foregroundStyle(.white).lineLimit(1)
-                    Text(subtitle).font(.system(size: 8, weight: .medium)).foregroundStyle(.white.opacity(0.86)).lineLimit(1).minimumScaleFactor(0.7)
+                    Text(title).font(.system(size: 13, weight: .bold)).foregroundStyle(.white).lineLimit(1)
+                    Text(subtitle).font(.system(size: 9, weight: .medium)).foregroundStyle(.white.opacity(0.86)).lineLimit(1).minimumScaleFactor(0.7)
                 }.padding(.leading, 8).padding(.bottom, 7)
                 Image(systemName: "play.fill").font(.system(size: 10, weight: .bold)).foregroundStyle(.white)
                     .frame(width: 22, height: 22).background(.black.opacity(0.35), in: Circle())
                     .overlay(Circle().stroke(.white.opacity(0.4), lineWidth: 0.8))
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing).padding(8)
-            }.frame(width: width, height: 64)
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            }.frame(width: width, height: 76)
+                .clipShape(RoundedRectangle(cornerRadius: 14), style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.white.opacity(0.26), lineWidth: 1))
         }.buttonStyle(.plain)
     }
@@ -716,13 +716,13 @@ struct ContentView: View {
         let assetName = title == "热歌榜" ? "chart_hot" : title == "飙升榜" ? "chart_rising" : "chart_new"
         return Button { discoveryRoute = .chart(title) } label: {
             ZStack(alignment: .bottomLeading) {
-                HomeArtwork(name: assetName).frame(width: width, height: 60).clipped()
+                HomeArtwork(name: assetName).frame(width: width, height: 70).clipped()
                 LinearGradient(colors: [color.opacity(0.10), .black.opacity(0.72)], startPoint: .top, endPoint: .bottom)
                 VStack(alignment: .leading, spacing: 0) {
                     Image(systemName: icon).font(.system(size: 11, weight: .bold)).foregroundStyle(.white)
-                    Text(rank).font(.system(size: 17, weight: .heavy, design: .rounded)).foregroundStyle(.white)
-                    Text(title).font(.system(size: 11, weight: .bold)).foregroundStyle(.white).lineLimit(1)
-                    Text(subtitle).font(.system(size: 7, weight: .medium)).foregroundStyle(.white.opacity(0.9)).lineLimit(1).minimumScaleFactor(0.7)
+                    Text(rank).font(.system(size: 18, weight: .heavy, design: .rounded)).foregroundStyle(.white)
+                    Text(title).font(.system(size: 12, weight: .bold)).foregroundStyle(.white).lineLimit(1)
+                    Text(subtitle).font(.system(size: 8, weight: .medium)).foregroundStyle(.white.opacity(0.9)).lineLimit(1).minimumScaleFactor(0.7)
                 }.padding(.leading, 8).padding(.bottom, 6)
                 HStack(spacing: 1) {
                     ForEach(0..<7, id: \.self) { index in
@@ -733,8 +733,8 @@ struct ContentView: View {
                     .frame(width: 19, height: 19).background(.black.opacity(0.32), in: Circle())
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing).padding(5)
             }
-            .frame(width: width, height: 60)
-            .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+            .frame(width: width, height: 70)
+            .clipShape(RoundedRectangle(cornerRadius: 13), style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous).stroke(.white.opacity(0.34), lineWidth: 0.9))
         }.buttonStyle(.plain)
     }
@@ -1438,7 +1438,7 @@ struct ContentView: View {
                 homeLoadError = "网易云新歌榜暂时没有返回歌曲，请稍后重试"
             }
         } catch {
-            homeLoadError = "新歌榜加载失败：\\(error.localizedDescription)"
+            homeLoadError = "新歌榜加载失败：\(error.localizedDescription)"
         }
     }
 
