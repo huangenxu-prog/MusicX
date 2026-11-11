@@ -1426,25 +1426,19 @@ struct ContentView: View {
         isLoadingHomeSongs = true
         homeLoadError = nil
         defer { isLoadingHomeSongs = false }
-        let service = GDStudioMusicSearchService()
-        var collected: [MusicSong] = []
-        var failures: [String] = []
-        // GDStudio search accepts song, artist or album names, not genre labels.
-        for keyword in ["陈奕迅", "周杰伦", "薛之谦"] {
-            do {
-                collected.append(contentsOf: try await service.search(keyword: keyword, source: .netease, count: 5))
-            } catch {
-                failures.append(error.localizedDescription)
+        do {
+            let latestTracks = try await GDStudioMusicSearchService().toplist("新歌榜", count: 50)
+            guard !Task.isCancelled else { return }
+            songs = latestTracks.map { item in
+                AppSong(id: stableSongID(item), title: item.title, artist: item.artist,
+                        album: item.album ?? "", tint: MusicXTheme.blue, onlineSong: item)
             }
-        }
-        var seen = Set<String>()
-        songs = collected.filter { seen.insert($0.id).inserted }.map { item in
-            AppSong(id: stableSongID(item), title: item.title, artist: item.artist,
-                    album: item.album ?? "", tint: MusicXTheme.blue, onlineSong: item)
-        }
-        recommendationSongs = Array(songs.suffix(6))
-        if songs.isEmpty {
-            homeLoadError = failures.first ?? "在线音源暂时没有返回歌曲，请稍后重试"
+            recommendationSongs = Array(songs.shuffled().prefix(6))
+            if songs.isEmpty {
+                homeLoadError = "网易云新歌榜暂时没有返回歌曲，请稍后重试"
+            }
+        } catch {
+            homeLoadError = "新歌榜加载失败：\\(error.localizedDescription)"
         }
     }
 
