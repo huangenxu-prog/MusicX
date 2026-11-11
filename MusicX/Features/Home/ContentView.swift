@@ -1,7 +1,7 @@
 import SwiftUI
 
 private enum MainTab: String, CaseIterable {
-    case home = "主页"
+    case home = "首页"
     case search = "搜索"
     case library = "音乐库"
 
@@ -355,7 +355,8 @@ struct ContentView: View {
                 Text(homeLoadError).font(.system(size: 13)).foregroundStyle(MusicXTheme.muted).padding(.vertical, 14)
             } else {
                 VStack(spacing: 0) {
-                    ForEach(Array(songs.prefix(6).enumerated()), id: \.element.id) { index, song in
+                    ForEach(0..<min(songs.count, 6), id: \.self) { index in
+                        let song = songs[index]
                         homeSongRow(song, artworkName: "song_0\(index + 1)")
                         if song.id != songs.prefix(6).last?.id {
                             Rectangle().fill(.white.opacity(0.12)).frame(height: 0.5).padding(.leading, 42)
@@ -455,7 +456,7 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing).padding(8)
             }.frame(width: width, height: 68)
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(.white.opacity(0.26), lineWidth: 1))
+                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.white.opacity(0.26), lineWidth: 1))
         }.buttonStyle(.plain)
     }
 
@@ -465,7 +466,8 @@ struct ContentView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 let cardWidth = (UIScreen.main.bounds.width - 56) / 3
                 HStack(spacing: 12) {
-                    ForEach(Array(songs.suffix(6).enumerated()), id: \.element.id) { index, song in
+                    ForEach(0..<min(songs.count, 6), id: \.self) { index in
+                        let song = songs.suffix(6)[index]
                         Button { select(song) } label: {
                             VStack(alignment: .leading, spacing: 7) {
                                 Image("guess_0\((index % 3) + 1)").resizable().scaledToFill().frame(width: cardWidth, height: cardWidth).clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
@@ -747,7 +749,14 @@ struct ContentView: View {
         HStack(spacing: 12) {
             Button { if currentSong != nil { isPlayerPresented = true } } label: {
                 HStack(spacing: 12) {
-                    songArtwork(currentSong?.onlineSong, tint: currentSong?.tint ?? MusicXTheme.blue, size: 30)
+                    Group {
+                        if currentSong == nil {
+                            Image("player_cover").resizable().scaledToFill().frame(width: 30, height: 30)
+                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        } else {
+                            songArtwork(currentSong?.onlineSong, tint: currentSong?.tint ?? MusicXTheme.blue, size: 30)
+                        }
+                    }
                     VStack(alignment: .leading, spacing: 4) {
                         Text(currentSong?.title ?? "尚未播放").font(.system(size: 13, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
                         Text(currentSong?.artist ?? "选择一首歌曲开始聆听").font(.system(size: 10)).foregroundStyle(.white.opacity(0.70)).lineLimit(1)
