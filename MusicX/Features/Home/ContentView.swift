@@ -9,7 +9,7 @@ private enum MainTab: String, CaseIterable {
         switch self {
         case .home: "house.fill"
         case .search: "magnifyingglass"
-        case .library: "square.stack"
+        case .library: "music.note"
         }
     }
 }
@@ -186,12 +186,9 @@ struct ContentView: View {
                     miniPlayer
                     tabBar
                 }
-                .padding(.top, 6)
-                .padding(.bottom, 4)
-                .background {
-                    LinearGradient(colors: [MusicXTheme.background.opacity(0.02), MusicXTheme.background.opacity(0.88)], startPoint: .top, endPoint: .bottom)
-                        .ignoresSafeArea(edges: .bottom)
-                }
+                .padding(.top, 10)
+                .padding(.bottom, 7)
+                .background { MusicXTheme.background.opacity(0.98).ignoresSafeArea(edges: .bottom) }
             }
         }
         .preferredColorScheme(.dark)
@@ -594,13 +591,13 @@ struct ContentView: View {
         }
     }
 
-    private func homeSectionTitle(_ title: String, action: @escaping () -> Void) -> some View {
+    private func homeSectionTitle(_ title: String, action: @escaping () -> Void, actionTitle: String = "查看全部") -> some View {
         Button(action: action) {
             HStack(spacing: 10) {
                 Capsule().fill(MusicXTheme.blue).frame(width: 5, height: 27)
                 Text(title).font(.system(size: 23, weight: .bold)).foregroundStyle(.white)
                 Spacer()
-                Text("查看全部").font(.system(size: 13, weight: .medium)).foregroundStyle(MusicXTheme.muted)
+                Text(actionTitle).font(.system(size: 13, weight: .medium)).foregroundStyle(MusicXTheme.muted)
                 Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)).foregroundStyle(MusicXTheme.muted)
             }
             .contentShape(Rectangle())
@@ -611,14 +608,16 @@ struct ContentView: View {
     private func homeSongRow(_ song: AppSong) -> some View {
         Button { select(song) } label: {
             HStack(spacing: 14) {
-                songArtwork(song.onlineSong, tint: song.tint, size: 34)
-                VStack(alignment: .leading, spacing: 5) {
+                songArtwork(song.onlineSong, tint: song.tint, size: 44)
+                VStack(alignment: .leading, spacing: 4) {
                     Text(song.title).font(.system(size: 16, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
                     Text(song.artist).font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
                 }.frame(maxWidth: .infinity, alignment: .leading)
-                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.58)).padding(.trailing, 4)
-            }.contentShape(Rectangle()).padding(.vertical, 3)
+                if let duration = song.onlineSong?.duration, duration > 0 {
+                    Text(playerTime(duration)).font(.system(size: 11, weight: .medium, design: .rounded)).monospacedDigit().foregroundStyle(MusicXTheme.muted)
+                }
+                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(.white.opacity(0.58))
+            }.contentShape(Rectangle()).padding(.vertical, 5)
         }.buttonStyle(.plain)
     }
 
@@ -1307,14 +1306,13 @@ struct ContentView: View {
                         selectedTab = tab
                     }
                 } label: {
-                    VStack(spacing: 7) {
-                        Image(systemName: tab.symbol)
-                            .font(.system(size: 21, weight: .semibold))
-                            .symbolEffect(.bounce, value: selectedTab == tab)
-                        Text(tab.rawValue).font(.system(size: 12, weight: .semibold))
+                    VStack(spacing: 6) {
+                        Image(systemName: tab.symbol).font(.system(size: 22, weight: .semibold))
+                            .frame(height: 26).symbolEffect(.bounce, value: selectedTab == tab)
+                        Text(tab.rawValue).font(.system(size: 12, weight: .semibold)).frame(height: 17)
                     }
                     .foregroundStyle(selectedTab == tab ? Color(red: 0.34, green: 0.78, blue: 1) : .white.opacity(0.72))
-                    .frame(maxWidth: .infinity).frame(height: 64)
+                    .frame(maxWidth: .infinity).frame(height: 70)
                     .background {
                         if selectedTab == tab {
                             RoundedRectangle(cornerRadius: 26, style: .continuous)
