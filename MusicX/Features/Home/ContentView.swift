@@ -141,6 +141,7 @@ struct ContentView: View {
     @State private var playbackQueueSongs: [AppSong] = []
     @State private var hasCustomPlaybackQueue = false
     @State private var isResolvingSong = false
+    @State private var failedPlaybackSongIDs: Set<Int> = []
     @AppStorage("musicx.favoriteIDs") private var favoriteIDs = "1,3"
     @AppStorage("musicx.recentIDs") private var recentIDs = ""
     @AppStorage("musicx.downloadedTracks") private var downloadedTracksJSON = "[]"
@@ -265,6 +266,9 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .musicXPlaybackDidFinish)) { _ in
             playNextAfterNaturalFinish()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .musicXPlaybackFailed)) { _ in
+            advanceAfterPlaybackFailure()
         }
         .fullScreenCover(item: $discoveryRoute) { route in
             MusicDiscoveryPage(route: route, onClose: { discoveryRoute = nil },
@@ -1305,6 +1309,38 @@ struct ContentView: View {
         select(queue[(index + offset + queue.count) % queue.count])
     }
 
+    /// Skip a track that failed after selection or during AVPlayer playback.
+    /// Each track is attempted at most once per user-initiated playback selection.
+    private func advanceAfterPlaybackFailure() {
+        guard let failedSong = currentSong else { return }
+        failedPlaybackSongIDs.insert(failedSong.id)
+        let queue = playbackQueue
+        guard failedPlaybackSongIDs.count < queue.count,
+              let currentIndex = queue.firstIndex(where: { $0.id == failedSong.id }) else {
+            searchError = "队列中的歌曲均无法播放，请更换音源或稍后重试"
+            return
+        }
+
+        let remaining = queue.filter { !failedPlaybackSongIDs.contains($0.id) }
+        guard !remaining.isEmpty else {
+            searchError = "队列中的歌曲均无法播放，请更换音源或稍后重试"
+            return
+        }
+
+        let next: AppSong
+        if isShuffleEnabled, let random = remaining.randomElement() {
+            next = random
+        } else {
+            let ordered = Array(queue.dropFirst(currentIndex + 1)) + Array(queue.prefix(currentIndex))
+            guard let candidate = ordered.first(where: { !failedPlaybackSongIDs.contains($0.id) }) else {
+                searchError = "队列中的歌曲均无法播放，请更换音源或稍后重试"
+                return
+            }
+            next = candidate
+        }
+        select(next, isFailureFallback: true)
+    }
+
     private func playNextAfterNaturalFinish() {
         guard let currentSong else { return }
         if repeatMode == 2 {
@@ -1399,7 +1435,8 @@ struct ContentView: View {
         select(appSong)
     }
 
-    private func select(_ song: AppSong) {
+    private func select(_ song: AppSong, isFailureFallback: Bool = false) {
+        if !isFailureFallback { failedPlaybackSongIDs.removeAll() }
         if let localURL = song.localFileURL {
             playbackTask?.cancel()
             playbackRequestID = UUID()
@@ -1418,6 +1455,7 @@ struct ContentView: View {
             // Pause the old stream but retain its AVPlayer item and Now Playing
             // ownership while the next stream URL resolves.
             playerStore.pauseForTrackChange()
+            currentSong = song
             isResolvingSong = true
             playbackTask = Task {
                 defer {
@@ -1436,6 +1474,7 @@ struct ContentView: View {
                     guard playbackRequestID == requestID else { return }
                     isResolvingSong = false
                     searchError = error.localizedDescription
+                    advanceAfterPlaybackFailure()
                 }
             }
         } else {
