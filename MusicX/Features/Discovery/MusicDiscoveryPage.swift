@@ -101,7 +101,7 @@ struct MusicDiscoveryPage: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             miniPlayerBar(song: currentSong)
         }
-        .task(id: query) { await loadSongs() }
+        .task(id: route.id) { await loadSongs() }
     }
 
     private var topBar: some View {
