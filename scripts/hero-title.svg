@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300">
+<defs>
+  <linearGradient id="title" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#ffffff"/>
+    <stop offset="1" stop-color="#ded4ff"/>
+  </linearGradient>
+  <filter id="violetGlow" x="-20%" y="-35%" width="140%" height="180%">
+    <feGaussianBlur stdDeviation="16" result="blur"/>
+    <feFlood flood-color="#8565ff" flood-opacity=".72"/>
+    <feComposite in2="blur" operator="in"/>
+    <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+</defs>
+<text x="600" y="214" text-anchor="middle"
+      font-family="STKaiti, Kaiti SC, KaiTi, serif"
+      font-size="190" font-weight="600" letter-spacing="8"
+      fill="url(#title)" filter="url(#violetGlow)">发现音乐</text>
+</svg>
