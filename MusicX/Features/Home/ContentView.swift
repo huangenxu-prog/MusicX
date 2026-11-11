@@ -271,23 +271,18 @@ struct ContentView: View {
     }
 
     private var heroHeader: some View {
-        VStack(alignment: .leading, spacing: 5) {
+        VStack(alignment: .leading, spacing: 7) {
             Image("hero_title")
                 .resizable()
                 .scaledToFit()
-                .frame(width: 205, height: 54, alignment: .leading)
-            HStack(spacing: 8) {
-                Text("好音乐，总在心里")
+                .frame(width: 245, height: 74, alignment: .leading)
+            HStack(spacing: 9) {
+                Capsule().fill(.white.opacity(0.72)).frame(width: 22, height: 1.5)
+                Text("好音乐，总在这里")
                     .font(.system(size: 18, weight: .regular, design: .serif))
                     .tracking(2.0)
-                    .foregroundStyle(.white.opacity(0.94))
-                HStack(alignment: .center, spacing: 3) {
-                    ForEach([8.0, 14.0, 20.0, 12.0, 7.0], id: \.self) { height in
-                        Capsule().fill(Color(red: 0.86, green: 0.70, blue: 1.0).opacity(0.9))
-                            .frame(width: 2.5, height: height)
-                    }
-                }
-                .shadow(color: Color.purple.opacity(0.45), radius: 5)
+                    .foregroundStyle(.white.opacity(0.96))
+                Capsule().fill(.white.opacity(0.72)).frame(width: 22, height: 1.5)
             }
         }
         .padding(.horizontal, 22)
