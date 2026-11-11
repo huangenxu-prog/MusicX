@@ -23,7 +23,7 @@ def fail(message):
     raise SystemExit(1)
 
 source = ARTWORK.read_text(encoding="utf-8")
-match = re.search(r"private let names = \\[(.*?)\\]", source, re.S)
+match = re.search(r"private let names = \[(.*?)\]", source, re.S)
 if not match:
     fail("Could not locate HomeArtwork.names")
 declared = set(re.findall(r'"([a-zA-Z0-9_]+)"', match.group(1)))
