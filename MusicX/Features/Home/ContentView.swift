@@ -152,6 +152,8 @@ struct ContentView: View {
     @State private var refreshedPlaybackSongIDs: Set<Int> = []
     @AppStorage("musicx.favoriteIDs") private var favoriteIDs = "1,3"
     @AppStorage("musicx.recentIDs") private var recentIDs = ""
+    @AppStorage("musicx.recentSongs") private var recentSongsJSON = "[]"
+    @AppStorage("musicx.favoriteSongs") private var favoriteSongsJSON = "[]"
     @AppStorage("musicx.downloadedTracks") private var downloadedTracksJSON = "[]"
     @AppStorage("musicx.playbackQuality") private var playbackQualityRaw = MusicQuality.high.rawValue
 
@@ -167,8 +169,41 @@ struct ContentView: View {
     }
 
     private var recentSongs: [AppSong] {
+        let stored = decodeLibrarySongs(recentSongsJSON)
+        let available = uniqueLibrarySongs(stored + songs + onlineResults + playbackQueueSongs + (currentSong.map { [$0] } ?? []))
         let ids = recentIDs.split(separator: ",").compactMap { Int($0) }
-        return ids.compactMap { id in songs.first { $0.id == id } }
+        let ordered = ids.compactMap { id in available.first { $0.id == id } }
+        return ordered.isEmpty ? stored.map(appSong(from:)) : ordered
+    }
+
+    private var favoriteSongs: [AppSong] {
+        let stored = decodeLibrarySongs(favoriteSongsJSON)
+        let available = uniqueLibrarySongs(stored + songs + onlineResults + playbackQueueSongs + (currentSong.map { [$0] } ?? []))
+        let ids = favorites
+        let current = available.filter { ids.contains($0.id) }
+        return uniqueLibrarySongs(stored + current).filter { ids.contains($0.id) }
+    }
+
+    private func decodeLibrarySongs(_ raw: String) -> [MusicSong] {
+        guard let data = raw.data(using: .utf8),
+              let decoded = try? JSONDecoder().decode([MusicSong].self, from: data) else { return [] }
+        return decoded
+    }
+
+    private func uniqueLibrarySongs(_ items: [AppSong]) -> [AppSong] {
+        var seen = Set<Int>()
+        return items.filter { seen.insert($0.id).inserted }
+    }
+
+    private func appSong(from song: MusicSong) -> AppSong {
+        AppSong(id: stableSongID(song), title: song.title, artist: song.artist,
+                album: song.album ?? "", tint: MusicXTheme.blue, onlineSong: song)
+    }
+
+    private func persistLibrarySongs(_ items: [MusicSong], key: WritableKeyPath<ContentView, String>) {
+        guard let data = try? JSONEncoder().encode(items),
+              let value = String(data: data, encoding: .utf8) else { return }
+        self[keyPath: key] = value
     }
 
     private var downloadedTracks: [DownloadedTrack] {
@@ -221,7 +256,7 @@ struct ContentView: View {
 
     private var librarySongs: [AppSong] {
         switch libraryFilter {
-        case .favorites: songs.filter { favorites.contains($0.id) }
+        case .favorites: favoriteSongs
         case .recent: recentSongs
         }
     }
@@ -1669,6 +1704,12 @@ struct ContentView: View {
         ids.removeAll { $0 == song.id }
         ids.insert(song.id, at: 0)
         recentIDs = ids.prefix(30).map { String($0) }.joined(separator: ",")
+        if let onlineSong = song.onlineSong {
+            var stored = decodeLibrarySongs(recentSongsJSON)
+            stored.removeAll { stableSongID($0) == song.id }
+            stored.insert(onlineSong, at: 0)
+            persistLibrarySongs(Array(stored.prefix(50)), key: \\.recentSongsJSON)
+        }
     }
 
     @MainActor
@@ -1775,9 +1816,18 @@ struct ContentView: View {
 
     private func toggleFavorite(_ song: AppSong) {
         var ids = favorites
-        if ids.contains(song.id) { ids.remove(song.id) }
-        else { ids.insert(song.id) }
+        var stored = decodeLibrarySongs(favoriteSongsJSON)
+        if ids.contains(song.id) {
+            ids.remove(song.id)
+            stored.removeAll { stableSongID($0) == song.id }
+        } else {
+            ids.insert(song.id)
+            if let onlineSong = song.onlineSong, !stored.contains(where: { stableSongID($0) == song.id }) {
+                stored.insert(onlineSong, at: 0)
+            }
+        }
         favoriteIDs = ids.sorted().map { String($0) }.joined(separator: ",")
+        persistLibrarySongs(stored, key: \\.favoriteSongsJSON)
     }
 
     private func downloadCurrentSong() {
