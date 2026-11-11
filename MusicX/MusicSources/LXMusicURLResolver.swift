@@ -65,7 +65,7 @@ struct LXMusicURLResolver: MusicURLResolving {
 
     /// Force a fresh provider lookup after AVPlayer rejects a previously resolved URL.
     func resolveFresh(song: MusicSong, quality: MusicQuality = .high) async throws -> URL {
-        let cacheKey = "playback-url|\\(song.source.rawValue)|\\(song.sourceID)|\\(quality.rawValue)"
+        let cacheKey = "playback-url|\(song.source.rawValue)|\(song.sourceID)|\(quality.rawValue)"
         await MusicCache.shared.removeValue(for: cacheKey)
         return try await resolve(song: song, quality: quality)
     }
