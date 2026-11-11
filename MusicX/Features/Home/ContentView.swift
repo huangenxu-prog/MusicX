@@ -236,7 +236,7 @@ struct ContentView: View {
 
     private var homePage: some View {
         ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 15) {
+            VStack(alignment: .leading, spacing: 16) {
                 heroAndRecommendation
                 chartSection
                 newMusicSection
@@ -283,7 +283,8 @@ struct ContentView: View {
                                 .overlay(Circle().stroke(.white.opacity(0.30), lineWidth: 1))
                         }.buttonStyle(.plain)
                     }
-                    .padding(.top, 42)
+                    .padding(.top, 24)
+                    Spacer(minLength: 0)
                     Text("发现音乐")
                         .font(.system(size: 32, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
@@ -296,6 +297,7 @@ struct ContentView: View {
                     Spacer(minLength: 0)
                 }
                 .padding(.horizontal, 22)
+                .padding(.bottom, 62)
             }
         }
         .frame(height: 178).frame(maxWidth: .infinity).clipped()
@@ -328,7 +330,7 @@ struct ContentView: View {
                         .frame(width: 29, height: 29).background(.white.opacity(0.18), in: Circle())
                     VStack(alignment: .leading, spacing: 2) {
                         Text(title).font(.system(size: 15, weight: .bold)).foregroundStyle(.white).lineLimit(1)
-                        Text(subtitle).font(.system(size: 9, weight: .medium)).foregroundStyle(.white.opacity(0.82))
+                        Text(subtitle).font(.system(size: 8, weight: .medium)).foregroundStyle(.white.opacity(0.82))
                             .lineLimit(1).minimumScaleFactor(0.76)
                     }
                     Spacer(minLength: 0)
@@ -390,8 +392,8 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 15) {
             homeSectionTitle("热门专辑", action: { discoveryRoute = .playlists })
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: 16) {
-                    ForEach(Array(songs.prefix(8))) { song in
+                HStack(alignment: .top, spacing: 10) {
+                    ForEach(Array(songs.prefix(5))) { song in
                         if let onlineSong = song.onlineSong { albumTile(song: onlineSong) }
                     }
                 }.padding(.horizontal, 2)
@@ -411,7 +413,7 @@ struct ContentView: View {
                     chartTile("飙升榜", subtitle: "近期热度上升", rank: "02", icon: "flame.fill", color: Color(red: 0.61, green: 0.35, blue: 0.91), width: width)
                     chartTile("新歌榜", subtitle: "最新发布的50首", rank: "03", icon: "waveform", color: Color(red: 0.05, green: 0.70, blue: 0.83), width: width)
                 }.padding(.horizontal, inset)
-            }.frame(height: 132)
+            }.frame(height: 64)
         }
     }
 
@@ -427,7 +429,7 @@ struct ContentView: View {
                     editorialPlaylistCard(title: "深夜独白", subtitle: "安静 · 思考 · 陪伴", tint: Color(red: 0.28, green: 0.42, blue: 0.78), symbol: "moon.stars.fill", width: width)
                     editorialPlaylistCard(title: "车载必听", subtitle: "旅途 · 驾驶 · 精选", tint: Color(red: 0.18, green: 0.58, blue: 0.67), symbol: "car.fill", width: width)
                 }.padding(.horizontal, inset)
-            }.frame(height: 148)
+            }.frame(height: 78)
         }
     }
 
@@ -435,10 +437,10 @@ struct ContentView: View {
         Button { discoveryRoute = .playlists } label: {
             VStack(alignment: .leading, spacing: 8) {
                 Image(systemName: symbol).font(.system(size: 23, weight: .light)).foregroundStyle(.white.opacity(0.94))
-                    .frame(maxWidth: .infinity, alignment: .leading).frame(height: 50)
-                Text(title).font(.system(size: 14, weight: .bold)).foregroundStyle(.white).lineLimit(1).minimumScaleFactor(0.78)
+                    .frame(maxWidth: .infinity, alignment: .leading).frame(height: 12)
+                Text(title).font(.system(size: 12, weight: .bold)).foregroundStyle(.white).lineLimit(1).minimumScaleFactor(0.78)
                 Text(subtitle).font(.system(size: 9, weight: .medium)).foregroundStyle(.white.opacity(0.76)).lineLimit(1).minimumScaleFactor(0.65)
-            }.padding(12).frame(width: width, height: 148, alignment: .leading)
+            }.padding(9).frame(width: width, height: 78, alignment: .leading)
                 .background {
                     RoundedRectangle(cornerRadius: 20, style: .continuous).fill(.ultraThinMaterial)
                         .overlay(LinearGradient(colors: [tint.opacity(0.55), tint.opacity(0.13)], startPoint: .topLeading, endPoint: .bottomTrailing)
@@ -610,14 +612,14 @@ struct ContentView: View {
     private func homeSongRow(_ song: AppSong) -> some View {
         Button { select(song) } label: {
             HStack(spacing: 14) {
-                songArtwork(song.onlineSong, tint: song.tint, size: 54)
+                songArtwork(song.onlineSong, tint: song.tint, size: 42)
                 VStack(alignment: .leading, spacing: 5) {
                     Text(song.title).font(.system(size: 16, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
-                    Text(song.artist).font(.system(size: 13)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
+                    Text(song.artist).font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
                 }.frame(maxWidth: .infinity, alignment: .leading)
                 Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.58)).padding(.trailing, 4)
-            }.contentShape(Rectangle()).padding(.vertical, 8)
+            }.contentShape(Rectangle()).padding(.vertical, 5)
         }.buttonStyle(.plain)
     }
 
@@ -677,13 +679,13 @@ struct ContentView: View {
     private func albumTile(song: MusicSong) -> some View {
         Button { discoveryRoute = .album(song) } label: {
             VStack(alignment: .leading, spacing: 7) {
-                songArtwork(song, tint: MusicXTheme.blue, size: 112)
+                songArtwork(song, tint: MusicXTheme.blue, size: 82)
                     .overlay(RoundedRectangle(cornerRadius: 15).stroke(.white.opacity(0.08), lineWidth: 1))
                 Text(song.album?.isEmpty == false ? song.album! : song.title)
                     .font(.system(size: 14, weight: .semibold)).lineLimit(1)
                 Text(song.artist).font(.system(size: 12)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
             }
-            .frame(width: 112, alignment: .leading)
+            .frame(width: 82, alignment: .leading)
         }
         .buttonStyle(.plain)
     }
@@ -697,12 +699,12 @@ struct ContentView: View {
                 Image(systemName: icon).font(.system(size: 32, weight: .light)).foregroundStyle(.white.opacity(0.27))
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing).padding(10)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(rank).font(.system(size: 24, weight: .heavy, design: .rounded)).foregroundStyle(.white)
-                    Text(title).font(.system(size: 13, weight: .bold)).foregroundStyle(.white).lineLimit(1).minimumScaleFactor(0.75)
+                    Text(rank).font(.system(size: 18, weight: .heavy, design: .rounded)).foregroundStyle(.white)
+                    Text(title).font(.system(size: 11, weight: .bold)).foregroundStyle(.white).lineLimit(1).minimumScaleFactor(0.75)
                     Text(subtitle).font(.system(size: 9, weight: .medium)).foregroundStyle(.white.opacity(0.82)).lineLimit(1).minimumScaleFactor(0.65)
                 }.padding(10)
-            }.frame(width: width, height: 132)
-                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            }.frame(width: width, height: 64)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(.white.opacity(0.30), lineWidth: 1))
         }.buttonStyle(.plain)
     }
