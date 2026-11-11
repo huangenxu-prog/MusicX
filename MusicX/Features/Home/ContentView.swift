@@ -288,13 +288,13 @@ struct ContentView: View {
             let gap: CGFloat = 10
             let width = max(0, (proxy.size.width - inset * 2 - gap) / 2)
             HStack(spacing: gap) {
-                recommendationTile(title: "每日推荐", subtitle: "为你精选 · 每日更新", icon: "play.fill", colors: [Color(red: 0.16, green: 0.43, blue: 0.72), Color(red: 0.08, green: 0.20, blue: 0.39)], route: .daily, artwork: nil, width: width)
-                recommendationTile(title: "精选歌单", subtitle: "用音乐，遇见更好的自己", icon: "music.note.list", colors: [Color(red: 0.43, green: 0.26, blue: 0.63), Color(red: 0.20, green: 0.13, blue: 0.38)], route: .playlists, artwork: nil, width: width)
+                recommendationTile(title: "每日推荐", subtitle: "为你精选 · 每日更新", icon: "play.fill", colors: [Color(red: 0.16, green: 0.43, blue: 0.72), Color(red: 0.08, green: 0.20, blue: 0.39)], route: .daily, width: width)
+                recommendationTile(title: "精选歌单", subtitle: "用音乐，遇见更好的自己", icon: "music.note.list", colors: [Color(red: 0.43, green: 0.26, blue: 0.63), Color(red: 0.20, green: 0.13, blue: 0.38)], route: .playlists, width: width)
             }.padding(.horizontal, inset)
         }.frame(height: 60)
     }
 
-    private func recommendationTile(title: String, subtitle: String, icon: String, colors: [Color], route: MusicDiscoveryRoute, artwork: MusicSong?, width: CGFloat) -> some View {
+    private func recommendationTile(title: String, subtitle: String, icon: String, colors: [Color], route: MusicDiscoveryRoute, width: CGFloat) -> some View {
         let assetName = title == "每日推荐" ? "daily_recommend" : "featured_playlist"
         return Button { discoveryRoute = route } label: {
             ZStack(alignment: .leading) {
@@ -407,15 +407,15 @@ struct ContentView: View {
             GeometryReader { proxy in
                 let width = max(0, (proxy.size.width - 44) / 3)
                 HStack(spacing: 8) {
-                    chartTile("热歌榜", subtitle: "当下最热的50首", rank: "01", icon: "crown.fill", color: Color(red: 0.95, green: 0.47, blue: 0.38), artwork: nil, width: width)
-                    chartTile("飙升榜", subtitle: "近期热度上升", rank: "02", icon: "flame.fill", color: Color(red: 0.61, green: 0.35, blue: 0.91), artwork: nil, width: width)
-                    chartTile("新歌榜", subtitle: "最新发布的50首", rank: "03", icon: "waveform", color: Color(red: 0.05, green: 0.70, blue: 0.83), artwork: nil, width: width)
+                    chartTile("热歌榜", subtitle: "当下最热的50首", rank: "01", icon: "crown.fill", color: Color(red: 0.95, green: 0.47, blue: 0.38), width: width)
+                    chartTile("飙升榜", subtitle: "近期热度上升", rank: "02", icon: "flame.fill", color: Color(red: 0.61, green: 0.35, blue: 0.91), width: width)
+                    chartTile("新歌榜", subtitle: "最新发布的50首", rank: "03", icon: "waveform", color: Color(red: 0.05, green: 0.70, blue: 0.83), width: width)
                 }.padding(.horizontal, 14)
             }.frame(height: 60)
         }
     }
 
-        private var editorialPlaylistSection: some View {
+    private var editorialPlaylistSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 0) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
@@ -432,15 +432,15 @@ struct ContentView: View {
             GeometryReader { proxy in
                 let width = max(0, (proxy.size.width - 44) / 3)
                 HStack(spacing: 8) {
-                    editorialPlaylistCard(title: "午后放松", subtitle: "轻音乐 · 治愈 · 放松", tint: Color(red: 0.82, green: 0.56, blue: 0.34), symbol: "cup.and.saucer.fill", artwork: songs.first?.onlineSong, width: width)
-                    editorialPlaylistCard(title: "深夜独白", subtitle: "安静 · 思考 · 陪伴", tint: Color(red: 0.28, green: 0.42, blue: 0.78), symbol: "moon.stars.fill", artwork: songs.dropFirst().first?.onlineSong, width: width)
-                    editorialPlaylistCard(title: "车载必听", subtitle: "旅途 · 驾驶 · 精选", tint: Color(red: 0.18, green: 0.58, blue: 0.67), symbol: "car.fill", artwork: songs.dropFirst(2).first?.onlineSong, width: width)
+                    editorialPlaylistCard(title: "午后放松", subtitle: "轻音乐 · 治愈 · 放松", width: width)
+                    editorialPlaylistCard(title: "深夜独白", subtitle: "安静 · 思考 · 陪伴", width: width)
+                    editorialPlaylistCard(title: "车载必听", subtitle: "旅途 · 驾驶 · 精选", width: width)
                 }.padding(.horizontal, 14)
             }.frame(height: 64)
         }
     }
 
-    private func editorialPlaylistCard(title: String, subtitle: String, tint: Color, symbol: String, artwork: MusicSong?, width: CGFloat) -> some View {
+    private func editorialPlaylistCard(title: String, subtitle: String, width: CGFloat) -> some View {
         Button { discoveryRoute = .playlists } label: {
             ZStack(alignment: .bottomLeading) {
                 HomeArtwork(name: title == "午后放松" ? "playlist_relax" : title == "深夜独白" ? "playlist_night" : "playlist_drive")
@@ -655,7 +655,7 @@ struct ContentView: View {
         }.buttonStyle(.plain)
     }
 
-        @ViewBuilder
+    @ViewBuilder
     private func songArtwork(_ song: MusicSong?, tint: Color, size: CGFloat) -> some View {
         if let song {
             SongArtworkView(song: song, tint: tint, size: size)
@@ -718,7 +718,7 @@ struct ContentView: View {
         }.buttonStyle(.plain)
     }
 
-    private func chartTile(_ title: String, subtitle: String, rank: String, icon: String, color: Color, artwork: MusicSong?, width: CGFloat) -> some View {
+    private func chartTile(_ title: String, subtitle: String, rank: String, icon: String, color: Color, width: CGFloat) -> some View {
         let assetName = title == "热歌榜" ? "chart_hot" : title == "飙升榜" ? "chart_rising" : "chart_new"
         return Button { discoveryRoute = .charts } label: {
             ZStack(alignment: .bottomLeading) {
@@ -1379,7 +1379,7 @@ struct ContentView: View {
         .padding(.horizontal, 10)
     }
 
-        private func playDiscoverySong(_ song: MusicSong) {
+    private func playDiscoverySong(_ song: MusicSong) {
         // Keep the discovery route mounted while playback starts.
         let appSong = AppSong(id: stableSongID(song), title: song.title, artist: song.artist,
                               album: song.album ?? "", tint: MusicXTheme.blue, onlineSong: song)
