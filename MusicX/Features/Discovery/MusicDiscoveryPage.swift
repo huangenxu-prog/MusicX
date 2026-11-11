@@ -124,7 +124,7 @@ struct MusicDiscoveryPage: View {
     private var newReleasesHeader: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("新歌速递").font(.system(size: 28, weight: .bold))
-            Text("在线曲库搜索结果，暂不代表官方实时新歌榜").font(.system(size: 13)).foregroundStyle(MusicXTheme.muted)
+            Text("网易云音乐 · 实时新歌榜").font(.system(size: 13)).foregroundStyle(MusicXTheme.muted)
         }
     }
 
@@ -138,7 +138,7 @@ struct MusicDiscoveryPage: View {
     private var chartIntro: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("排行榜").font(.system(size: 28, weight: .bold))
-            Text("在线曲目 · 排序以音源返回结果为准").font(.system(size: 13)).foregroundStyle(MusicXTheme.muted)
+            Text("网易云音乐官方榜单").font(.system(size: 13)).foregroundStyle(MusicXTheme.muted)
         }
     }
 
