@@ -1,6 +1,11 @@
 import Foundation
 
 struct GDStudioMetadataService {
+    private struct CachedLyrics: Codable {
+        let original: String
+        let translated: String?
+    }
+
     private let session: URLSession
     private let endpoint = "https://music-api.gdstudio.xyz/api.php"
 
@@ -10,17 +15,25 @@ struct GDStudioMetadataService {
 
     func artworkURL(for song: MusicSong, size: Int = 500) async throws -> URL? {
         guard let pictureID = song.pictureID, !pictureID.isEmpty else { return nil }
+        let cacheKey = "artwork-url|\(song.source.rawValue)|\(pictureID)|\(size)"
+        if let cached: URL = await MusicCache.shared.value(for: cacheKey) { return cached }
         let object = try await request([
             URLQueryItem(name: "types", value: "pic"),
             URLQueryItem(name: "source", value: sourceName(song.source)),
             URLQueryItem(name: "id", value: pictureID),
             URLQueryItem(name: "size", value: String(size))
         ])
-        return extractURL(object, key: "url")
+        let result = extractURL(object, key: "url")
+        if let result { await MusicCache.shared.insert(result, for: cacheKey, ttl: 7 * 24 * 60 * 60) }
+        return result
     }
 
     func lyrics(for song: MusicSong) async throws -> (original: String, translated: String?)? {
         guard let lyricID = song.lyricID, !lyricID.isEmpty else { return nil }
+        let cacheKey = "lyrics|\(song.source.rawValue)|\(lyricID)"
+        if let cached: CachedLyrics = await MusicCache.shared.value(for: cacheKey) {
+            return (cached.original, cached.translated)
+        }
         let object = try await request([
             URLQueryItem(name: "types", value: "lyric"),
             URLQueryItem(name: "source", value: sourceName(song.source)),
@@ -29,7 +42,10 @@ struct GDStudioMetadataService {
         guard let dictionary = object as? [String: Any],
               let original = dictionary["lyric"] as? String,
               !original.isEmpty else { return nil }
-        return (original, dictionary["tlyric"] as? String)
+        let translated = dictionary["tlyric"] as? String
+        await MusicCache.shared.insert(CachedLyrics(original: original, translated: translated),
+                                       for: cacheKey, ttl: 7 * 24 * 60 * 60)
+        return (original, translated)
     }
 
     private func request(_ query: [URLQueryItem]) async throws -> Any {
