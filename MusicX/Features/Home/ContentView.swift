@@ -578,7 +578,7 @@ struct ContentView: View {
                     }
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 9) {
-                            ForEach(searchSuggestions, id: \\.self) { title in
+                            ForEach(searchSuggestions, id: \.self) { title in
                                 Button { searchText = title; searchFieldFocused = false } label: {
                                     Text(title).font(.system(size: 13, weight: .medium)).foregroundStyle(.white.opacity(0.94))
                                         .padding(.horizontal, 15).padding(.vertical, 9)
