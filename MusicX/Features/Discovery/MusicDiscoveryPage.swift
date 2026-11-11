@@ -1,9 +1,10 @@
 import SwiftUI
 
 enum MusicDiscoveryRoute: Identifiable {
-    case daily, playlists, charts
+    case daily, playlists, charts, newReleases
+    case chart(String)
     case playlist(String)
-    case album(MusicSong)
+    case album(title: String, artist: String)
     var id: String {
         switch self {
         case .daily: "daily"
@@ -27,6 +28,7 @@ struct MusicDiscoveryPage: View {
     let currentTime: TimeInterval
     let duration: TimeInterval
     let onOpenPlaylist: (String) -> Void
+    let onSelectChart: (String) -> Void
 
     @State private var songs: [MusicSong] = []
     @State private var isLoading = false
@@ -38,20 +40,22 @@ struct MusicDiscoveryPage: View {
         switch route {
         case .daily: "每日推荐"
         case .playlists: "精选歌单"
-        case .charts: "排行榜"
+        case .charts, .chart: "排行榜"
+        case .newReleases: "新歌速递"
         case .playlist(let name): name
-        case .album(let song): song.album?.isEmpty == false ? song.album! : song.title
+        case .album(let title, _): title
         }
     }
     private var query: String {
         switch route {
         case .daily: "陈奕迅"
         case .playlists: "周杰伦"
-        case .charts:
-            selectedChart == "新歌榜" ? "周杰伦" : selectedChart == "飙升榜" ? "薛之谦" : "陈奕迅"
+        case .charts: "陈奕迅"
+        case .chart(let name): name == "新歌榜" ? "新歌" : name == "飙升榜" ? "飙升" : "热歌"
+        case .newReleases: "新歌"
         case .playlist(let name):
             name == "轻音乐" ? "纯音乐" : name == "华语流行" ? "周杰伦" : name
-        case .album(let song): song.album?.isEmpty == false ? song.album! : song.title
+        case .album(let title, let artist): "\\(title) \\(artist)"
         }
     }
 
@@ -64,14 +68,16 @@ struct MusicDiscoveryPage: View {
                     switch route {
                     case .daily: dailyHeader
                     case .playlists: playlistIntro
-                    case .charts: chartIntro
+                    case .charts, .chart: chartIntro
+                    case .newReleases: newReleasesHeader
                     case .playlist(let name): detailBanner(name, subtitle: "精选歌单")
-                    case .album(let song): albumBanner(song)
+                    case .album(let title, let artist): albumBanner(title: title, artist: artist)
                     }
                     if case .playlists = route {
                         playlistGrid
                     } else {
                         if case .charts = route { chartTabs }
+                    if case .chart = route { chartTabs }
                         if case .album = route { albumNote }
                         trackList
                     }
@@ -110,6 +116,13 @@ struct MusicDiscoveryPage: View {
         }
     }
 
+    private var newReleasesHeader: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("新歌速递").font(.system(size: 28, weight: .bold))
+            Text("在线曲库搜索结果，暂不代表官方实时新歌榜").font(.system(size: 13)).foregroundStyle(MusicXTheme.muted)
+        }
+    }
+
     private var playlistIntro: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("按心情聆听").font(.system(size: 28, weight: .bold))
@@ -131,12 +144,12 @@ struct MusicDiscoveryPage: View {
         }
     }
 
-    private func albumBanner(_ song: MusicSong) -> some View {
+    private func albumBanner(title: String, artist: String) -> some View {
         HStack(spacing: 18) {
-            artwork(title: song.album ?? song.title, subtitle: song.artist, colors: [Color(red: 0.20, green: 0.42, blue: 0.68), Color(red: 0.10, green: 0.16, blue: 0.30)], height: 176).frame(width: 176)
+            artwork(title: title, subtitle: artist, colors: [Color(red: 0.20, green: 0.42, blue: 0.68), Color(red: 0.10, green: 0.16, blue: 0.30)], height: 176).frame(width: 176)
             VStack(alignment: .leading, spacing: 8) {
-                Text(song.album ?? song.title).font(.system(size: 22, weight: .bold))
-                Text(song.artist).font(.system(size: 14)).foregroundStyle(MusicXTheme.muted)
+                Text(title).font(.system(size: 22, weight: .bold))
+                Text(artist).font(.system(size: 14)).foregroundStyle(MusicXTheme.muted)
                 Text("专辑曲目").font(.system(size: 12)).foregroundStyle(MusicXTheme.muted)
             }
             Spacer(minLength: 0)
@@ -236,7 +249,7 @@ struct MusicDiscoveryPage: View {
     private var chartTabs: some View {
         HStack(spacing: 8) {
             ForEach(["热歌榜", "新歌榜", "飙升榜"], id: \.self) { name in
-                Button { selectedChart = name; songs = [] } label: {
+                Button { onSelectChart(name) } label: {
                     Text(name).font(.system(size: 13, weight: .semibold)).foregroundStyle(selectedChart == name ? .white : MusicXTheme.muted)
                         .padding(.horizontal, 16).padding(.vertical, 10)
                         .background(selectedChart == name ? MusicXTheme.blue : MusicXTheme.surface, in: Capsule())
@@ -302,13 +315,12 @@ struct MusicDiscoveryPage: View {
         errorMessage = nil
         defer { isLoading = false }
         do {
-            let source: MusicSource
-            if case .album(let albumSong) = route { source = albumSong.source } else { source = .netease }
-            let result = try await service.search(keyword: query, source: source, count: 30)
+            let source: MusicSource = .netease
+            let isAlbum: Bool
+            if case .album = route { isAlbum = true } else { isAlbum = false }
+            let result = try await service.search(keyword: query, source: source, count: 30, albumOnly: isAlbum)
             guard !Task.isCancelled else { return }
-            if case .album(let albumSong) = route, let album = albumSong.album, !album.isEmpty {
-                songs = result.filter { $0.album?.localizedCaseInsensitiveContains(album) ?? false }
-            } else { songs = result }
+            songs = result
             onQueueChanged(songs)
             if songs.isEmpty { errorMessage = "音源没有返回匹配的歌曲，请稍后重试" }
         } catch { errorMessage = error.localizedDescription }
