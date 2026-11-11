@@ -340,4 +340,5 @@ struct MusicDiscoveryPage: View {
         } catch {
             errorMessage = error.localizedDescription
         }
-    }}
+    }
+}
