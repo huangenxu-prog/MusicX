@@ -186,8 +186,8 @@ struct ContentView: View {
                     miniPlayer
                     tabBar
                 }
-                .padding(.top, 8)
-                .padding(.bottom, 5)
+                .padding(.top, 4)
+                .padding(.bottom, 4)
                 .background {
                     LinearGradient(colors: [MusicXTheme.background.opacity(0.02), MusicXTheme.background.opacity(0.78)],
                                    startPoint: .top, endPoint: .bottom)
@@ -369,10 +369,10 @@ struct ContentView: View {
 
     private var albumSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            homeSectionTitle("热门专辑", action: { discoveryRoute = .playlists }).padding(.horizontal, 20)
+            homeSectionTitle("热门专辑", action: { discoveryRoute = .playlists }).padding(.horizontal, 14)
             GeometryReader { proxy in
-                let gap: CGFloat = 8
-                let width = max(48, (proxy.size.width - 40 - gap * 4) / 5)
+                let gap: CGFloat = 6
+                let width = max(48, (proxy.size.width - 28 - gap * 4) / 5)
                 HStack(spacing: gap) {
                     ForEach(0..<5, id: \.self) { index in
                         staticAlbumTile(index: index, width: width)
@@ -428,15 +428,15 @@ struct ContentView: View {
                     HStack(spacing: 4) { Text("查看更多").font(.system(size: 13, weight: .medium)); Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)) }
                         .foregroundStyle(MusicXTheme.muted)
                 }.buttonStyle(.plain)
-            }.padding(.horizontal, 20)
+            }.padding(.horizontal, 14)
             GeometryReader { proxy in
-                let width = max(0, (proxy.size.width - 56) / 3)
+                let width = max(0, (proxy.size.width - 28) / 3)
                 HStack(spacing: 8) {
                     editorialPlaylistCard(title: "午后放松", subtitle: "轻音乐 · 治愈 · 放松", tint: Color(red: 0.82, green: 0.56, blue: 0.34), symbol: "cup.and.saucer.fill", artwork: songs.first?.onlineSong, width: width)
                     editorialPlaylistCard(title: "深夜独白", subtitle: "安静 · 思考 · 陪伴", tint: Color(red: 0.28, green: 0.42, blue: 0.78), symbol: "moon.stars.fill", artwork: songs.dropFirst().first?.onlineSong, width: width)
                     editorialPlaylistCard(title: "车载必听", subtitle: "旅途 · 驾驶 · 精选", tint: Color(red: 0.18, green: 0.58, blue: 0.67), symbol: "car.fill", artwork: songs.dropFirst(2).first?.onlineSong, width: width)
                 }.padding(.horizontal, 20)
-            }.frame(height: 68)
+            }.frame(height: 64)
         }
     }
 
@@ -444,7 +444,7 @@ struct ContentView: View {
         Button { discoveryRoute = .playlists } label: {
             ZStack(alignment: .bottomLeading) {
                 Image(title == "午后放松" ? "playlist_relax" : title == "深夜独白" ? "playlist_night" : "playlist_drive")
-                    .resizable().scaledToFill().frame(width: width, height: 68).clipped()
+                    .resizable().scaledToFill().frame(width: width, height: 64).clipped()
                 LinearGradient(colors: [.clear, .black.opacity(0.72)], startPoint: .center, endPoint: .bottom)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(title).font(.system(size: 12, weight: .bold)).foregroundStyle(.white).lineLimit(1)
@@ -751,10 +751,10 @@ struct ContentView: View {
                 HStack(spacing: 12) {
                     Group {
                         if currentSong == nil {
-                            Image("player_cover").resizable().scaledToFill().frame(width: 30, height: 30)
+                            Image("player_cover").resizable().scaledToFill().frame(width: 28, height: 28)
                                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                         } else {
-                            songArtwork(currentSong?.onlineSong, tint: currentSong?.tint ?? MusicXTheme.blue, size: 30)
+                            songArtwork(currentSong?.onlineSong, tint: currentSong?.tint ?? MusicXTheme.blue, size: 28)
                         }
                     }
                     VStack(alignment: .leading, spacing: 4) {
@@ -764,22 +764,22 @@ struct ContentView: View {
                 }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
             }.buttonStyle(.plain)
             Button { stepSong(by: -1) } label: {
-                Image(systemName: "backward.end.fill").font(.system(size: 15, weight: .semibold)).foregroundStyle(.white.opacity(0.88)).frame(width: 30, height: 42)
+                Image(systemName: "backward.end.fill").font(.system(size: 15, weight: .semibold)).foregroundStyle(.white.opacity(0.88)).frame(width: 26, height: 34)
             }.buttonStyle(.plain).disabled(playbackQueue.isEmpty)
             Button { if currentSong != nil { playerStore.togglePlayback() } } label: {
                 Group {
                     if isResolvingSong || playerStore.isBuffering { ProgressView().tint(.white) }
                     else { Image(systemName: playerStore.isPlaying ? "pause.fill" : "play.fill").font(.system(size: 18, weight: .bold)).foregroundStyle(.white) }
-                }.frame(width: 34, height: 34).background(.white.opacity(0.18), in: Circle()).overlay(Circle().stroke(.white.opacity(0.34), lineWidth: 1))
+                }.frame(width: 32, height: 32).background(.white.opacity(0.18), in: Circle()).overlay(Circle().stroke(.white.opacity(0.34), lineWidth: 1))
             }.buttonStyle(.plain).disabled(currentSong == nil)
             Button { stepSong(by: 1) } label: {
                 Image(systemName: "forward.end.fill").font(.system(size: 15, weight: .semibold)).foregroundStyle(.white.opacity(0.88)).frame(width: 30, height: 42)
             }.buttonStyle(.plain).disabled(playbackQueue.isEmpty)
             Button { playerDisplayMode = .queue; isPlayerPresented = true } label: {
-                Image(systemName: "list.bullet").font(.system(size: 19, weight: .semibold)).foregroundStyle(.white.opacity(0.88)).frame(width: 28, height: 42)
+                Image(systemName: "list.bullet").font(.system(size: 19, weight: .semibold)).foregroundStyle(.white.opacity(0.88)).frame(width: 26, height: 34)
             }.buttonStyle(.plain)
         }
-        .padding(.horizontal, 12).frame(height: 60)
+        .padding(.horizontal, 10).frame(height: 38)
         .background(.ultraThinMaterial, in: Capsule())
         .overlay(Capsule().stroke(.white.opacity(0.28), lineWidth: 1))
         .shadow(color: MusicXTheme.blue.opacity(0.16), radius: 18, y: 6)
