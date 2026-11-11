@@ -390,7 +390,7 @@ struct ContentView: View {
                 }.padding(.horizontal, 5).padding(.bottom, 5)
             }
             .frame(width: width, height: 64)
-            .clipShape(RoundedRectangle(cornerRadius: 10), style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(.white.opacity(0.22), lineWidth: 0.8))
         }.buttonStyle(.plain)
     }
@@ -449,7 +449,7 @@ struct ContentView: View {
                     .overlay(Circle().stroke(.white.opacity(0.4), lineWidth: 0.8))
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing).padding(8)
             }.frame(width: width, height: 76)
-                .clipShape(RoundedRectangle(cornerRadius: 14), style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.white.opacity(0.26), lineWidth: 1))
         }.buttonStyle(.plain)
     }
@@ -695,7 +695,7 @@ struct ContentView: View {
     }
 
     private func albumTile(song: MusicSong) -> some View {
-        Button { discoveryRoute = .album(song) } label: {
+        Button { discoveryRoute = .album(title: song.album?.isEmpty == false ? song.album! : song.title, artist: song.artist) } label: {
             ZStack(alignment: .bottomLeading) {
                 songArtwork(song, tint: MusicXTheme.blue, size: 132)
                 LinearGradient(colors: [.clear, .black.opacity(0.76)], startPoint: .center, endPoint: .bottom)
@@ -734,7 +734,7 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing).padding(5)
             }
             .frame(width: width, height: 70)
-            .clipShape(RoundedRectangle(cornerRadius: 13), style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous).stroke(.white.opacity(0.34), lineWidth: 0.9))
         }.buttonStyle(.plain)
     }
@@ -828,7 +828,7 @@ struct ContentView: View {
                                 Button("查看专辑") {
                                     if let song = currentSong?.onlineSong {
                                         isPlayerPresented = false
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { discoveryRoute = .album(song) }
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { discoveryRoute = .album(title: song.album?.isEmpty == false ? song.album! : song.title, artist: song.artist) }
                                     }
                                 }
                                 Button("查看歌手") {
@@ -889,7 +889,7 @@ struct ContentView: View {
                                     if let song = currentSong?.onlineSong {
                                         isPlayerPresented = false
                                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                                            discoveryRoute = .album(song)
+                                            discoveryRoute = .album(title: song.album?.isEmpty == false ? song.album! : song.title, artist: song.artist)
                                         }
                                     }
                                 } label: {
