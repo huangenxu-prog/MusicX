@@ -317,6 +317,30 @@ final class PlayerStore: ObservableObject {
 
     func togglePlayback() { wantsPlayback ? pause() : resume() }
 
+    /// Restart the current item after natural completion. Wait for the seek
+    /// completion before issuing play so repeat-one does not race AVPlayer's end state.
+    func replayCurrentTrack() {
+        guard let item = player.currentItem, duration > 0 else { return }
+        do {
+            try AVAudioSession.sharedInstance().setActive(true)
+        } catch {
+            errorMessage = "无法恢复音频会话：\(error.localizedDescription)"
+            return
+        }
+        wantsPlayback = true
+        isPlaying = false
+        isBuffering = true
+        errorMessage = nil
+        item.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self, weak item] finished in
+            Task { @MainActor [weak self, weak item] in
+                guard let self, let item, finished, self.player.currentItem === item, self.wantsPlayback else { return }
+                self.player.playImmediately(atRate: 1.0)
+                self.currentTime = 0
+                self.updateNowPlayingInfo()
+            }
+        }
+    }
+
     func seek(to seconds: TimeInterval) {
         guard duration > 0 else { return }
         let target = min(max(0, seconds), duration)
