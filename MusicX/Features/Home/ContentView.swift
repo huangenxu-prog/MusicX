@@ -86,6 +86,8 @@ struct ContentView: View {
     @FocusState private var searchFieldFocused: Bool
     @State private var libraryFilter: LibraryFilter = .favorites
     @State private var currentSong: AppSong?
+    @State private var isSeekingProgress = false
+    @State private var seekPreviewTime: TimeInterval = 0
     @StateObject private var playerStore = PlayerStore()
     @State private var onlineResults: [AppSong] = []
     @State private var isSearching = false
@@ -807,10 +809,23 @@ struct ContentView: View {
                     .padding(.top, 10)
 
                     VStack(spacing: 5) {
-                        Slider(value: Binding(
-                            get: { playerStore.duration > 0 ? min(playerStore.currentTime, playerStore.duration) : 0 },
-                            set: { playerStore.seek(to: $0) }
-                        ), in: 0...max(playerStore.duration, 1))
+                        Slider(
+                            value: Binding(
+                                get: {
+                                    isSeekingProgress
+                                        ? seekPreviewTime
+                                        : (playerStore.duration > 0 ? min(playerStore.currentTime, playerStore.duration) : 0)
+                                },
+                                set: { seekPreviewTime = $0 }
+                            ),
+                            in: 0...max(playerStore.duration, 1),
+                            onEditingChanged: { editing in
+                                isSeekingProgress = editing
+                                if !editing {
+                                    playerStore.seek(to: seekPreviewTime)
+                                }
+                            }
+                        )
                         .tint(MusicXTheme.blue)
                         .disabled(playerStore.duration <= 0)
                         HStack {
