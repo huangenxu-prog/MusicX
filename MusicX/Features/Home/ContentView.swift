@@ -239,31 +239,20 @@ struct ContentView: View {
     }
 
     private var homePage: some View {
-        ZStack(alignment: .top) {
-            Image("home_hero")
-                .resizable()
-                .scaledToFill()
-                .frame(maxWidth: .infinity)
-                .frame(height: 170)
-                .clipped()
-                .overlay(LinearGradient(colors: [.black.opacity(0.06), .clear, MusicXTheme.background.opacity(0.92)], startPoint: .top, endPoint: .bottom))
-                .ignoresSafeArea(edges: .top)
-
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 15) {
-                    HomeScrollBounceDisabler().frame(width: 0, height: 0)
-                    heroAndRecommendation
-                    chartSection
-                    newMusicSection
-                    albumSection
-                    editorialPlaylistSection
-                    forYouSection
-                }
-                .padding(.top, 0)
-                .padding(.bottom, 150)
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 15) {
+                HomeScrollBounceDisabler().frame(width: 0, height: 0)
+                heroAndRecommendation
+                chartSection
+                newMusicSection
+                albumSection
+                editorialPlaylistSection
+                forYouSection
             }
-            .scrollBounceBehavior(.basedOnSize)
+            .padding(.top, 0)
+            .padding(.bottom, 150)
         }
+        .scrollBounceBehavior(.basedOnSize)
     }
 
     private var heroAndRecommendation: some View {
@@ -273,10 +262,10 @@ struct ContentView: View {
     private var heroHeader: some View {
         Image("hero_title")
             .resizable()
-            .aspectRatio(512.0 / 146.0, contentMode: .fit)
+            .aspectRatio(1536.0 / 564.0, contentMode: .fit)
             .frame(maxWidth: .infinity)
-            .frame(height: 112, alignment: .top)
             .clipped()
+            .accessibilityLabel("发现音乐，好音乐，总在心里")
     }
 
     private var recommendationSection: some View {
