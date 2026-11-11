@@ -326,6 +326,10 @@ struct MusicDiscoveryPage: View {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
+        if case .playlists = route {
+            songs = []
+            return
+        }
         do {
             let result: [MusicSong]
             switch route {
