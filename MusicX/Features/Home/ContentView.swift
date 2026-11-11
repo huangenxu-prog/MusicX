@@ -361,94 +361,30 @@ struct ContentView: View {
     }
 
     private var albumSection: some View {
-        VStack(alignment: .leading, spacing: 15) {
+        VStack(alignment: .leading, spacing: 13) {
             homeSectionTitle("热门专辑", action: { discoveryRoute = .playlists })
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: 10) {
+                HStack(spacing: 12) {
                     ForEach(Array(songs.prefix(5))) { song in
                         if let onlineSong = song.onlineSong { albumTile(song: onlineSong) }
                     }
-                }.padding(.horizontal, 2)
+                }.padding(.horizontal, 20)
             }
-        }.padding(.horizontal, 20)
+        }
     }
 
     private var chartSection: some View {
         VStack(alignment: .leading, spacing: 13) {
-            homeSectionTitle("排行榜", action: { discoveryRoute = .charts })
+            homeSectionTitle("排行榜", action: { discoveryRoute = .charts }).padding(.horizontal, 20)
             GeometryReader { proxy in
-                let inset: CGFloat = 20
-                let gap: CGFloat = 10
-                let width = max(0, (proxy.size.width - inset * 2 - gap * 2) / 3)
-                HStack(spacing: gap) {
+                let width = max(0, (proxy.size.width - 60) / 3)
+                HStack(spacing: 10) {
                     chartTile("热歌榜", subtitle: "当下最热的50首", rank: "01", icon: "crown.fill", color: Color(red: 0.95, green: 0.47, blue: 0.38), artwork: songs.first?.onlineSong, width: width)
                     chartTile("飙升榜", subtitle: "近期热度上升", rank: "02", icon: "flame.fill", color: Color(red: 0.61, green: 0.35, blue: 0.91), artwork: songs.dropFirst().first?.onlineSong, width: width)
                     chartTile("新歌榜", subtitle: "最新发布的50首", rank: "03", icon: "waveform", color: Color(red: 0.05, green: 0.70, blue: 0.83), artwork: songs.dropFirst(2).first?.onlineSong, width: width)
-                }.padding(.horizontal, inset)
-            }.frame(height: 64)
+                }.padding(.horizontal, 20)
+            }.frame(height: 112)
         }
-    }
-
-        private var editorialPlaylistSection: some View {
-        VStack(alignment: .leading, spacing: 13) {
-            homeSectionTitle("精选歌单 · 编辑推荐", action: { discoveryRoute = .playlists })
-            GeometryReader { proxy in
-                let inset: CGFloat = 20
-                let gap: CGFloat = 11
-                let width = max(0, (proxy.size.width - inset * 2 - gap * 2) / 3)
-                HStack(spacing: gap) {
-                    editorialPlaylistCard(title: "午后放松", subtitle: "轻音乐 · 治愈 · 放松", tint: Color(red: 0.82, green: 0.56, blue: 0.34), symbol: "cup.and.saucer.fill", artwork: songs.first?.onlineSong, width: width)
-                    editorialPlaylistCard(title: "深夜独白", subtitle: "安静 · 思考 · 陪伴", tint: Color(red: 0.28, green: 0.42, blue: 0.78), symbol: "moon.stars.fill", artwork: songs.dropFirst().first?.onlineSong, width: width)
-                    editorialPlaylistCard(title: "车载必听", subtitle: "旅途 · 驾驶 · 精选", tint: Color(red: 0.18, green: 0.58, blue: 0.67), symbol: "car.fill", artwork: songs.dropFirst(2).first?.onlineSong, width: width)
-                }.padding(.horizontal, inset)
-            }.frame(height: 78)
-        }
-    }
-
-        private func editorialPlaylistCard(title: String, subtitle: String, tint: Color, symbol: String, artwork: MusicSong?, width: CGFloat) -> some View {
-        Button { discoveryRoute = .playlists } label: {
-            VStack(alignment: .leading, spacing: 4) {
-                Image(systemName: symbol).font(.system(size: 23, weight: .light)).foregroundStyle(.white.opacity(0.94))
-                     .frame(maxWidth: .infinity, alignment: .leading).frame(height: 24)
-                Text(title).font(.system(size: 12, weight: .bold)).foregroundStyle(.white).lineLimit(1).minimumScaleFactor(0.78)
-                Text(subtitle).font(.system(size: 9, weight: .medium)).foregroundStyle(.white.opacity(0.76)).lineLimit(1).minimumScaleFactor(0.65)
-            }.padding(9).frame(width: width, height: 78, alignment: .leading)
-                .background {
-                    RoundedRectangle(cornerRadius: 20, style: .continuous).fill(.ultraThinMaterial)
-                        .overlay {
-                            if let artworkURL = artwork?.artworkURL {
-                                AsyncImage(url: artworkURL) { phase in
-                                    if let image = phase.image { image.resizable().scaledToFill() }
-                                    else { tint.opacity(0.5) }
-                                }.frame(width: width, height: 78).clipped()
-                            }
-                        }
-                        .overlay(LinearGradient(colors: [tint.opacity(0.52), Color.black.opacity(0.38)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous)))
-                }
-                .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(.white.opacity(0.24), lineWidth: 1))
-        }.buttonStyle(.plain)
-    }
-
-        private var forYouSection: some View {
-        VStack(alignment: .leading, spacing: 15) {
-            homeSectionTitle("猜你喜欢", action: { discoveryRoute = .daily })
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 15) {
-                    ForEach(Array(songs.suffix(6))) { song in
-                        if let onlineSong = song.onlineSong {
-                            Button { select(song) } label: {
-                                VStack(alignment: .leading, spacing: 7) {
-                                    songArtwork(onlineSong, tint: song.tint, size: 142)
-                                    Text(song.title).font(.system(size: 14, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
-                                    Text(song.artist).font(.system(size: 12)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
-                                }.frame(width: 142, alignment: .leading)
-                            }.buttonStyle(.plain)
-                        }
-                    }
-                }.padding(.horizontal, 2)
-            }
-        }.padding(.horizontal, 20)
     }
 
         private var searchPage: some View {
