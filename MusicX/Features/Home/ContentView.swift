@@ -456,7 +456,7 @@ struct ContentView: View {
 
     private var forYouSection: some View {
         VStack(alignment: .leading, spacing: 13) {
-            homeSectionTitle("猜你喜欢", action: { recommendationSongs.shuffle() }, actionTitle: "换一批").padding(.horizontal, 14)
+            homeSectionTitle("猜你喜欢", action: { recommendationSongs = Array(songs.shuffled().prefix(6)) }, actionTitle: "换一批").padding(.horizontal, 14)
             ScrollView(.horizontal, showsIndicators: false) {
                 let cardWidth = (UIScreen.main.bounds.width - 52) / 3
                 HStack(spacing: 12) {
