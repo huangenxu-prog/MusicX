@@ -27,6 +27,17 @@ jobs:
       - name: Install XcodeGen
         run: brew install xcodegen
 
+      - name: Install search category photo assets
+        run: |
+          ASSET_CATALOG="$(find . -type d -name Assets.xcassets -print -quit)"
+          test -n "$ASSET_CATALOG"
+          unzip -oq "$ASSET_CATALOG/MusicX-SearchCategory-Assets.zip" -d "$ASSET_CATALOG"
+          rm "$ASSET_CATALOG/MusicX-SearchCategory-Assets.zip"
+          for n in 01 02 03 04 05 06; do
+            test -s "$ASSET_CATALOG/SearchCategory${n}.imageset/SearchCategory${n}.jpg"
+            plutil -lint "$ASSET_CATALOG/SearchCategory${n}.imageset/Contents.json" || python3 -m json.tool "$ASSET_CATALOG/SearchCategory${n}.imageset/Contents.json" >/dev/null
+          done
+
       - name: Render app icon asset
         run: swift scripts/render-app-icon.swift
 
