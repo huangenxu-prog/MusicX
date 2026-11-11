@@ -1,0 +1,27 @@
+name: Validate Homepage Assets
+
+on:
+  push:
+    branches:
+      - home/final-design-asset-pass
+    paths:
+      - "MusicX/Assets.xcassets/**"
+      - "MusicX/Features/Home/HomeArtwork.swift"
+      - "scripts/validate-home-assets.py"
+      - ".github/workflows/validate-home-assets.yml"
+  pull_request:
+    paths:
+      - "MusicX/Assets.xcassets/**"
+      - "MusicX/Features/Home/HomeArtwork.swift"
+      - "scripts/validate-home-assets.py"
+      - ".github/workflows/validate-home-assets.yml"
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Validate homepage image assets
+        run: python3 scripts/validate-home-assets.py
