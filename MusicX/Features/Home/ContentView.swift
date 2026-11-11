@@ -269,28 +269,29 @@ struct ContentView: View {
                             .init(color: MusicXTheme.background, location: 1)
                         ], startPoint: .top, endPoint: .bottom)
                     }
-                VStack(alignment: .leading, spacing: 0) {
-                    HStack(spacing: 10) {
-                        Spacer(minLength: 0)
-                        Button { isSettingsAlertPresented = true } label: {
-                            Image(systemName: "bell").font(.system(size: 16, weight: .medium)).foregroundStyle(.white)
-                                .frame(width: 36, height: 36).background(.ultraThinMaterial, in: Circle())
-                                .overlay(Circle().stroke(.white.opacity(0.32), lineWidth: 1))
-                        }.buttonStyle(.plain)
-                        Button { isPlayerPresented = true } label: {
-                            Image(systemName: "waveform").font(.system(size: 17, weight: .medium)).foregroundStyle(.white)
-                                .frame(width: 36, height: 36).background(.ultraThinMaterial, in: Circle())
-                                .overlay(Circle().stroke(.white.opacity(0.32), lineWidth: 1))
-                        }.buttonStyle(.plain)
-                    }
-                    .padding(.top, 18)
-                    Text("发现音乐").font(.system(size: 32, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white).shadow(color: .black.opacity(0.30), radius: 8, y: 2).padding(.top, 2)
-                    Text("好音乐，总在这里").font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.92)).padding(.top, 1)
-                    Spacer(minLength: 0)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("发现音乐").font(.system(size: 30, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white).shadow(color: .black.opacity(0.30), radius: 8, y: 2)
+                    Text("好音乐，总在这里").font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.92))
                 }
-                .padding(.horizontal, 16)
+                .padding(.leading, 16)
+                .padding(.top, 54)
+                HStack(spacing: 10) {
+                    Button { isSettingsAlertPresented = true } label: {
+                        Image(systemName: "bell").font(.system(size: 16, weight: .medium)).foregroundStyle(.white)
+                            .frame(width: 36, height: 36).background(.ultraThinMaterial, in: Circle())
+                            .overlay(Circle().stroke(.white.opacity(0.32), lineWidth: 1))
+                    }.buttonStyle(.plain)
+                    Button { isPlayerPresented = true } label: {
+                        Image(systemName: "waveform").font(.system(size: 17, weight: .medium)).foregroundStyle(.white)
+                            .frame(width: 36, height: 36).background(.ultraThinMaterial, in: Circle())
+                            .overlay(Circle().stroke(.white.opacity(0.32), lineWidth: 1))
+                    }.buttonStyle(.plain)
+                }
+                .padding(.top, 18)
+                .padding(.trailing, 16)
+                .frame(maxWidth: .infinity, alignment: .trailing)
             }
         }
         .frame(height: 168).frame(maxWidth: .infinity).clipped()
@@ -642,7 +643,7 @@ struct ContentView: View {
         Button(action: action) {
             HStack(spacing: 10) {
                 Capsule().fill(MusicXTheme.blue).frame(width: 5, height: 27)
-                Text(title).font(.system(size: 23, weight: .bold)).foregroundStyle(.white)
+                Text(title).font(.system(size: 21, weight: .bold)).foregroundStyle(.white)
                 Spacer()
                 Text("查看全部").font(.system(size: 13, weight: .medium)).foregroundStyle(MusicXTheme.muted)
                 Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)).foregroundStyle(MusicXTheme.muted)
@@ -759,7 +760,7 @@ struct ContentView: View {
         }.buttonStyle(.plain)
     }
 
-        private var miniPlayer:        private var miniPlayer: some View {
+        private var miniPlayer: some View {
         HStack(spacing: 12) {
             Button { if currentSong != nil { isPlayerPresented = true } } label: {
                 HStack(spacing: 12) {
