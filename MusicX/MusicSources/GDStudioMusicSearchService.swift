@@ -11,6 +11,10 @@ struct GDStudioMusicSearchService {
     func search(keyword: String, source: MusicSource, page: Int = 1, count: Int = 20, albumOnly: Bool = false) async throws -> [MusicSong] {
         let query = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return [] }
+        let cacheKey = "search|\\(source.rawValue)|\\(query.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current))|\\(page)|\\(count)|\\(albumOnly)"
+        if let cached: [MusicSong] = await MusicCache.shared.value(for: cacheKey) {
+            return cached
+        }
         let startedAt = Date()
         var diagnosticResult = "failed"
         var diagnosticCount = 0
@@ -67,6 +71,7 @@ struct GDStudioMusicSearchService {
         }
         diagnosticCount = songs.count
         diagnosticResult = "success"
+        await MusicCache.shared.insert(songs, for: cacheKey, ttl: 5 * 60)
         return songs
     }
 
