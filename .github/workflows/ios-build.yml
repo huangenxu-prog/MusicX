@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - ios/initial-scaffold
+      - home/final-design-asset-pass
   workflow_dispatch:
 
 permissions:
