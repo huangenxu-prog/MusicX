@@ -26,6 +26,9 @@ jobs:
       - name: Render app icon asset
         run: swift scripts/render-app-icon.swift
 
+      - name: Render hero calligraphy asset
+        run: swift scripts/render-hero-title.swift
+
       - name: Generate Xcode project
         run: xcodegen generate
 
