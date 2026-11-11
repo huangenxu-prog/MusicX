@@ -40,6 +40,13 @@ private struct DownloadedTrack: Codable, Identifiable {
     let fileName: String
 }
 
+private struct LibraryArtist: Identifiable {
+    let artist: String
+    let song: AppSong
+    let count: Int
+    var id: String { artist }
+}
+
 private enum LibraryFilter: String, CaseIterable {
     case recent = "最近播放"
     case favorites = "收藏歌曲"
@@ -204,11 +211,11 @@ struct ContentView: View {
         return onlineResults
     }
 
-    private var libraryArtists: [(artist: String, song: AppSong, count: Int)] {
+    private var libraryArtists: [LibraryArtist] {
         let grouped = Dictionary(grouping: librarySongs) { $0.artist.trimmingCharacters(in: .whitespacesAndNewlines) }
         return grouped.keys.filter { !$0.isEmpty }.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }.compactMap { artist in
             guard let tracks = grouped[artist], let first = tracks.first else { return nil }
-            return (artist: artist, song: first, count: tracks.count)
+            return LibraryArtist(artist: artist, song: first, count: tracks.count)
         }
     }
 
@@ -685,9 +692,9 @@ struct ContentView: View {
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
                             .background {
-                                Capsule().fill(libraryContentType == type
-                                    ? LinearGradient(colors: [MusicXTheme.blue.opacity(0.40), MusicXTheme.blue.opacity(0.18)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                                    : Color.white.opacity(0.045))
+                                Capsule().fill(AnyShapeStyle(libraryContentType == type
+                                    ? AnyShapeStyle(LinearGradient(colors: [MusicXTheme.blue.opacity(0.40), MusicXTheme.blue.opacity(0.18)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                    : AnyShapeStyle(Color.white.opacity(0.045))))
                             }
                             .overlay(Capsule().stroke(libraryContentType == type ? MusicXTheme.blue.opacity(0.62) : .white.opacity(0.08), lineWidth: 1))
                     }
@@ -740,7 +747,7 @@ struct ContentView: View {
                 } else {
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 14) {
-                            ForEach(libraryArtists, id: \.artist) { item in
+                            ForEach(libraryArtists) { item in
                                 Button {
                                     searchText = item.artist
                                     selectedTab = .search
