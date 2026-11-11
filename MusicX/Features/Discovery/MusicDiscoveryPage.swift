@@ -39,6 +39,12 @@ struct MusicDiscoveryPage: View {
         if case .chart(let name) = route { return name }
         return "热歌榜"
     }
+    private var isChartRoute: Bool {
+        switch route {
+        case .charts, .chart: true
+        default: false
+        }
+    }
     private let service = GDStudioMusicSearchService()
 
     private var title: String {
@@ -288,7 +294,7 @@ struct MusicDiscoveryPage: View {
                     let isCurrent = currentSong?.id == song.id
                     Button { onPlay(song) } label: {
                         HStack(spacing: 12) {
-                            if case .charts = route {
+                            if isChartRoute {
                                 Text(String(index + 1)).font(.system(size: 16, weight: .bold, design: .rounded))
                                     .foregroundStyle(isCurrent ? MusicXTheme.blue : (index < 3 ? MusicXTheme.blue : MusicXTheme.muted)).frame(width: 22)
                             }
