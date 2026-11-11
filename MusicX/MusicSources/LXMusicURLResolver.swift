@@ -17,7 +17,7 @@ struct LXMusicURLResolver: MusicURLResolving {
             try Task.checkCancellation()
             let startedAt = Date()
             do {
-                if let url = try await backend.resolve(song, quality), isPlayableURL(url) {
+                if let url = try await resolveWithRetry(backend, song: song, quality: quality), isPlayableURL(url) {
                     try Task.checkCancellation()
                     MusicSourceDiagnostics.shared.record(
                         event: "resolve", source: song.source.rawValue,
@@ -54,6 +54,34 @@ struct LXMusicURLResolver: MusicURLResolving {
             source: song.source,
             details: failures.suffix(3).joined(separator: "；")
         )
+    }
+
+    /// Retry one time only for transient transport failures. Provider-side errors and
+    /// malformed responses immediately fall through to the next backend.
+    private func resolveWithRetry(_ backend: Backend, song: MusicSong, quality: MusicQuality) async throws -> URL? {
+        do {
+            return try await backend.resolve(song, quality)
+        } catch {
+            if Task.isCancelled || error is CancellationError || (error as? URLError)?.code == .cancelled {
+                throw CancellationError()
+            }
+            guard isTransientNetworkError(error) else { throw error }
+            try Task.checkCancellation()
+            try await Task.sleep(for: .milliseconds(350))
+            try Task.checkCancellation()
+            return try await backend.resolve(song, quality)
+        }
+    }
+
+    private func isTransientNetworkError(_ error: Error) -> Bool {
+        guard let urlError = error as? URLError else { return false }
+        switch urlError.code {
+        case .timedOut, .networkConnectionLost, .cannotConnectToHost,
+             .notConnectedToInternet, .dnsLookupFailed, .cannotFindHost:
+            return true
+        default:
+            return false
+        }
     }
 
     private struct Backend {
