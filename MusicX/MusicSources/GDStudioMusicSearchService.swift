@@ -91,7 +91,7 @@ struct GDStudioMusicSearchService {
         request.setValue("https://music.163.com/", forHTTPHeaderField: "Referer")
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-            throw MusicSourceError.invalidResponse("网易云榜单 HTTP \\((response as? HTTPURLResponse)?.statusCode ?? -1)")
+            throw MusicSourceError.invalidResponse("网易云榜单 HTTP \((response as? HTTPURLResponse)?.statusCode ?? -1)")
         }
         let root = try JSONSerialization.jsonObject(with: data) as? [String: Any]
         let result = root?["result"] as? [String: Any] ?? root?["playlist"] as? [String: Any]
