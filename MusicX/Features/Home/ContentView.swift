@@ -251,7 +251,7 @@ struct ContentView: View {
             .padding(.top, 18)
             .padding(.bottom, 28)
         }
-        .scrollBounceBehavior(.never)
+        .scrollBounceBehavior(.basedOnSize)
     }
 
     private var heroAndRecommendation: some View {
