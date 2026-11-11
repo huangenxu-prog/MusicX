@@ -810,7 +810,7 @@ struct ContentView: View {
         }
         .overlay(Capsule().stroke(.white.opacity(0.12), lineWidth: 0.7))
         .shadow(color: MusicXTheme.blue.opacity(0.10), radius: 14, y: 5)
-        .padding(.horizontal, 14)
+        .padding(.horizontal, 10)
     }
 
         private var progressFraction: CGFloat {
