@@ -247,6 +247,7 @@ struct ContentView: View {
                 editorialPlaylistSection
                 forYouSection
             }
+            .padding(.top, 18)
             .padding(.bottom, 28)
         }
         .scrollBounceBehavior(.basedOnSize)
@@ -260,19 +261,19 @@ struct ContentView: View {
     private var heroHeader: some View {
         GeometryReader { proxy in
             ZStack(alignment: .topLeading) {
-                HomeArtwork(name: "home_hero").frame(width: proxy.size.width, height: 154).clipped()
+                HomeArtwork(name: "home_hero").frame(width: proxy.size.width, height: 170).clipped()
                     .overlay(LinearGradient(colors: [.black.opacity(0.06), .clear, MusicXTheme.background.opacity(0.82)], startPoint: .top, endPoint: .bottom))
                 VStack(alignment: .leading, spacing: 0) {
-                    Spacer(minLength: 48)
+                    Spacer(minLength: 64)
                     VStack(alignment: .leading, spacing: 4) {
                         Text("发现音乐").font(.system(size: 32, weight: .bold, design: .rounded)).foregroundStyle(.white).shadow(color: .black.opacity(0.3), radius: 8, y: 2)
-                        Text("好音乐，总在这里").font(.custom("STLiti", size: 18, relativeTo: .subheadline)).tracking(1.1).foregroundStyle(.white.opacity(0.94))
+                        Text("好音乐，总在心里").font(.custom("STLiti", size: 18, relativeTo: .subheadline)).tracking(1.1).foregroundStyle(.white.opacity(0.94))
                     }
                     Spacer(minLength: 4)
                 }.padding(.horizontal, 22).padding(.bottom, 4)
             }
         }
-        .frame(height: 154).frame(maxWidth: .infinity).clipped()
+        .frame(height: 170).frame(maxWidth: .infinity).clipped()
         .background { HomeArtwork(name: "home_hero").overlay(LinearGradient(colors: [.clear, MusicXTheme.background.opacity(0.96)], startPoint: .center, endPoint: .bottom)).ignoresSafeArea(edges: .top) }
     }
 
@@ -382,7 +383,7 @@ struct ContentView: View {
         return Button { discoveryRoute = .album(title: titles[index], artist: artists[index]) } label: {
             ZStack(alignment: .bottomLeading) {
                 HomeArtwork(name: "album_0\(index + 1)")
-                    .frame(width: width, height: 52).clipped()
+                    .frame(width: width, height: 52).scaleEffect(1.04).frame(width: width, height: 52).clipped()
                 LinearGradient(colors: [.clear, .black.opacity(0.76)], startPoint: .center, endPoint: .bottom)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(titles[index]).font(.system(size: 10, weight: .bold)).foregroundStyle(.white).lineLimit(1)
@@ -463,7 +464,7 @@ struct ContentView: View {
                         let song = recommendationSongs[index]
                         Button { select(song) } label: {
                             VStack(alignment: .leading, spacing: 7) {
-                                HomeArtwork(name: "guess_0\((index % 3) + 1)").frame(width: cardWidth, height: cardWidth).clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                HomeArtwork(name: "guess_0\((index % 3) + 1)").frame(width: cardWidth, height: cardWidth).scaleEffect(1.06).frame(width: cardWidth, height: cardWidth).clipped().clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                                 Text(song.title).font(.system(size: 13, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
                                 Text(song.artist).font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
                             }.frame(width: cardWidth, alignment: .leading)
@@ -783,7 +784,10 @@ struct ContentView: View {
             }.buttonStyle(.plain)
         }
         .padding(.horizontal, 10).frame(height: 38)
-        .background(.ultraThinMaterial.opacity(0.68), in: Capsule())
+        .background {
+            Capsule().fill(.ultraThinMaterial.opacity(0.68))
+                .overlay(Capsule().fill(LinearGradient(colors: [Color(red: 0.06, green: 0.16, blue: 0.34).opacity(0.46), Color(red: 0.20, green: 0.10, blue: 0.34).opacity(0.34)], startPoint: .leading, endPoint: .trailing)))
+        }
         .overlay(Capsule().stroke(.white.opacity(0.12), lineWidth: 0.7))
         .shadow(color: MusicXTheme.blue.opacity(0.10), radius: 14, y: 5)
         .padding(.horizontal, 14)
