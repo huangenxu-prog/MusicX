@@ -17,16 +17,20 @@ struct HomeArtwork: View {
 
     var body: some View {
         GeometryReader { proxy in
-            if UIImage(named: name) != nil {
-                Image(name)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: proxy.size.width, height: proxy.size.height)
-                    .clipped()
-            } else {
-                vectorFallback(in: proxy.size)
+            Group {
+                if UIImage(named: name) != nil {
+                    Image(name)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: proxy.size.width, height: proxy.size.height)
+                } else {
+                    vectorFallback(in: proxy.size)
+                }
             }
+            .frame(width: proxy.size.width, height: proxy.size.height)
+            .clipped()
         }
+        .clipped()
     }
 
     @ViewBuilder
@@ -41,5 +45,6 @@ struct HomeArtwork: View {
                     y: -CGFloat(index / 4) * cell - max(0, (cell - size.height) / 2))
             .frame(width: size.width, height: size.height, alignment: .topLeading)
             .clipped()
+            .compositingGroup()
     }
 }
