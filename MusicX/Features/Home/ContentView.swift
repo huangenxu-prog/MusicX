@@ -783,9 +783,9 @@ struct ContentView: View {
             }.buttonStyle(.plain)
         }
         .padding(.horizontal, 10).frame(height: 38)
-        .background(.ultraThinMaterial.opacity(0.82), in: Capsule())
-        .overlay(Capsule().stroke(.white.opacity(0.24), lineWidth: 1))
-        .shadow(color: MusicXTheme.blue.opacity(0.16), radius: 18, y: 6)
+        .background(.ultraThinMaterial.opacity(0.68), in: Capsule())
+        .overlay(Capsule().stroke(.white.opacity(0.12), lineWidth: 0.7))
+        .shadow(color: MusicXTheme.blue.opacity(0.10), radius: 14, y: 5)
         .padding(.horizontal, 14)
     }
 
@@ -1311,15 +1311,15 @@ struct ContentView: View {
                                 .fill(.ultraThinMaterial)
                                 .overlay {
                                     RoundedRectangle(cornerRadius: 26, style: .continuous)
-                                        .fill(LinearGradient(colors: [Color.cyan.opacity(0.24), Color.blue.opacity(0.13), .white.opacity(0.045)],
+                                        .fill(LinearGradient(colors: [Color.cyan.opacity(0.18), Color.blue.opacity(0.09), .white.opacity(0.025)],
                                                              startPoint: .topLeading, endPoint: .bottomTrailing))
                                 }
                                 .overlay {
                                     RoundedRectangle(cornerRadius: 26, style: .continuous)
-                                        .stroke(LinearGradient(colors: [.white.opacity(0.52), Color.cyan.opacity(0.35), .white.opacity(0.08)],
+                                        .stroke(LinearGradient(colors: [.white.opacity(0.30), Color.cyan.opacity(0.20), .white.opacity(0.045)],
                                                                startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1)
                                 }
-                                .shadow(color: Color.cyan.opacity(0.22), radius: 13, y: 2)
+                                .shadow(color: Color.cyan.opacity(0.14), radius: 11, y: 2)
                                 .matchedGeometryEffect(id: "active-tab-glass", in: tabSelectionNamespace)
                         }
                     }
@@ -1331,9 +1331,9 @@ struct ContentView: View {
             }
         }
         .padding(.horizontal, 9)
-        .background(.ultraThinMaterial.opacity(0.84), in: Capsule())
-        .overlay(Capsule().stroke(.white.opacity(0.27), lineWidth: 1))
-        .shadow(color: MusicXTheme.blue.opacity(0.18), radius: 18, y: 6)
+        .background(.ultraThinMaterial.opacity(0.70), in: Capsule())
+        .overlay(Capsule().stroke(.white.opacity(0.14), lineWidth: 0.7))
+        .shadow(color: MusicXTheme.blue.opacity(0.12), radius: 15, y: 5)
         .padding(.horizontal, 10)
     }
 
