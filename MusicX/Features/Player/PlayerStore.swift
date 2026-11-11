@@ -8,6 +8,7 @@ extension Notification.Name {
     static let musicXRemoteNextTrack = Notification.Name("MusicXRemoteNextTrack")
     static let musicXRemotePreviousTrack = Notification.Name("MusicXRemotePreviousTrack")
     static let musicXPlaybackDidFinish = Notification.Name("MusicXPlaybackDidFinish")
+    static let musicXPlaybackFailed = Notification.Name("MusicXPlaybackFailed")
 }
 
 @MainActor
@@ -67,12 +68,17 @@ final class PlayerStore: ObservableObject {
                 guard let self, item === self.player.currentItem else { return }
                 self.recordDiagnostic("item-status=\(item.status.rawValue) \(error)")
                 if item.status == .failed {
+                    let shouldAdvanceQueue = self.wantsPlayback
                     self.wantsPlayback = false
                     self.player.pause()
                     self.isPlaying = false
                     self.isBuffering = false
                     self.errorMessage = item.error?.localizedDescription ?? "歌曲加载失败，请尝试重新播放"
+                    self.recordDiagnostic("playback-failed \(error)")
                     self.updateNowPlayingInfo()
+                    if shouldAdvanceQueue {
+                        NotificationCenter.default.post(name: .musicXPlaybackFailed, object: nil)
+                    }
                 }
             }
         }
