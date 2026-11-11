@@ -182,12 +182,12 @@ struct ContentView: View {
         .background(MusicXTheme.background.ignoresSafeArea())
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if !(selectedTab == .search && searchFieldFocused) {
-                VStack(spacing: 10) {
+                VStack(spacing: 8) {
                     miniPlayer
                     tabBar
                 }
-                .padding(.top, 8)
-                .padding(.bottom, 5)
+                .padding(.top, 6)
+                .padding(.bottom, 4)
                 .background {
                     LinearGradient(colors: [MusicXTheme.background.opacity(0.02), MusicXTheme.background.opacity(0.88)], startPoint: .top, endPoint: .bottom)
                         .ignoresSafeArea(edges: .bottom)
@@ -713,7 +713,7 @@ struct ContentView: View {
         HStack(spacing: 12) {
             Button { if currentSong != nil { isPlayerPresented = true } } label: {
                 HStack(spacing: 12) {
-                    songArtwork(currentSong?.onlineSong, tint: currentSong?.tint ?? MusicXTheme.blue, size: 48)
+                    songArtwork(currentSong?.onlineSong, tint: currentSong?.tint ?? MusicXTheme.blue, size: 40)
                     VStack(alignment: .leading, spacing: 4) {
                         Text(currentSong?.title ?? "尚未播放").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
                         Text(currentSong?.artist ?? "选择一首歌曲开始聆听").font(.system(size: 11)).foregroundStyle(.white.opacity(0.70)).lineLimit(1)
@@ -727,7 +727,7 @@ struct ContentView: View {
                 Group {
                     if isResolvingSong || playerStore.isBuffering { ProgressView().tint(.white) }
                     else { Image(systemName: playerStore.isPlaying ? "pause.fill" : "play.fill").font(.system(size: 18, weight: .bold)).foregroundStyle(.white) }
-                }.frame(width: 46, height: 46).background(.white.opacity(0.18), in: Circle()).overlay(Circle().stroke(.white.opacity(0.34), lineWidth: 1))
+                }.frame(width: 38, height: 38).background(.white.opacity(0.18), in: Circle()).overlay(Circle().stroke(.white.opacity(0.34), lineWidth: 1))
             }.buttonStyle(.plain).disabled(currentSong == nil)
             Button { stepSong(by: 1) } label: {
                 Image(systemName: "forward.end.fill").font(.system(size: 15, weight: .semibold)).foregroundStyle(.white.opacity(0.88)).frame(width: 30, height: 42)
@@ -736,7 +736,7 @@ struct ContentView: View {
                 Image(systemName: "list.bullet").font(.system(size: 19, weight: .semibold)).foregroundStyle(.white.opacity(0.88)).frame(width: 28, height: 42)
             }.buttonStyle(.plain)
         }
-        .padding(.horizontal, 15).frame(height: 76)
+        .padding(.horizontal, 12).frame(height: 60)
         .background(.ultraThinMaterial, in: Capsule())
         .overlay(Capsule().stroke(.white.opacity(0.28), lineWidth: 1))
         .shadow(color: MusicXTheme.blue.opacity(0.16), radius: 18, y: 6)
@@ -1293,12 +1293,12 @@ struct ContentView: View {
                 } label: {
                     VStack(spacing: 7) {
                         Image(systemName: tab.symbol)
-                            .font(.system(size: 23, weight: .semibold))
+                            .font(.system(size: 21, weight: .semibold))
                             .symbolEffect(.bounce, value: selectedTab == tab)
                         Text(tab.rawValue).font(.system(size: 12, weight: .semibold))
                     }
                     .foregroundStyle(selectedTab == tab ? Color(red: 0.34, green: 0.78, blue: 1) : .white.opacity(0.72))
-                    .frame(maxWidth: .infinity).frame(height: 88)
+                    .frame(maxWidth: .infinity).frame(height: 64)
                     .background {
                         if selectedTab == tab {
                             RoundedRectangle(cornerRadius: 26, style: .continuous)
