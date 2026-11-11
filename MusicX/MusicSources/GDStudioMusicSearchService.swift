@@ -94,8 +94,19 @@ struct GDStudioMusicSearchService {
         let searchRoot = try JSONSerialization.jsonObject(with: searchData) as? [String: Any]
         let searchResult = searchRoot?["result"] as? [String: Any]
         guard let playlists = searchResult?["playlists"] as? [[String: Any]],
-              let playlistID = playlists.first?["id"] else {
+              !playlists.isEmpty else {
             throw MusicSourceError.invalidResponse("没有找到匹配的真实歌单")
+        }
+        let normalizedKeyword = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
+        let matchedPlaylist = playlists.first { row in
+            let name = row["name"] as? String ?? ""
+            return name.localizedCaseInsensitiveCompare(normalizedKeyword) == .orderedSame
+        } ?? playlists.first { row in
+            let name = row["name"] as? String ?? ""
+            return name.localizedCaseInsensitiveContains(normalizedKeyword)
+        } ?? playlists.first
+        guard let playlistID = matchedPlaylist?["id"] else {
+            throw MusicSourceError.invalidResponse("歌单搜索结果缺少有效 ID")
         }
         var detailComponents = URLComponents(string: "https://music.163.com/api/playlist/detail")
         detailComponents?.queryItems = [URLQueryItem(name: "id", value: String(describing: playlistID))]
