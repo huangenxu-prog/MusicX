@@ -89,7 +89,7 @@ struct GDStudioMusicSearchService {
         searchRequest.setValue("https://music.163.com/", forHTTPHeaderField: "Referer")
         let (searchData, searchResponse) = try await session.data(for: searchRequest)
         guard let searchHTTP = searchResponse as? HTTPURLResponse, (200..<300).contains(searchHTTP.statusCode) else {
-            throw MusicSourceError.invalidResponse("网易云歌单搜索 HTTP \\((searchResponse as? HTTPURLResponse)?.statusCode ?? -1)")
+            throw MusicSourceError.invalidResponse("网易云歌单搜索 HTTP \((searchResponse as? HTTPURLResponse)?.statusCode ?? -1)")
         }
         let searchRoot = try JSONSerialization.jsonObject(with: searchData) as? [String: Any]
         let searchResult = searchRoot?["result"] as? [String: Any]
@@ -108,7 +108,7 @@ struct GDStudioMusicSearchService {
         detailRequest.setValue("https://music.163.com/", forHTTPHeaderField: "Referer")
         let (detailData, detailResponse) = try await session.data(for: detailRequest)
         guard let detailHTTP = detailResponse as? HTTPURLResponse, (200..<300).contains(detailHTTP.statusCode) else {
-            throw MusicSourceError.invalidResponse("网易云歌单详情 HTTP \\((detailResponse as? HTTPURLResponse)?.statusCode ?? -1)")
+            throw MusicSourceError.invalidResponse("网易云歌单详情 HTTP \((detailResponse as? HTTPURLResponse)?.statusCode ?? -1)")
         }
         let detailRoot = try JSONSerialization.jsonObject(with: detailData) as? [String: Any]
         let detailResult = detailRoot?["result"] as? [String: Any] ?? detailRoot?["playlist"] as? [String: Any]
