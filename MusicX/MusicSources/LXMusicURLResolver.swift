@@ -11,6 +11,12 @@ struct LXMusicURLResolver: MusicURLResolving {
     }
 
     func resolve(song: MusicSong, quality: MusicQuality = .high) async throws -> URL {
+        let cacheKey = "playback-url|\(song.source.rawValue)|\(song.sourceID)|\(quality.rawValue)"
+        if let cached: URL = await MusicCache.shared.value(for: cacheKey) {
+            MusicSourceDiagnostics.shared.record(event: "resolve", source: song.source.rawValue,
+                                                  provider: "disk-cache", duration: 0, result: "cache_hit")
+            return cached
+        }
         var failures: [String] = []
 
         for backend in backends(for: song.source) {
@@ -24,6 +30,7 @@ struct LXMusicURLResolver: MusicURLResolving {
                         provider: backend.name, duration: Date().timeIntervalSince(startedAt),
                         result: "url_returned"
                     )
+                    await MusicCache.shared.insert(url, for: cacheKey, ttl: 5 * 60)
                     return url
                 }
                 failures.append("接口未返回有效播放地址")
