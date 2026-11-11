@@ -267,7 +267,7 @@ struct ContentView: View {
                     Spacer(minLength: 64)
                     VStack(alignment: .leading, spacing: 4) {
                         Text("发现音乐")
-                            .font(.custom("STXingkai", size: 38, relativeTo: .largeTitle))
+                            .font(.custom("STXingkai-SC-Bold", size: 38, relativeTo: .largeTitle))
                             .tracking(1.2)
                             .foregroundStyle(LinearGradient(colors: [.white, Color(red: 0.88, green: 0.84, blue: 1.0)], startPoint: .topLeading, endPoint: .bottomTrailing))
                             .shadow(color: Color(red: 0.43, green: 0.32, blue: 0.95).opacity(0.42), radius: 8, y: 3)
