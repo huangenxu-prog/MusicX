@@ -284,7 +284,7 @@ struct ContentView: View {
 
     private var recommendationSection: some View {
         GeometryReader { proxy in
-            let inset: CGFloat = 20
+            let inset: CGFloat = 14
             let gap: CGFloat = 10
             let width = max(0, (proxy.size.width - inset * 2 - gap) / 2)
             HStack(spacing: gap) {
@@ -364,7 +364,7 @@ struct ContentView: View {
                     }
                 }
             }
-        }.padding(.horizontal, 20)
+        }.padding(.horizontal, 14)
     }
 
     private var albumSection: some View {
@@ -377,8 +377,8 @@ struct ContentView: View {
                     ForEach(0..<5, id: \.self) { index in
                         staticAlbumTile(index: index, width: width)
                     }
-                }.padding(.horizontal, 20)
-            }.frame(height: 68)
+                }.padding(.horizontal, 14)
+            }.frame(height: 52)
         }
     }
 
@@ -388,14 +388,14 @@ struct ContentView: View {
         return Button { discoveryRoute = .playlists } label: {
             ZStack(alignment: .bottomLeading) {
                 HomeArtwork(name: "album_0\(index + 1)")
-                    .frame(width: width, height: 68).clipped()
+                    .frame(width: width, height: 52).clipped()
                 LinearGradient(colors: [.clear, .black.opacity(0.76)], startPoint: .center, endPoint: .bottom)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(titles[index]).font(.system(size: 9, weight: .bold)).foregroundStyle(.white).lineLimit(1)
                     Text(artists[index]).font(.system(size: 8, weight: .medium)).foregroundStyle(.white.opacity(0.86)).lineLimit(1)
                 }.padding(.horizontal, 5).padding(.bottom, 5)
             }
-            .frame(width: width, height: 68)
+            .frame(width: width, height: 52)
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(.white.opacity(0.22), lineWidth: 0.8))
         }.buttonStyle(.plain)
@@ -403,9 +403,9 @@ struct ContentView: View {
 
     private var chartSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            homeSectionTitle("排行榜", action: { discoveryRoute = .charts }).padding(.horizontal, 20)
+            homeSectionTitle("排行榜", action: { discoveryRoute = .charts }).padding(.horizontal, 14)
             GeometryReader { proxy in
-                let width = max(0, (proxy.size.width - 56) / 3)
+                let width = max(0, (proxy.size.width - 44) / 3)
                 HStack(spacing: 8) {
                     chartTile("热歌榜", subtitle: "当下最热的50首", rank: "01", icon: "crown.fill", color: Color(red: 0.95, green: 0.47, blue: 0.38), artwork: nil, width: width)
                     chartTile("飙升榜", subtitle: "近期热度上升", rank: "02", icon: "flame.fill", color: Color(red: 0.61, green: 0.35, blue: 0.91), artwork: nil, width: width)
@@ -435,7 +435,7 @@ struct ContentView: View {
                     editorialPlaylistCard(title: "午后放松", subtitle: "轻音乐 · 治愈 · 放松", tint: Color(red: 0.82, green: 0.56, blue: 0.34), symbol: "cup.and.saucer.fill", artwork: songs.first?.onlineSong, width: width)
                     editorialPlaylistCard(title: "深夜独白", subtitle: "安静 · 思考 · 陪伴", tint: Color(red: 0.28, green: 0.42, blue: 0.78), symbol: "moon.stars.fill", artwork: songs.dropFirst().first?.onlineSong, width: width)
                     editorialPlaylistCard(title: "车载必听", subtitle: "旅途 · 驾驶 · 精选", tint: Color(red: 0.18, green: 0.58, blue: 0.67), symbol: "car.fill", artwork: songs.dropFirst(2).first?.onlineSong, width: width)
-                }.padding(.horizontal, 20)
+                }.padding(.horizontal, 14)
             }.frame(height: 64)
         }
     }
@@ -444,7 +444,7 @@ struct ContentView: View {
         Button { discoveryRoute = .playlists } label: {
             ZStack(alignment: .bottomLeading) {
                 HomeArtwork(name: title == "午后放松" ? "playlist_relax" : title == "深夜独白" ? "playlist_night" : "playlist_drive")
-                    .resizable().scaledToFill().frame(width: width, height: 64).clipped()
+                    .frame(width: width, height: 64).clipped()
                 LinearGradient(colors: [.clear, .black.opacity(0.72)], startPoint: .center, endPoint: .bottom)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(title).font(.system(size: 12, weight: .bold)).foregroundStyle(.white).lineLimit(1)
@@ -454,7 +454,7 @@ struct ContentView: View {
                     .frame(width: 22, height: 22).background(.black.opacity(0.35), in: Circle())
                     .overlay(Circle().stroke(.white.opacity(0.4), lineWidth: 0.8))
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing).padding(8)
-            }.frame(width: width, height: 68)
+            }.frame(width: width, height: 64)
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.white.opacity(0.26), lineWidth: 1))
         }.buttonStyle(.plain)
@@ -462,9 +462,9 @@ struct ContentView: View {
 
     private var forYouSection: some View {
         VStack(alignment: .leading, spacing: 13) {
-            homeSectionTitle("猜你喜欢", action: { songs.shuffle() }, actionTitle: "换一批").padding(.horizontal, 20)
+            homeSectionTitle("猜你喜欢", action: { songs.shuffle() }, actionTitle: "换一批").padding(.horizontal, 14)
             ScrollView(.horizontal, showsIndicators: false) {
-                let cardWidth = (UIScreen.main.bounds.width - 56) / 3
+                let cardWidth = (UIScreen.main.bounds.width - 52) / 3
                 HStack(spacing: 12) {
                     ForEach(0..<min(songs.count, 6), id: \.self) { index in
                         let song = Array(songs.suffix(6))[index]
@@ -476,8 +476,8 @@ struct ContentView: View {
                             }.frame(width: cardWidth, alignment: .leading)
                         }.buttonStyle(.plain)
                     }
-                }.padding(.horizontal, 20)
-            }.frame(height: (UIScreen.main.bounds.width - 64) / 3 + 46)
+                }.padding(.horizontal, 14)
+            }.frame(height: (UIScreen.main.bounds.width - 52) / 3 + 46)
         }
     }
 
@@ -773,7 +773,7 @@ struct ContentView: View {
                 }.frame(width: 32, height: 32).background(.white.opacity(0.18), in: Circle()).overlay(Circle().stroke(.white.opacity(0.34), lineWidth: 1))
             }.buttonStyle(.plain).disabled(currentSong == nil)
             Button { stepSong(by: 1) } label: {
-                Image(systemName: "forward.end.fill").font(.system(size: 15, weight: .semibold)).foregroundStyle(.white.opacity(0.88)).frame(width: 30, height: 42)
+                Image(systemName: "forward.end.fill").font(.system(size: 15, weight: .semibold)).foregroundStyle(.white.opacity(0.88)).frame(width: 26, height: 34)
             }.buttonStyle(.plain).disabled(playbackQueue.isEmpty)
             Button { playerDisplayMode = .queue; isPlayerPresented = true } label: {
                 Image(systemName: "list.bullet").font(.system(size: 19, weight: .semibold)).foregroundStyle(.white.opacity(0.88)).frame(width: 26, height: 34)
