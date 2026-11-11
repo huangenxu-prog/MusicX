@@ -767,7 +767,7 @@ struct ContentView: View {
                 .fill(LinearGradient(colors: [song.tint, song.tint.opacity(0.45)], startPoint: .topLeading, endPoint: .bottomTrailing))
                 .frame(width: 54, height: 54)
                 .overlay(Image(systemName: "music.note").font(.system(size: 20)).foregroundStyle(.white.opacity(0.8)))
-            Button { select(song) } label: {
+            Button { startsSearchQueue ? playSearchResult(song) : select(song) } label: {
                 VStack(alignment: .leading, spacing: 5) {
                     Text(song.title).font(.system(size: 16, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
                     HStack(spacing: 6) {
