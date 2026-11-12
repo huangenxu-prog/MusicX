@@ -1529,7 +1529,7 @@ struct ContentView: View {
                 return
             } catch {
                 guard playbackRequestID == requestID else { return }
-                searchError = "重新获取播放地址失败：\\(error.localizedDescription)"
+                searchError = "重新获取播放地址失败：\(error.localizedDescription)"
                 advanceAfterPlaybackFailure()
             }
         }
