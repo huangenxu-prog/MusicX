@@ -365,6 +365,39 @@ struct ContentView: View {
             .padding(.bottom, 8)
         }
         .scrollBounceBehavior(.basedOnSize)
+        .background(alignment: .top) {
+            GeometryReader { proxy in
+                ZStack {
+                    LinearGradient(
+                        stops: [
+                            .init(color: Color(red: 0.15, green: 0.20, blue: 0.43), location: 0),
+                            .init(color: Color(red: 0.34, green: 0.22, blue: 0.55), location: 0.38),
+                            .init(color: Color(red: 0.72, green: 0.36, blue: 0.57), location: 0.68),
+                            .init(color: Color(red: 0.98, green: 0.58, blue: 0.43), location: 0.86),
+                            .init(color: Color(red: 0.98, green: 0.58, blue: 0.43).opacity(0.0), location: 1)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    RadialGradient(
+                        colors: [Color(red: 1.0, green: 0.67, blue: 0.48).opacity(0.78), .clear],
+                        center: UnitPoint(x: 0.70, y: 0.88),
+                        startRadius: 2,
+                        endRadius: proxy.size.width * 0.72
+                    )
+                    LinearGradient(
+                        colors: [.clear, Color(red: 0.035, green: 0.055, blue: 0.13).opacity(0.98)],
+                        startPoint: .center,
+                        endPoint: .bottom
+                    )
+                }
+            }
+                    .frame(width: proxy.size.width, height: 235)
+                    .frame(maxHeight: .infinity, alignment: .top)
+            }
+            .ignoresSafeArea(edges: .top)
+            .allowsHitTesting(false)
+        }
         .ignoresSafeArea(edges: .top)
     }
 
@@ -392,36 +425,7 @@ struct ContentView: View {
         .padding(.horizontal, 22)
         .padding(.top, 48)
         .frame(height: 175, alignment: .topLeading)
-        .background {
-            GeometryReader { proxy in
-                ZStack {
-                    LinearGradient(
-                        stops: [
-                            .init(color: Color(red: 0.15, green: 0.20, blue: 0.43), location: 0),
-                            .init(color: Color(red: 0.34, green: 0.22, blue: 0.55), location: 0.38),
-                            .init(color: Color(red: 0.72, green: 0.36, blue: 0.57), location: 0.68),
-                            .init(color: Color(red: 0.98, green: 0.58, blue: 0.43), location: 0.86),
-                            .init(color: Color(red: 0.98, green: 0.58, blue: 0.43).opacity(0.0), location: 1)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                    RadialGradient(
-                        colors: [Color(red: 1.0, green: 0.67, blue: 0.48).opacity(0.78), .clear],
-                        center: UnitPoint(x: 0.70, y: 0.88),
-                        startRadius: 2,
-                        endRadius: proxy.size.width * 0.72
-                    )
-                    LinearGradient(
-                        colors: [.clear, Color(red: 0.035, green: 0.055, blue: 0.13).opacity(0.98)],
-                        startPoint: .center,
-                        endPoint: .bottom
-                    )
-                }
-                .frame(width: proxy.size.width, height: proxy.size.height)
-            }
-            .ignoresSafeArea(edges: .top)
-        }
+
         .accessibilityElement(children: .combine)
         .accessibilityLabel("发现音乐，好音乐，总在心里")
     }

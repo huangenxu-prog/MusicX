@@ -738,7 +738,17 @@ struct MusicDiscoveryPage: View {
                 async let kuwo = try? service.search(keyword: query, source: .kuwo, count: 50, albumOnly: true)
                 async let kugou = try? service.search(keyword: query, source: .kugou, count: 50, albumOnly: true)
                 async let migu = try? service.search(keyword: query, source: .migu, count: 50, albumOnly: true)
-                let candidates = (await netease ?? []) + (await qq ?? []) + (await kuwo ?? []) + (await kugou ?? []) + (await migu ?? [])
+                var candidates: [MusicSong] = []
+                let neteaseTracks: [MusicSong] = await netease ?? []
+                let qqTracks: [MusicSong] = await qq ?? []
+                let kuwoTracks: [MusicSong] = await kuwo ?? []
+                let kugouTracks: [MusicSong] = await kugou ?? []
+                let miguTracks: [MusicSong] = await migu ?? []
+                candidates.append(contentsOf: neteaseTracks)
+                candidates.append(contentsOf: qqTracks)
+                candidates.append(contentsOf: kuwoTracks)
+                candidates.append(contentsOf: kugouTracks)
+                candidates.append(contentsOf: miguTracks)
                 let normalizedAlbum = albumTitle.lowercased().filter { $0.isLetter || $0.isNumber }
                 let normalizedArtist = albumArtist.lowercased().filter { $0.isLetter || $0.isNumber }
                 let matched = candidates.filter { song in
