@@ -156,7 +156,7 @@ struct MusicDiscoveryPage: View {
                         trackList
                     }
                 }
-                .padding(.horizontal, 22).padding(.top, 12).padding(.bottom, 156)
+                .padding(.horizontal, 22).padding(.top, 12).padding(.bottom, 24)
             }
         }
         .preferredColorScheme(.dark)
