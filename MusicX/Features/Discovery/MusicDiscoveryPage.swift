@@ -165,7 +165,8 @@ struct MusicDiscoveryPage: View {
             }.buttonStyle(.plain).zIndex(10)
             Spacer()
             Text(title).font(.system(size: 16, weight: .semibold))
-            Spacer(minLength: 42)
+            Spacer()
+            Color.clear.frame(width: 48, height: 46)
         }.foregroundStyle(.white).padding(.bottom, 4)
     }
 
