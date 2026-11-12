@@ -391,10 +391,9 @@ struct ContentView: View {
                         endPoint: .bottom
                     )
                 }
+                .frame(width: proxy.size.width, height: 235)
             }
-                    .frame(width: proxy.size.width, height: 235)
-                    .frame(maxHeight: .infinity, alignment: .top)
-            }
+            .frame(height: 235)
             .ignoresSafeArea(edges: .top)
             .allowsHitTesting(false)
         }
