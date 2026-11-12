@@ -45,6 +45,7 @@ struct MusicDiscoveryPage: View {
     @State private var errorMessage: String?
     @State private var selectedChartOverride: String?
     @State private var chartSongCache: [String: [MusicSong]] = [:]
+    @State private var playlistCardResults: [String: MusicPlaylist] = [:]
     private var selectedChart: String {
         if let selectedChartOverride { return selectedChartOverride }
         if case .chart(let name) = route { return name }
@@ -65,7 +66,9 @@ struct MusicDiscoveryPage: View {
 
     private func playlistSubtitle(for name: String) -> String {
         let moodNames: Set<String> = ["开心愉悦", "温柔治愈", "放松舒缓", "安静专注", "释放情绪", "夜晚助眠"]
-        return moodNames.contains(name) ? "心情歌单" : "精选歌单"
+        let featuredNames: Set<String> = ["本周编辑精选", "华语流行精选", "经典金曲精选", "独立音乐精选", "影视原声精选", "通勤驾驶精选"]
+        if moodNames.contains(name) { return "心情歌单" }
+        return featuredNames.contains(name) ? "精选歌单" : "QQ音乐歌单"
     }
 
     private var title: String {
@@ -350,6 +353,27 @@ struct MusicDiscoveryPage: View {
         return CGFloat(min(max(currentTime / duration, 0), 1))
     }
 
+    private func playlistCardArtwork(for key: String, fallback: String, height: CGFloat, cornerRadius: CGFloat) -> some View {
+        ZStack {
+            if let url = playlistCardResults[key]?.artworkURL {
+                AsyncImage(url: url) { phase in
+                    if let image = phase.image {
+                        image.resizable().scaledToFill()
+                    } else {
+                        Image(fallback).resizable().scaledToFill()
+                    }
+                }
+            } else {
+                Image(fallback).resizable().scaledToFill()
+            }
+        }
+        .frame(height: height)
+        .frame(maxWidth: .infinity)
+        .clipped()
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous).stroke(.white.opacity(0.16), lineWidth: 0.8))
+    }
+
     private var playlistGrid: some View {
         let items: [(String, String, String)] = [
             ("开心愉悦", "明亮轻快，让好心情延续", "category_chinese_pop"),
@@ -361,14 +385,11 @@ struct MusicDiscoveryPage: View {
         ]
         return LazyVGrid(columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)], spacing: 20) {
             ForEach(items, id: \.0) { item in
-                Button { onOpenPlaylist(item.0) } label: {
+                Button { onOpenPlaylist(playlistCardResults[item.0]?.name ?? item.0) } label: {
                     VStack(alignment: .leading, spacing: 8) {
-                        Image(item.2).resizable().scaledToFill()
-                            .frame(height: 126).frame(maxWidth: .infinity).clipped()
-                            .clipShape(RoundedRectangle(cornerRadius: 17, style: .continuous))
-                            .overlay(RoundedRectangle(cornerRadius: 17, style: .continuous).stroke(.white.opacity(0.16), lineWidth: 0.8))
+                        playlistCardArtwork(for: item.0, fallback: item.2, height: 126, cornerRadius: 17)
                         Text(item.0).font(.system(size: 15, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
-                        Text(item.1).font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                        Text(playlistCardResults[item.0]?.name ?? item.1).font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(2).fixedSize(horizontal: false, vertical: true)
                     }.frame(maxWidth: .infinity, alignment: .leading)
                 }.buttonStyle(.plain)
             }
@@ -386,14 +407,11 @@ struct MusicDiscoveryPage: View {
         ]
         return LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
             ForEach(items, id: \.0) { item in
-                Button { onOpenPlaylist(item.0) } label: {
+                Button { onOpenPlaylist(playlistCardResults[item.0]?.name ?? item.0) } label: {
                     VStack(alignment: .leading, spacing: 8) {
-                        Image(item.2).resizable().scaledToFill()
-                            .frame(height: 118).frame(maxWidth: .infinity).clipped()
-                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(.white.opacity(0.18), lineWidth: 0.8))
+                        playlistCardArtwork(for: item.0, fallback: item.2, height: 118, cornerRadius: 16)
                         Text(item.0).font(.system(size: 15, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
-                        Text(item.1).font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
+                        Text(playlistCardResults[item.0]?.name ?? item.1).font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
                     }.frame(maxWidth: .infinity, alignment: .leading)
                 }.buttonStyle(.plain)
             }
@@ -514,9 +532,59 @@ struct MusicDiscoveryPage: View {
     }
 
     @MainActor
+    private func loadPlaylistCards(forMood: Bool) async {
+        let items: [(String, String)] = forMood
+            ? [
+                ("开心愉悦", "开心"),
+                ("温柔治愈", "治愈"),
+                ("放松舒缓", "放松"),
+                ("安静专注", "专注"),
+                ("释放情绪", "摇滚"),
+                ("夜晚助眠", "助眠")
+            ]
+            : [
+                ("本周编辑精选", "编辑精选"),
+                ("华语流行精选", "华语流行"),
+                ("经典金曲精选", "经典金曲"),
+                ("独立音乐精选", "独立音乐"),
+                ("影视原声精选", "影视原声"),
+                ("通勤驾驶精选", "通勤")
+            ]
+
+        var updated = playlistCardResults
+        for (category, keyword) in items where updated[category] == nil {
+            guard !Task.isCancelled else { return }
+            do {
+                let results = try await service.searchPlaylists(keyword: keyword, count: 10)
+                if let match = results.first(where: {
+                    $0.name.localizedCaseInsensitiveContains(keyword)
+                }) {
+                    updated[category] = match
+                }
+            } catch {
+                MusicSourceDiagnostics.shared.record(
+                    event: "playlist-discovery", source: MusicSource.qq.rawValue,
+                    provider: "qq-playlist-search", duration: 0,
+                    result: "failed", detail: "\(keyword): \(error.localizedDescription)"
+                )
+            }
+        }
+        guard !Task.isCancelled else { return }
+        playlistCardResults = updated
+    }
+
+    @MainActor
     private func loadSongs() async {
-        if case .playlists = route { songs = []; return }
-        if case .featuredPlaylists = route { songs = []; return }
+        if case .playlists = route {
+            songs = []
+            await loadPlaylistCards(forMood: true)
+            return
+        }
+        if case .featuredPlaylists = route {
+            songs = []
+            await loadPlaylistCards(forMood: false)
+            return
+        }
         if case .albums = route { songs = []; return }
         if isChartRoute { await loadChart(selectedChart, showInitialLoading: true); return }
         isLoading = true
