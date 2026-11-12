@@ -180,10 +180,12 @@ struct MusicDiscoveryPage: View {
 
     private func categoryArtworkName(for name: String) -> String {
         switch name {
-        case "轻音乐": "playlist_relax"
-        case "车载必听": "playlist_drive"
-        case "深夜独白": "playlist_night"
-        default: "featured_playlist"
+        case "华语流行": "category_chinese_pop"
+        case "经典老歌": "category_classic"
+        case "轻音乐": "category_light"
+        case "纯音乐": "category_instrumental"
+        case "摇滚": "category_rock"
+        default: "category_singers"
         }
     }
 
@@ -293,12 +295,12 @@ struct MusicDiscoveryPage: View {
 
     private var playlistGrid: some View {
         let items: [(String, String, [Color], String)] = [
-            ("华语流行", "热门华语歌曲", [Color(red: 0.20, green: 0.42, blue: 0.68), Color(red: 0.10, green: 0.16, blue: 0.30)], "featured_playlist"),
-            ("轻音乐", "放松与专注", [Color(red: 0.40, green: 0.25, blue: 0.49), Color(red: 0.17, green: 0.14, blue: 0.30)], "playlist_relax"),
-            ("经典老歌", "熟悉的旋律", [Color(red: 0.48, green: 0.28, blue: 0.25), Color(red: 0.20, green: 0.14, blue: 0.17)], "playlist_night"),
-            ("纯音乐", "安静聆听", [Color(red: 0.16, green: 0.39, blue: 0.38), Color(red: 0.08, green: 0.20, blue: 0.23)], "playlist_relax"),
-            ("摇滚", "节奏与力量", [Color(red: 0.43, green: 0.22, blue: 0.27), Color(red: 0.19, green: 0.13, blue: 0.22)], "playlist_drive"),
-            ("周杰伦", "歌手精选", [Color(red: 0.27, green: 0.32, blue: 0.53), Color(red: 0.15, green: 0.17, blue: 0.30)], "featured_playlist")
+            ("华语流行", "热门华语歌曲", [Color(red: 0.20, green: 0.42, blue: 0.68), Color(red: 0.10, green: 0.16, blue: 0.30)], "category_chinese_pop"),
+            ("轻音乐", "放松与专注", [Color(red: 0.40, green: 0.25, blue: 0.49), Color(red: 0.17, green: 0.14, blue: 0.30)], "category_light"),
+            ("经典老歌", "熟悉的旋律", [Color(red: 0.48, green: 0.28, blue: 0.25), Color(red: 0.20, green: 0.14, blue: 0.17)], "category_classic"),
+            ("纯音乐", "安静聆听", [Color(red: 0.16, green: 0.39, blue: 0.38), Color(red: 0.08, green: 0.20, blue: 0.23)], "category_instrumental"),
+            ("摇滚", "节奏与力量", [Color(red: 0.43, green: 0.22, blue: 0.27), Color(red: 0.19, green: 0.13, blue: 0.22)], "category_rock"),
+            ("周杰伦", "歌手精选", [Color(red: 0.27, green: 0.32, blue: 0.53), Color(red: 0.15, green: 0.17, blue: 0.30)], "category_singers")
         ]
         return LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
             ForEach(items, id: \.0) { item in
