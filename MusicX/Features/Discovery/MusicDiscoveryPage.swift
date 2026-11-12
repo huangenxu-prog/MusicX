@@ -667,6 +667,7 @@ struct MusicDiscoveryPage: View {
                         break
                     }
                 } catch {
+                    if Task.isCancelled { return }
                     lastError = error.localizedDescription
                 }
             }
@@ -736,6 +737,7 @@ struct MusicDiscoveryPage: View {
                     do {
                         result = try await service.playlistTracks(playlistID: playlist.sourceID, count: 50)
                     } catch {
+                        if Task.isCancelled { return }
                         playlistLoadError = "真实歌单曲目加载失败：\(error.localizedDescription)"
                         result = []
                         MusicSourceDiagnostics.shared.record(
@@ -759,7 +761,10 @@ struct MusicDiscoveryPage: View {
             if songs.isEmpty {
                 errorMessage = playlistLoadError ?? "音源没有返回匹配的歌曲，请稍后重试"
             }
-        } catch { errorMessage = error.localizedDescription }
+        } catch {
+            if Task.isCancelled { return }
+            errorMessage = error.localizedDescription
+        }
     }
 
     private func searchEditorialTracks(name: String) async -> [MusicSong] {
@@ -936,6 +941,9 @@ struct MusicDiscoveryPage: View {
             songs = result
             if !result.isEmpty { onQueueChanged(result) }
             if result.isEmpty { errorMessage = "音源没有返回匹配的歌曲，请稍后重试" }
-        } catch { errorMessage = error.localizedDescription }
+        } catch {
+            if Task.isCancelled { return }
+            errorMessage = error.localizedDescription
+        }
     }
 }
