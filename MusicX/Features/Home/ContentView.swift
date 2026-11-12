@@ -418,41 +418,50 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 18) { heroHeader; recommendationSection }
     }
 
+    // DESIGN LOCK: fixed vinyl-record hero artwork from the approved home reference.
     private var heroHeader: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(spacing: 2) {
             Text("发现音乐")
-                .font(.system(size: 44, weight: .semibold, design: .rounded))
-                .tracking(1.2)
-                .foregroundStyle(.white)
-                .shadow(color: Color(red: 0.72, green: 0.42, blue: 0.95).opacity(0.22), radius: 12, y: 3)
-            HStack(spacing: 9) {
-                Capsule().fill(.white.opacity(0.82)).frame(width: 15, height: 1)
-                Text("好音乐，总在心里")
-                    .font(.system(size: 15, weight: .medium))
-                    .tracking(2.2)
-                    .foregroundStyle(.white.opacity(0.88))
-                Capsule().fill(.white.opacity(0.82)).frame(width: 15, height: 1)
-            }
+                .font(.system(size: 34, weight: .semibold, design: .rounded))
+                .tracking(1.5)
+                .foregroundStyle(.white.opacity(0.94))
+            HomeArtwork(name: "home_hero")
+                .frame(maxWidth: .infinity)
+                .frame(height: 205)
+                .clipped()
+                .accessibilityHidden(true)
         }
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-        .padding(.horizontal, 22)
-        .padding(.top, 48)
-        .frame(height: 175, alignment: .topLeading)
-
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 18)
+        .padding(.top, 18)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("发现音乐，好音乐，总在心里")
+        .accessibilityLabel("发现音乐")
     }
 
+    // DESIGN LOCK: the two entry buttons and their destinations follow the approved reference.
     private var recommendationSection: some View {
-        GeometryReader { proxy in
-            let inset: CGFloat = 16
-            let gap: CGFloat = 12
-            let width = max(0, (proxy.size.width - inset * 2 - gap) / 2)
-            HStack(spacing: gap) {
-                recommendationTile(title: "每日推荐", subtitle: "每日更新", icon: "play.fill", colors: [Color(red: 0.94, green: 0.61, blue: 0.39), Color(red: 0.68, green: 0.29, blue: 0.50)], route: .daily, width: width)
-                recommendationTile(title: "编辑精选", subtitle: "遇见更好的自己", icon: "text.alignleft", colors: [Color(red: 0.57, green: 0.43, blue: 0.91), Color(red: 0.27, green: 0.17, blue: 0.64)], route: .featuredPick, width: width)
-            }.padding(.horizontal, inset)
-        }.frame(height: 84)
+        HStack(spacing: 12) {
+            Button { discoveryRoute = .daily } label: {
+                Label("每日推荐", systemImage: "play.fill")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Color(red: 0.035, green: 0.045, blue: 0.11))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 54)
+                    .background(Color(red: 0.91, green: 0.93, blue: 0.98), in: Capsule())
+            }
+            .buttonStyle(.plain)
+            Button { discoveryRoute = .featuredPick } label: {
+                Text("精选歌单")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(Color(red: 0.78, green: 0.81, blue: 0.91))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 54)
+                    .background(Color.clear, in: Capsule())
+                    .overlay(Capsule().stroke(Color(red: 0.20, green: 0.27, blue: 0.49), lineWidth: 1.2))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 16)
     }
 
     private func recommendationTile(title: String, subtitle: String, icon: String, colors: [Color], route: MusicDiscoveryRoute, width: CGFloat) -> some View {
@@ -589,7 +598,7 @@ struct ContentView: View {
         return VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 6) {
                 Capsule().fill(MusicXTheme.blue).frame(width: 4, height: 21)
-                Text("编辑精选").font(.system(size: 20, weight: .bold)).foregroundStyle(.white)
+                Text("精选歌单").font(.system(size: 20, weight: .bold)).foregroundStyle(.white)
                 Spacer()
                 Button { discoveryRoute = .featuredPlaylists } label: {
                     HStack(spacing: 4) {
