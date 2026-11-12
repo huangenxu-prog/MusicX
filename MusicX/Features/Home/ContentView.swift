@@ -1657,7 +1657,11 @@ struct ContentView: View {
     }
 
     private func selectManually(_ song: AppSong) {
-        resetShuffleHistory()
+        // Tapping the current track only toggles playback; it must not discard
+        // the user's shuffle back/forward navigation path.
+        if currentSong?.id != song.id {
+            resetShuffleHistory()
+        }
         select(song)
     }
 
