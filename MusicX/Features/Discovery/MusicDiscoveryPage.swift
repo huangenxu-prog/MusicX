@@ -208,17 +208,28 @@ struct MusicDiscoveryPage: View {
     }
 
     private var playlistIntro: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            Text("按心情聆听").font(.system(size: 27, weight: .bold, design: .rounded))
-            Text("从在线曲库中发现适合此刻的音乐").font(.system(size: 13, weight: .medium)).foregroundStyle(.white.opacity(0.66))
-        }.padding(.top, 4)
+        playlistCategoryIntro(title: "心情歌单", subtitle: "从不同心情与场景中，发现适合此刻的音乐")
     }
 
     private var featuredPlaylistsIntro: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            Text("编辑精选").font(.system(size: 27, weight: .bold, design: .rounded))
-            Text("从不同风格与场景中，发现值得收藏的歌单").font(.system(size: 13, weight: .medium)).foregroundStyle(.white.opacity(0.66))
-        }.padding(.top, 4)
+        playlistCategoryIntro(title: "编辑精选", subtitle: "从不同风格与场景中，发现值得收藏的歌单")
+    }
+
+    private func playlistCategoryIntro(title: String, subtitle: String) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center, spacing: 10) {
+                Capsule()
+                    .fill(Color(red: 0.31, green: 0.53, blue: 1.0))
+                    .frame(width: 4, height: 24)
+                Text(title)
+                    .font(.system(size: 27, weight: .bold, design: .rounded))
+                    .foregroundStyle(Color(red: 0.94, green: 0.95, blue: 0.99))
+            }
+            Text(subtitle)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(Color(red: 0.69, green: 0.72, blue: 0.81))
+        }
+        .padding(.top, 4)
     }
 
     private var albumsIntro: some View {
@@ -385,109 +396,40 @@ struct MusicDiscoveryPage: View {
     }
 
     private var playlistGrid: some View {
-        let screenWidth: CGFloat = UIScreen.main.bounds.width
-        let horizontalInsets: CGFloat = 58
-        let availableWidth: CGFloat = screenWidth - horizontalInsets
-        let halfWidth: CGFloat = availableWidth / CGFloat(2)
-        let cardWidth: CGFloat = Swift.max(halfWidth, CGFloat.zero)
-        let imageHeight: CGFloat = 126
-        let rowTextHeight: CGFloat = 42
-        let rowSpacing: CGFloat = 20
-        let gridHeight: CGFloat = imageHeight * CGFloat(3) + rowTextHeight * CGFloat(3) + rowSpacing * CGFloat(2)
-        let rows: AnyView = moodPlaylistRows(width: cardWidth)
-        return AnyView(rows.frame(height: gridHeight).frame(maxWidth: CGFloat.infinity))
-    }
-
-    private func moodPlaylistRows(width: CGFloat) -> AnyView {
-        let firstRow = AnyView(moodPlaylistRowOne(width: width))
-        let secondRow = AnyView(moodPlaylistRowTwo(width: width))
-        let thirdRow = AnyView(moodPlaylistRowThree(width: width))
-        return AnyView(VStack(alignment: .leading, spacing: 20) {
-            firstRow
-            secondRow
-            thirdRow
-        })
-    }
-
-    private func moodPlaylistRowOne(width: CGFloat) -> some View {
-        playlistRow(
-            first: PlaylistCardItem(title: "开心愉悦", subtitle: "明亮轻快，让好心情延续", artwork: "category_chinese_pop"),
-            second: PlaylistCardItem(title: "温柔治愈", subtitle: "温暖柔和，给情绪一点空间", artwork: "playlist_relax"),
-            width: width, imageHeight: 126
-        )
-    }
-
-    private func moodPlaylistRowTwo(width: CGFloat) -> some View {
-        playlistRow(
-            first: PlaylistCardItem(title: "放松舒缓", subtitle: "舒缓节奏，放松身心", artwork: "category_light"),
-            second: PlaylistCardItem(title: "安静专注", subtitle: "纯音乐与轻旋律，适合专注", artwork: "category_instrumental"),
-            width: width, imageHeight: 126
-        )
-    }
-
-    private func moodPlaylistRowThree(width: CGFloat) -> some View {
-        playlistRow(
-            first: PlaylistCardItem(title: "释放情绪", subtitle: "用更有力量的节奏释放压力", artwork: "category_rock"),
-            second: PlaylistCardItem(title: "夜晚助眠", subtitle: "安静氛围，适合睡前聆听", artwork: "playlist_night"),
-            width: width, imageHeight: 126
-        )
+        playlistCategoryGrid(items: [
+            PlaylistCardItem(title: "开心愉悦", subtitle: "明亮轻快，让好心情延续", artwork: "category_chinese_pop"),
+            PlaylistCardItem(title: "温柔治愈", subtitle: "温暖柔和，给情绪一点空间", artwork: "playlist_relax"),
+            PlaylistCardItem(title: "放松舒缓", subtitle: "舒缓节奏，放松身心", artwork: "category_light"),
+            PlaylistCardItem(title: "安静专注", subtitle: "纯音乐与轻旋律，适合专注", artwork: "category_instrumental"),
+            PlaylistCardItem(title: "释放情绪", subtitle: "用更有力量的节奏释放压力", artwork: "category_rock"),
+            PlaylistCardItem(title: "夜晚助眠", subtitle: "安静氛围，适合睡前聆听", artwork: "playlist_night")
+        ])
     }
 
     private var featuredPlaylistGrid: some View {
-        let screenWidth: CGFloat = UIScreen.main.bounds.width
-        let horizontalInsets: CGFloat = 58
-        let availableWidth: CGFloat = screenWidth - horizontalInsets
-        let halfWidth: CGFloat = availableWidth / CGFloat(2)
-        let cardWidth: CGFloat = Swift.max(halfWidth, CGFloat.zero)
-        let imageHeight: CGFloat = 118
-        let rowTextHeight: CGFloat = 42
-        let rowSpacing: CGFloat = 14
-        let gridHeight: CGFloat = imageHeight * CGFloat(3) + rowTextHeight * CGFloat(3) + rowSpacing * CGFloat(2)
-        let rows: AnyView = featuredPlaylistRows(width: cardWidth)
-        return AnyView(rows.frame(height: gridHeight).frame(maxWidth: CGFloat.infinity))
+        playlistCategoryGrid(items: [
+            PlaylistCardItem(title: "本周编辑精选", subtitle: "本周精选", artwork: "featured_playlist"),
+            PlaylistCardItem(title: "华语流行精选", subtitle: "宝藏好歌 · 优质华语流行歌曲合集", artwork: "category_chinese_pop"),
+            PlaylistCardItem(title: "经典金曲精选", subtitle: "经久不衰的动人歌声", artwork: "category_classic"),
+            PlaylistCardItem(title: "独立音乐精选", subtitle: "Indie Music｜独立音乐聚落", artwork: "category_singers"),
+            PlaylistCardItem(title: "影视原声精选", subtitle: "问心系列 影视原声带", artwork: "category_instrumental"),
+            PlaylistCardItem(title: "通勤驾驶精选", subtitle: "通勤路上｜有前行感的节奏", artwork: "playlist_drive")
+        ])
     }
 
-    private func featuredPlaylistRows(width: CGFloat) -> AnyView {
-        let firstRow = AnyView(featuredPlaylistRowOne(width: width))
-        let secondRow = AnyView(featuredPlaylistRowTwo(width: width))
-        let thirdRow = AnyView(featuredPlaylistRowThree(width: width))
-        return AnyView(VStack(alignment: .leading, spacing: 14) {
-            firstRow
-            secondRow
-            thirdRow
-        })
-    }
-
-    private func featuredPlaylistRowOne(width: CGFloat) -> some View {
-        playlistRow(
-            first: PlaylistCardItem(title: "本周编辑精选", subtitle: "近期值得收藏的好歌", artwork: "featured_playlist"),
-            second: PlaylistCardItem(title: "华语流行精选", subtitle: "熟悉的声音与新鲜旋律", artwork: "category_chinese_pop"),
-            width: width, imageHeight: 118
-        )
-    }
-
-    private func featuredPlaylistRowTwo(width: CGFloat) -> some View {
-        playlistRow(
-            first: PlaylistCardItem(title: "经典金曲精选", subtitle: "历久弥新的经典作品", artwork: "category_classic"),
-            second: PlaylistCardItem(title: "独立音乐精选", subtitle: "发现不一样的音乐表达", artwork: "category_singers"),
-            width: width, imageHeight: 118
-        )
-    }
-
-    private func featuredPlaylistRowThree(width: CGFloat) -> some View {
-        playlistRow(
-            first: PlaylistCardItem(title: "影视原声精选", subtitle: "从电影与剧集中寻找旋律", artwork: "category_instrumental"),
-            second: PlaylistCardItem(title: "通勤驾驶精选", subtitle: "陪伴每一段路程", artwork: "playlist_drive"),
-            width: width, imageHeight: 118
-        )
-    }
-
-    private func playlistRow(first: PlaylistCardItem, second: PlaylistCardItem, width: CGFloat, imageHeight: CGFloat) -> some View {
-        HStack(alignment: .top, spacing: 14) {
-            playlistTile(first, width: width, imageHeight: imageHeight)
-            playlistTile(second, width: width, imageHeight: imageHeight)
+    // Mood and editorial categories deliberately share one page template and card geometry.
+    private func playlistCategoryGrid(items: [PlaylistCardItem]) -> some View {
+        let screenWidth = UIScreen.main.bounds.width
+        let cardWidth = max((screenWidth - 44 - 14) / 2, 0)
+        return LazyVGrid(
+            columns: [GridItem(.fixed(cardWidth), spacing: 14), GridItem(.fixed(cardWidth), spacing: 14)],
+            alignment: .leading,
+            spacing: 14
+        ) {
+            ForEach(items, id: \.title) { item in
+                playlistTile(item, width: cardWidth, imageHeight: 122)
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func playlistTile(_ item: PlaylistCardItem, width: CGFloat, imageHeight: CGFloat) -> some View {
@@ -508,16 +450,15 @@ struct MusicDiscoveryPage: View {
                 )
                 Text(item.title)
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color(red: 0.94, green: 0.95, blue: 0.99))
                     .lineLimit(1)
                 Text(playlistCardResults[item.title]?.name ?? item.subtitle)
-                    .font(.system(size: 11))
-                    .foregroundStyle(MusicXTheme.muted)
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color(red: 0.69, green: 0.72, blue: 0.81))
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .frame(width: width, alignment: .leading)
-            .clipped()
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
