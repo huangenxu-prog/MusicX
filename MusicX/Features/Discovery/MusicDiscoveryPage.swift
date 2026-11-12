@@ -462,7 +462,7 @@ struct MusicDiscoveryPage: View {
             } else if let playlist = playlistCardResults[item.title] {
                 onOpenPlaylist(playlist)
             } else {
-                playlistUnavailableMessage = "暂未找到“\\(item.title)”对应的真实歌单，暂不使用普通关键词搜索结果代替分类歌单。"
+                playlistUnavailableMessage = "暂未找到“\(item.title)”对应的真实歌单，暂不使用普通关键词搜索结果代替分类歌单。"
                 isPlaylistUnavailableAlertPresented = true
             }
         } label: {
