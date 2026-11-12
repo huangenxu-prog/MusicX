@@ -5,6 +5,7 @@ on:
     branches:
       - ios/initial-scaffold
       - home/final-design-asset-pass
+      - feature/qqmusic-playlist-integration
   workflow_dispatch:
 
 permissions:
