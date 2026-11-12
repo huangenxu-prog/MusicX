@@ -246,6 +246,8 @@ struct ContentView: View {
                 case .library: libraryPage
                 }
             }
+            .id(selectedTab)
+            .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -267,7 +269,6 @@ struct ContentView: View {
             }
         }
         .preferredColorScheme(.dark)
-        .fullScreenCover(isPresented: $isPlayerPresented) { nowPlayingPage }
         .confirmationDialog("播放设置", isPresented: $isSettingsAlertPresented, titleVisibility: .visible) {
             Button("标准音质 · 128 kbps") { playbackQualityRaw = MusicQuality.standard.rawValue }
             Button("高音质 · 320 kbps") { playbackQualityRaw = MusicQuality.high.rawValue }
@@ -324,6 +325,15 @@ struct ContentView: View {
             }
         }
         .animation(.easeInOut(duration: 0.28), value: discoveryRoute?.id)
+        .overlay {
+            if isPlayerPresented {
+                nowPlayingPage
+                    .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
+                    .zIndex(40)
+            }
+        }
+        .animation(.easeInOut(duration: 0.28), value: isPlayerPresented)
+        .animation(.easeInOut(duration: 0.28), value: selectedTab)
         .task { await loadHomeSongs() }
     }
 
