@@ -115,7 +115,7 @@ struct GDStudioMusicSearchService {
         let body = data["body"] as? [String: Any]
         let container = body?["songlist"] as? [String: Any]
         let rows = container?["list"] as? [[String: Any]] ?? []
-        let playlists = rows.compactMap { row in
+        let playlists: [MusicPlaylist] = rows.compactMap { row -> MusicPlaylist? in
             guard let rawID = row["dissid"] ?? row["id"] ?? row["tid"] ?? row["dirid"] else {
                 return nil
             }
@@ -255,9 +255,10 @@ struct GDStudioMusicSearchService {
               let service = root[module] as? [String: Any] else {
             throw MusicSourceError.invalidResponse("QQ音乐接口返回结构异常")
         }
-        let code = service["code"] as? Int ?? 0
-        guard code == 0, let result = service["data"] as? [String: Any] else {
-            throw MusicSourceError.invalidResponse("QQ音乐服务返回错误 code=\(code)")
+        let topCode = root["code"] as? Int ?? 0
+        let moduleCode = service["code"] as? Int ?? 0
+        guard topCode == 0, moduleCode == 0, let result = service["data"] as? [String: Any] else {
+            throw MusicSourceError.invalidResponse("QQ音乐服务返回错误 top=\(topCode), module=\(moduleCode)")
         }
         return result
     }
@@ -301,7 +302,7 @@ struct GDStudioMusicSearchService {
         guard let rows = result?["tracks"] as? [[String: Any]] else {
             throw MusicSourceError.invalidResponse("网易云没有返回榜单曲目")
         }
-        let songs = rows.prefix(count).compactMap { row in
+        let songs: [MusicSong] = rows.prefix(count).compactMap { row -> MusicSong? in
             guard let id = row["id"] else { return nil }
             let artists = (row["ar"] as? [[String: Any]] ?? row["artists"] as? [[String: Any]] ?? [])
                 .compactMap { $0["name"] as? String }.joined(separator: " / ")

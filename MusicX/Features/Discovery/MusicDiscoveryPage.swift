@@ -77,7 +77,7 @@ struct MusicDiscoveryPage: View {
         let moodNames: Set<String> = ["开心愉悦", "温柔治愈", "放松舒缓", "安静专注", "释放情绪", "夜晚助眠"]
         let featuredNames: Set<String> = ["本周编辑精选", "华语流行精选", "经典金曲精选", "独立音乐精选", "影视原声精选", "通勤驾驶精选"]
         if moodNames.contains(name) { return "心情歌单" }
-        return featuredNames.contains(name) ? "精选歌单" : "QQ音乐歌单"
+        return featuredNames.contains(name) ? "精选歌单" : "歌单"
     }
 
     private var title: String {
@@ -276,7 +276,6 @@ struct MusicDiscoveryPage: View {
                 VStack(alignment: .leading, spacing: 7) {
                     Text(name).font(.system(size: 27, weight: .bold, design: .rounded)).foregroundStyle(.white)
                     Text(subtitle).font(.system(size: 14, weight: .medium)).foregroundStyle(.white.opacity(0.70))
-                    Text("QQ音乐歌单 · 在线曲目").font(.system(size: 11, weight: .medium)).foregroundStyle(.white.opacity(0.48)).padding(.top, 5)
                 }.padding(24)
             }
             .frame(height: 196)
@@ -320,7 +319,7 @@ struct MusicDiscoveryPage: View {
                     .shadow(color: MusicXTheme.blue.opacity(0.22), radius: 12, y: 5)
             }.buttonStyle(.plain)
             Spacer()
-            Text("\(songs.count) 首 · 在线曲目").font(.system(size: 12, weight: .medium)).foregroundStyle(MusicXTheme.muted)
+            Text("\(songs.count) 首").font(.system(size: 12, weight: .medium)).foregroundStyle(MusicXTheme.muted)
         }
     }
 
@@ -639,57 +638,69 @@ struct MusicDiscoveryPage: View {
 
     @MainActor
     private func loadPlaylistCards(forMood: Bool) async {
-        let items: [(String, String)] = forMood
+        let items: [(String, [String])] = forMood
             ? [
-                ("开心愉悦", "开心"),
-                ("温柔治愈", "治愈"),
-                ("放松舒缓", "放松"),
-                ("安静专注", "专注"),
-                ("释放情绪", "摇滚"),
-                ("夜晚助眠", "助眠")
+                ("开心愉悦", ["开心", "快乐", "愉悦", "好心情"]),
+                ("温柔治愈", ["治愈", "温柔", "疗愈", "舒缓"]),
+                ("放松舒缓", ["放松", "轻松", "休闲", "Relax"]),
+                ("安静专注", ["专注", "学习", "工作", "纯音乐"]),
+                ("释放情绪", ["摇滚", "热血", "燃", "释放情绪"]),
+                ("夜晚助眠", ["助眠", "睡眠", "晚安", "轻音乐"])
             ]
             : [
-                ("本周编辑精选", "编辑精选"),
-                ("华语流行精选", "华语流行"),
-                ("经典金曲精选", "经典金曲"),
-                ("独立音乐精选", "独立音乐"),
-                ("影视原声精选", "影视原声"),
-                ("通勤驾驶精选", "通勤")
+                ("本周编辑精选", ["编辑精选", "本周精选", "编辑推荐"]),
+                ("华语流行精选", ["华语流行", "华语", "流行"]),
+                ("经典金曲精选", ["经典金曲", "经典", "怀旧"]),
+                ("独立音乐精选", ["独立音乐", "独立", "Indie"]),
+                ("影视原声精选", ["影视原声", "影视", "OST"]),
+                ("通勤驾驶精选", ["通勤", "开车", "驾车", "驾驶"])
             ]
+
+        func normalized(_ value: String) -> String {
+            value.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+                .filter { $0.isLetter || $0.isNumber }
+        }
 
         var updated = playlistCardResults
         var assignedPlaylistIDs = Set(updated.values.map { $0.id })
-        for (category, keyword) in items where updated[category] == nil {
+        for (category, keywords) in items where updated[category] == nil {
             guard !Task.isCancelled else { return }
-            do {
-                let results = try await service.searchPlaylists(keyword: keyword, count: 20)
-                let normalizedKeyword = keyword
-                    .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
-                    .filter { $0.isLetter || $0.isNumber }
-                let match = results
-                    .filter { !assignedPlaylistIDs.contains($0.id) }
-                    .map { playlist -> (MusicPlaylist, Int) in
-                        let normalizedName = playlist.name
-                            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
-                            .filter { $0.isLetter || $0.isNumber }
-                        let score = normalizedName == normalizedKeyword ? 100
-                            : (normalizedName.contains(normalizedKeyword) ? 80
-                            : (normalizedKeyword.contains(normalizedName) && !normalizedName.isEmpty ? 50 : 0))
-                        return (playlist, score)
+            var selected: MusicPlaylist?
+            var lastError: String?
+            for keyword in keywords {
+                guard !Task.isCancelled else { return }
+                do {
+                    let results = try await service.searchPlaylists(keyword: keyword, count: 30)
+                    let token = normalized(keyword)
+                    let match = results
+                        .filter { !assignedPlaylistIDs.contains($0.id) }
+                        .map { playlist -> (MusicPlaylist, Int) in
+                            let name = normalized(playlist.name)
+                            let score = name == token ? 100
+                                : (name.contains(token) ? 80
+                                : (token.count >= 2 && token.contains(name) && !name.isEmpty ? 45 : 0))
+                            return (playlist, score)
+                        }
+                        .filter { $0.1 >= 45 }
+                        .sorted { $0.1 > $1.1 }
+                        .first?.0
+                    if let match {
+                        selected = match
+                        break
                     }
-                    .filter { $0.1 > 0 }
-                    .sorted { $0.1 > $1.1 }
-                    .first?.0
-                if let match {
-                    updated[category] = match
-                    assignedPlaylistIDs.insert(match.id)
-                    playlistCardResults = updated
+                } catch {
+                    lastError = error.localizedDescription
                 }
-            } catch {
+            }
+            if let selected {
+                updated[category] = selected
+                assignedPlaylistIDs.insert(selected.id)
+                playlistCardResults = updated
+            } else if let lastError {
                 MusicSourceDiagnostics.shared.record(
                     event: "playlist-discovery", source: MusicSource.qq.rawValue,
                     provider: "qq-playlist-search", duration: 0,
-                    result: "failed", detail: "\(keyword): \(error.localizedDescription)"
+                    result: "failed", detail: "\(category): \(lastError)"
                 )
             }
         }
