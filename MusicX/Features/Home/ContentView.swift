@@ -300,7 +300,11 @@ struct ContentView: View {
                 onPrevious: { stepSong(by: -1) },
                 onNext: { stepSong(by: 1) },
                 onOpenQueue: { playerDisplayMode = .queue; isPlayerPresented = true },
-                onQueueChanged: { playbackQueueSongs = $0.map { AppSong(id: stableSongID($0), title: $0.title, artist: $0.artist, album: $0.album ?? "", tint: MusicXTheme.blue, onlineSong: $0) }; hasCustomPlaybackQueue = true }, 
+                onQueueChanged: {
+                    playbackQueueSongs = $0.map { AppSong(id: stableSongID($0), title: $0.title, artist: $0.artist, album: $0.album ?? "", tint: MusicXTheme.blue, onlineSong: $0) }
+                    hasCustomPlaybackQueue = true
+                    resetShuffleHistory()
+                }, 
                 currentTime: playerStore.currentTime,
                 duration: playerStore.duration,
                 onOpenPlaylist: { discoveryRoute = .playlistByID($0) },
@@ -1166,7 +1170,10 @@ struct ContentView: View {
                     .padding(.top, 10)
 
                     HStack {
-                        Button { isShuffleEnabled.toggle() } label: {
+                        Button {
+                            isShuffleEnabled.toggle()
+                            resetShuffleHistory()
+                        } label: {
                             Image(systemName: "shuffle")
                                 .foregroundStyle(isShuffleEnabled ? MusicXTheme.blue : .white.opacity(0.65))
                         }
@@ -1555,17 +1562,26 @@ struct ContentView: View {
         else if repeatMode == 1, let first = queue.first { select(first) }
     }
 
+    private func resetShuffleHistory() {
+        shuffleHistory.removeAll()
+        shuffleForwardHistory.removeAll()
+    }
+
     private func removeFromQueue(_ song: AppSong) {
         if !hasCustomPlaybackQueue {
             playbackQueueSongs = playbackQueue
             hasCustomPlaybackQueue = true
         }
         playbackQueueSongs.removeAll { $0.id == song.id }
+        let remainingIDs = Set(playbackQueue.map(\.id))
+        shuffleHistory.removeAll { !remainingIDs.contains($0) }
+        shuffleForwardHistory.removeAll { !remainingIDs.contains($0) }
     }
 
     private func clearQueue() {
         hasCustomPlaybackQueue = true
         playbackQueueSongs = currentSong.map { [$0] } ?? []
+        resetShuffleHistory()
     }
 
     private var tabBar: some View {
@@ -1622,6 +1638,7 @@ struct ContentView: View {
         // result set, keeping the tapped song at its natural position.
         playbackQueueSongs = filteredSongs
         hasCustomPlaybackQueue = true
+        resetShuffleHistory()
         select(song)
     }
 
