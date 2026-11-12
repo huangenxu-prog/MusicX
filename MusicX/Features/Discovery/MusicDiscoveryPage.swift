@@ -92,10 +92,10 @@ struct MusicDiscoveryPage: View {
 
     private var title: String {
         switch route {
-        case .daily: "每日推荐"
+        case .daily, .featuredPick:
+            selectedRecommendationTab == .daily ? "每日推荐" : "精选歌单"
         case .playlists: "心情歌单"
         case .featuredPlaylists: "精选歌单"
-        case .featuredPick: "精选歌单"
         case .albums: "热门专辑"
         case .charts, .chart: "排行榜"
         case .newReleases: "新歌速递"
