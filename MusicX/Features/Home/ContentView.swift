@@ -359,7 +359,6 @@ struct ContentView: View {
                 newMusicSection
                 albumSection
                 editorialPlaylistSection
-                forYouSection
             }
             .padding(.top, 0)
             .padding(.bottom, 8)
@@ -562,76 +561,44 @@ struct ContentView: View {
     }
 
     private var editorialPlaylistSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 0) {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Capsule().fill(MusicXTheme.blue).frame(width: 4, height: 21)
-                    Text("心情歌单").font(.system(size: 20, weight: .bold)).foregroundStyle(.white)
-                    Spacer(minLength: 4)
-                }
-                Button { discoveryRoute = .playlists } label: {
-                    HStack(spacing: 4) { Text("全部").font(.system(size: 13, weight: .medium)); Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)) }
-                        .foregroundStyle(MusicXTheme.muted)
+        let items: [(title: String, subtitle: String, artwork: String)] = [
+            ("本周编辑精选", "本周精选", "featured_playlist"),
+            ("华语流行精选", "宝藏好歌 · 优质华语流行歌曲合集", "category_chinese_pop"),
+            ("经典金曲精选", "经久不衰的动人歌声", "category_classic"),
+            ("独立音乐精选", "Indie Music｜独立音乐聚落", "category_singers"),
+            ("影视原声精选", "问心系列 影视原声带", "category_instrumental"),
+            ("通勤驾驶精选", "通勤路上｜有前行感的节奏", "playlist_drive")
+        ]
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 6) {
+                Capsule().fill(MusicXTheme.blue).frame(width: 4, height: 21)
+                Text("编辑精选").font(.system(size: 20, weight: .bold)).foregroundStyle(.white)
+                Spacer()
+                Button { discoveryRoute = .featuredPlaylists } label: {
+                    HStack(spacing: 4) {
+                        Text("全部").font(.system(size: 13, weight: .medium))
+                        Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold))
+                    }.foregroundStyle(MusicXTheme.muted)
                 }.buttonStyle(.plain)
             }.padding(.horizontal, 14)
-            GeometryReader { proxy in
-                let width = max(0, (proxy.size.width - 44) / 3)
-                HStack(spacing: 8) {
-                    editorialPlaylistCard(title: "午后放松", subtitle: "轻音乐 · 治愈 · 放松", width: width)
-                    editorialPlaylistCard(title: "深夜独白", subtitle: "安静 · 思考 · 陪伴", width: width)
-                    editorialPlaylistCard(title: "车载必听", subtitle: "旅途 · 驾驶 · 精选", width: width)
-                }.padding(.horizontal, 14)
-            }.frame(height: 76)
-        }
-    }
-
-    private func editorialPlaylistCard(title: String, subtitle: String, width: CGFloat) -> some View {
-        Button { discoveryRoute = .playlist(title) } label: {
-            ZStack(alignment: .bottomLeading) {
-                HomeArtwork(name: title == "午后放松" ? "playlist_relax" : title == "深夜独白" ? "playlist_night" : "playlist_drive")
-                    .frame(width: width, height: 76).clipped()
-                LinearGradient(colors: [.clear, .black.opacity(0.72)], startPoint: .center, endPoint: .bottom)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(title).font(.system(size: 13, weight: .bold)).foregroundStyle(.white).lineLimit(1)
-                    Text(subtitle).font(.system(size: 9, weight: .medium)).foregroundStyle(.white.opacity(0.86)).lineLimit(1).minimumScaleFactor(0.7)
-                }.padding(.leading, 8).padding(.bottom, 7)
-                Image(systemName: "play.fill").font(.system(size: 10, weight: .bold)).foregroundStyle(.white)
-                    .frame(width: 22, height: 22).background(.black.opacity(0.35), in: Circle())
-                    .overlay(Circle().stroke(.white.opacity(0.4), lineWidth: 0.8))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing).padding(8)
-            }.frame(width: width, height: 76)
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.white.opacity(0.26), lineWidth: 1))
-        }.buttonStyle(.plain)
-    }
-
-    private var forYouSection: some View {
-        VStack(alignment: .leading, spacing: 13) {
-            homeSectionTitle("猜你喜欢", action: { recommendationSongs = Array(songs.shuffled().prefix(6)) }, actionTitle: "换一批").padding(.horizontal, 14)
             ScrollView(.horizontal, showsIndicators: false) {
                 let cardWidth = (UIScreen.main.bounds.width - 44) / 2.15
-                HStack(spacing: 12) {
-                    ForEach(0..<min(recommendationSongs.count, 6), id: \.self) { index in
-                        let song = recommendationSongs[index]
-                        Button { select(song) } label: {
+                HStack(alignment: .top, spacing: 12) {
+                    ForEach(items, id: \.title) { item in
+                        Button { discoveryRoute = .playlist(item.title) } label: {
                             VStack(alignment: .leading, spacing: 7) {
-                                songArtwork(song.onlineSong, tint: song.tint, size: cardWidth)
+                                HomeArtwork(name: item.artwork)
+                                    .frame(width: cardWidth, height: cardWidth * 0.78)
+                                    .clipped()
                                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                                Text(song.title)
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .foregroundStyle(.white)
-                                    .lineLimit(1)
-                                    .truncationMode(.tail)
-                                    .frame(height: 17, alignment: .topLeading)
-                                Text(song.artist)
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(MusicXTheme.muted)
-                                    .lineLimit(1)
-                            }.frame(width: cardWidth, alignment: .leading)
+                                    .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.white.opacity(0.18), lineWidth: 0.8))
+                                Text(item.title).font(.system(size: 13, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
+                                Text(item.subtitle).font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                            }.frame(width: cardWidth, alignment: .leading).contentShape(Rectangle())
                         }.buttonStyle(.plain)
                     }
                 }.padding(.horizontal, 14)
-            }.frame(height: (UIScreen.main.bounds.width - 44) / 2.15 + 44)
+            }
         }
     }
 
