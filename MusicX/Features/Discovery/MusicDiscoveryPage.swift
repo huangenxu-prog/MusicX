@@ -205,7 +205,7 @@ struct MusicDiscoveryPage: View {
 
     private var topBar: some View {
         HStack {
-            Button(action: closePage) {
+            Button { closePage() } label: {
                 Image(systemName: "chevron.left").font(.system(size: 20, weight: .semibold))
                     .frame(width: 48, height: 46, alignment: .leading).contentShape(Rectangle())
             }.buttonStyle(.plain).zIndex(10)
