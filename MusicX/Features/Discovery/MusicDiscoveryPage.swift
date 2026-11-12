@@ -492,7 +492,11 @@ struct MusicDiscoveryPage: View {
 
     private func playlistTile(_ item: PlaylistCardItem, width: CGFloat, imageHeight: CGFloat) -> some View {
         Button {
-            if let playlist = playlistCardResults[item.title] { onOpenPlaylist(playlist) }
+            if let playlist = playlistCardResults[item.title] {
+                onOpenPlaylist(playlist)
+            } else {
+                onOpenPlaylistKeyword(item.title)
+            }
         } label: {
             VStack(alignment: .leading, spacing: 8) {
                 playlistCardArtwork(

@@ -343,6 +343,7 @@ struct ContentView: View {
                 currentTime: playerStore.currentTime,
                 duration: playerStore.duration,
                 onOpenPlaylist: { discoveryRoute = .playlistByID($0) },
+                onOpenPlaylistKeyword: { discoveryRoute = .playlist($0) },
                 onOpenAlbum: { discoveryRoute = .album(title: $0, artist: $1) },
                 onSelectChart: { discoveryRoute = .chart($0) })
         }
@@ -364,10 +365,11 @@ struct ContentView: View {
             .padding(.bottom, 8)
         }
         .scrollBounceBehavior(.basedOnSize)
+        .ignoresSafeArea(edges: .top)
     }
 
     private var heroAndRecommendation: some View {
-        VStack(alignment: .leading, spacing: 0) { heroHeader; recommendationSection }
+        VStack(alignment: .leading, spacing: 18) { heroHeader; recommendationSection }
     }
 
     private var heroHeader: some View {
@@ -386,11 +388,10 @@ struct ContentView: View {
                 Capsule().fill(.white.opacity(0.82)).frame(width: 15, height: 1)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .bottomLeading)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
         .padding(.horizontal, 22)
-        .padding(.top, 8)
-        .padding(.bottom, 20)
-        .frame(height: 128, alignment: .bottomLeading)
+        .padding(.top, 68)
+        .frame(height: 175, alignment: .topLeading)
         .background {
             GeometryReader { proxy in
                 ZStack {
@@ -434,7 +435,7 @@ struct ContentView: View {
                 recommendationTile(title: "每日推荐", subtitle: "每日更新", icon: "play.fill", colors: [Color(red: 0.94, green: 0.61, blue: 0.39), Color(red: 0.68, green: 0.29, blue: 0.50)], route: .daily, width: width)
                 recommendationTile(title: "精选歌单", subtitle: "遇见更好的自己", icon: "text.alignleft", colors: [Color(red: 0.57, green: 0.43, blue: 0.91), Color(red: 0.27, green: 0.17, blue: 0.64)], route: .featuredPlaylists, width: width)
             }.padding(.horizontal, inset)
-        }.frame(height: 96)
+        }.frame(height: 84)
     }
 
     private func recommendationTile(title: String, subtitle: String, icon: String, colors: [Color], route: MusicDiscoveryRoute, width: CGFloat) -> some View {
@@ -460,7 +461,7 @@ struct ContentView: View {
                         .lineLimit(1).minimumScaleFactor(0.75).padding(.top, 2)
                 }.padding(.leading, 15).padding(.vertical, 10)
             }
-            .frame(width: width, height: 96)
+            .frame(width: width, height: 84)
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(.white.opacity(0.26), lineWidth: 0.9))
             .shadow(color: colors.first?.opacity(0.20) ?? .clear, radius: 10, y: 4)
