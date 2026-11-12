@@ -528,7 +528,7 @@ struct MusicDiscoveryPage: View {
             ("DUO", "陈奕迅", "album_01"),
             ("最伟大的作品", "周杰伦", "album_02"),
             ("宇宙的有趣", "告五人", "album_03"),
-            ("A-Lin", "LINK", "album_04"),
+            ("LINK", "A-Lin", "album_04"),
             ("幼鸟指南", "毛不易", "album_05")
         ]
         return LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 18) {
@@ -637,9 +637,89 @@ struct MusicDiscoveryPage: View {
     }
 
     @MainActor
+    private func loadPlaylistCards(forMood: Bool) async {
+        let items: [(String, [String])] = forMood
+            ? [
+                ("开心愉悦", ["开心", "快乐", "愉悦", "好心情"]),
+                ("温柔治愈", ["治愈", "温柔", "疗愈", "舒缓"]),
+                ("放松舒缓", ["放松", "轻松", "休闲", "Relax"]),
+                ("安静专注", ["专注", "学习", "工作", "纯音乐"]),
+                ("释放情绪", ["摇滚", "热血", "燃", "释放情绪"]),
+                ("夜晚助眠", ["助眠", "睡眠", "晚安", "轻音乐"])
+            ]
+            : [
+                ("本周编辑精选", ["编辑精选", "本周精选", "编辑推荐"]),
+                ("华语流行精选", ["华语流行", "华语", "流行"]),
+                ("经典金曲精选", ["经典金曲", "经典", "怀旧"]),
+                ("独立音乐精选", ["独立音乐", "独立", "Indie"]),
+                ("影视原声精选", ["影视原声", "影视", "OST"]),
+                ("通勤驾驶精选", ["通勤", "开车", "驾车", "驾驶"])
+            ]
+
+        func normalized(_ value: String) -> String {
+            value.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+                .filter { $0.isLetter || $0.isNumber }
+        }
+
+        var updated = playlistCardResults
+        var assignedPlaylistIDs = Set(updated.values.map { $0.id })
+        for (category, keywords) in items where updated[category] == nil {
+            guard !Task.isCancelled else { return }
+            var selected: MusicPlaylist?
+            var lastError: String?
+            for keyword in keywords {
+                guard !Task.isCancelled else { return }
+                do {
+                    let results = try await service.searchPlaylists(keyword: keyword, count: 30)
+                    let token = normalized(keyword)
+                    let match = results
+                        .filter { !assignedPlaylistIDs.contains($0.id) }
+                        .map { playlist -> (MusicPlaylist, Int) in
+                            let name = normalized(playlist.name)
+                            let score = name == token ? 100
+                                : (name.contains(token) ? 80
+                                : (token.count >= 2 && token.contains(name) && !name.isEmpty ? 45 : 0))
+                            return (playlist, score)
+                        }
+                        .filter { $0.1 >= 45 }
+                        .sorted { $0.1 > $1.1 }
+                        .first?.0
+                    if let match {
+                        selected = match
+                        break
+                    }
+                } catch {
+                    lastError = error.localizedDescription
+                }
+            }
+            if let selected {
+                updated[category] = selected
+                assignedPlaylistIDs.insert(selected.id)
+                playlistCardResults = updated
+            } else if let lastError {
+                MusicSourceDiagnostics.shared.record(
+                    event: "playlist-discovery", source: MusicSource.qq.rawValue,
+                    provider: "qq-playlist-search", duration: 0,
+                    result: "failed", detail: "\(category): \(lastError)"
+                )
+            }
+        }
+        guard !Task.isCancelled else { return }
+        playlistCardResults = updated
+    }
+
+    @MainActor
     private func loadSongs() async {
-        if case .playlists = route { songs = []; return }
-        if case .featuredPlaylists = route { songs = []; return }
+        if case .playlists = route {
+            songs = []
+            await loadPlaylistCards(forMood: true)
+            return
+        }
+        if case .featuredPlaylists = route {
+            songs = []
+            await loadPlaylistCards(forMood: false)
+            return
+        }
         if case .albums = route { songs = []; return }
         if isChartRoute { await loadChart(selectedChart, showInitialLoading: true); return }
         isLoading = true
@@ -657,7 +737,15 @@ struct MusicDiscoveryPage: View {
             case .playlist(let name):
                 result = await searchEditorialTracks(name: name)
             case .playlistByID(let playlist):
-                result = await searchEditorialTracks(name: playlist.name)
+                if playlist.source == .qq {
+                    do {
+                        result = try await service.playlistTracks(playlistID: playlist.sourceID, count: 50)
+                    } catch {
+                        result = await searchEditorialTracks(name: playlist.name)
+                    }
+                } else {
+                    result = await searchEditorialTracks(name: playlist.name)
+                }
             default:
                 result = try await service.search(keyword: query, source: .netease, count: 30)
             }
@@ -711,36 +799,99 @@ struct MusicDiscoveryPage: View {
 
     private func searchAlbumTracks(title: String, artist: String) async -> [MusicSong] {
         func normalize(_ value: String) -> String {
-            value.lowercased().filter { $0.isLetter || $0.isNumber }
+            value.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+                .filter { $0.isLetter || $0.isNumber }
         }
+
         let albumToken = normalize(title)
         let artistToken = normalize(artist)
+        guard !albumToken.isEmpty, !artistToken.isEmpty else { return [] }
+
+        let sources: [MusicSource] = [.netease, .qq, .kuwo, .kugou, .migu]
         var candidates: [MusicSong] = []
-        for source in [MusicSource.netease, .qq, .kuwo, .kugou, .migu] {
+
+        // Album-specific endpoints first; regular song search is a fallback when providers
+        // omit album metadata or their album endpoint returns no usable rows.
+        for source in sources {
             guard !Task.isCancelled else { return candidates }
             do {
-                let albumResults = try await service.search(keyword: title, source: source, count: 50, albumOnly: true)
-                candidates.append(contentsOf: albumResults)
-            } catch { }
-            if candidates.filter({ normalize($0.artist).contains(artistToken) }).isEmpty {
-                do {
-                    let regularResults = try await service.search(keyword: "\(title) \(artist)", source: source, count: 50)
-                    candidates.append(contentsOf: regularResults)
-                } catch { }
+                let rows = try await service.search(keyword: title, source: source, count: 50, albumOnly: true)
+                candidates.append(contentsOf: rows)
+            } catch {
+                MusicSourceDiagnostics.shared.record(
+                    event: "album-search", source: source.rawValue,
+                    provider: "gdstudio-album-search", duration: 0,
+                    result: "failed", detail: error.localizedDescription
+                )
             }
         }
-        var seen = Set<String>()
-        let matched = candidates.filter { song in
-            let album = normalize(song.album ?? "")
+
+        let hasCredibleAlbumResults = candidates.contains { song in
             let songArtist = normalize(song.artist)
-            let albumMatches = album == albumToken || album.contains(albumToken) || albumToken.contains(album)
-            let artistMatches = songArtist.contains(artistToken) || artistToken.contains(songArtist)
-            return albumMatches && artistMatches
+            let album = normalize(song.album ?? "")
+            return !album.isEmpty
+                && (album == albumToken || album.contains(albumToken) || albumToken.contains(album))
+                && (songArtist.contains(artistToken) || artistToken.contains(songArtist))
         }
-        return Array(matched.filter { song in
-            let key = normalize(song.title) + "|" + normalize(song.artist)
-            return seen.insert(key).inserted
-        }.prefix(50))
+
+        if !hasCredibleAlbumResults {
+            for source in sources {
+                guard !Task.isCancelled else { return candidates }
+                do {
+                    let rows = try await service.search(keyword: "\(title) \(artist)", source: source, count: 50)
+                    candidates.append(contentsOf: rows)
+                } catch {
+                    MusicSourceDiagnostics.shared.record(
+                        event: "album-fallback-search", source: source.rawValue,
+                        provider: "gdstudio-search", duration: 0,
+                        result: "failed", detail: error.localizedDescription
+                    )
+                }
+            }
+        }
+
+        func versionMarkers(_ song: MusicSong) -> String {
+            let text = normalize("\(song.title) \(song.album ?? "")")
+            let markers = ["live", "remix", "cover", "acoustic", "instrumental", "伴奏", "纯音乐", "现场", "翻唱", "混音", "演唱会"]
+            return markers.filter { text.contains(normalize($0)) }.sorted().joined(separator: ",")
+        }
+
+        // Keep likely album tracks. Missing album metadata is tolerated only when the
+        // provider search also identifies the requested artist; explicit conflicting albums
+        // are down-ranked rather than silently discarded.
+        let ranked: [(MusicSong, Int)] = candidates.compactMap { song in
+            let songArtist = normalize(song.artist)
+            let songAlbum = normalize(song.album ?? "")
+            let artistMatch = songArtist == artistToken
+                || songArtist.contains(artistToken)
+                || artistToken.contains(songArtist)
+            guard artistMatch else { return nil }
+
+            let albumScore: Int
+            if songAlbum.isEmpty {
+                albumScore = 35
+            } else if songAlbum == albumToken {
+                albumScore = 100
+            } else if songAlbum.contains(albumToken) || albumToken.contains(songAlbum) {
+                albumScore = 75
+            } else {
+                albumScore = 0
+            }
+            guard albumScore >= 35 else { return nil }
+            return (song, albumScore + (songAlbum.isEmpty ? 0 : 10))
+        }
+
+        var seenRecordings = Set<String>()
+        let sorted = ranked.sorted { $0.1 > $1.1 }
+        let unique = sorted.compactMap { song, _ -> MusicSong? in
+            let titleKey = normalize(song.title)
+            let artistKey = normalize(song.artist)
+            guard !titleKey.isEmpty else { return nil }
+            let durationKey = song.duration.map { String(Int($0.rounded())) } ?? "unknown"
+            let key = "\(titleKey)|\(artistKey)|\(versionMarkers(song))|\(durationKey)"
+            return seenRecordings.insert(key).inserted ? song : nil
+        }
+        return Array(unique.prefix(50))
     }
 
     @MainActor
