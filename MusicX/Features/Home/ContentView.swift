@@ -283,7 +283,9 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: .musicXPlaybackDidFinish)) { _ in
             playNextAfterNaturalFinish()
         }
-        .onReceive(NotificationCenter.default.publisher(for: .musicXPlaybackFailed)) { _ in
+        .onReceive(NotificationCenter.default.publisher(for: .musicXPlaybackFailed)) { notification in
+            guard let failedItem = notification.object as? AVPlayerItem,
+                  playerStore.isCurrentItem(failedItem) else { return }
             retryCurrentSongWithFreshURL()
         }
         .fullScreenCover(item: $discoveryRoute) { route in
