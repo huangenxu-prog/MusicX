@@ -509,7 +509,7 @@ struct ContentView: View {
                         let song = songs[index]
                         homeSongRow(song)
                         if song.id != songs.prefix(6).last?.id {
-                            Rectangle().fill(.white.opacity(0.12)).frame(height: 0.5).padding(.leading, 42)
+                            Rectangle().fill(.white.opacity(0.12)).frame(height: 0.5)
                         }
                     }
                 }.padding(.horizontal, 20)
@@ -914,25 +914,24 @@ struct ContentView: View {
 
     private func homeSongRow(_ song: AppSong, artworkName: String? = nil) -> some View {
         Button { select(song) } label: {
-            HStack(spacing: 9) {
+            HStack(spacing: 12) {
                 Group {
                     if let artworkName {
                         HomeArtwork(name: artworkName)
                     } else {
-                        songArtwork(song.onlineSong, tint: song.tint, size: 30)
+                        songArtwork(song.onlineSong, tint: song.tint, size: 46)
                     }
                 }
-                .frame(width: 30, height: 30)
-                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(song.title).font(.system(size: 14, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
-                    Text(song.artist).font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
+                .frame(width: 46, height: 46)
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(song.title).font(.system(size: 16, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
+                    Text(song.artist).font(.system(size: 12)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
                 }.frame(maxWidth: .infinity, alignment: .leading)
                 if let duration = song.onlineSong?.duration, duration > 0 {
-                    Text(playerTime(duration)).font(.system(size: 10, weight: .medium, design: .rounded)).monospacedDigit().foregroundStyle(MusicXTheme.muted)
+                    Text(playerTime(duration)).font(.system(size: 12, weight: .medium, design: .rounded)).monospacedDigit().foregroundStyle(MusicXTheme.muted)
                 }
-                Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)).foregroundStyle(.white.opacity(0.58))
-            }.contentShape(Rectangle()).padding(.vertical, 0)
+            }.contentShape(Rectangle()).padding(.vertical, 5)
         }.buttonStyle(.plain)
     }
 
