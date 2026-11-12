@@ -90,18 +90,18 @@ struct MusicDiscoveryPage: View {
         case .newReleases: "新歌"
         case .playlist(let name):
             switch name {
-            case "开心愉悦": "开心 华语流行"
-            case "温柔治愈": "治愈 温柔"
-            case "放松舒缓": "放松 轻音乐"
-            case "安静专注": "专注 纯音乐"
-            case "释放情绪": "情绪 摇滚"
-            case "夜晚助眠": "助眠 轻音乐"
+            case "开心愉悦": "开心"
+            case "温柔治愈": "治愈"
+            case "放松舒缓": "放松"
+            case "安静专注": "专注"
+            case "释放情绪": "摇滚"
+            case "夜晚助眠": "助眠"
             case "本周编辑精选": "本周精选"
             case "华语流行精选": "华语流行"
             case "经典金曲精选": "经典金曲"
             case "独立音乐精选": "独立音乐"
             case "影视原声精选": "影视原声"
-            case "通勤驾驶精选": "车载 通勤"
+            case "通勤驾驶精选": "通勤"
             default: name
             }
         case .album(let title, let artist): "\(title) \(artist)"
