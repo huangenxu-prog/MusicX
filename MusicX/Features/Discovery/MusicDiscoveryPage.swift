@@ -261,7 +261,7 @@ struct MusicDiscoveryPage: View {
                 VStack(alignment: .leading, spacing: 7) {
                     Text(name).font(.system(size: 27, weight: .bold, design: .rounded)).foregroundStyle(.white)
                     Text(subtitle).font(.system(size: 14, weight: .medium)).foregroundStyle(.white.opacity(0.70))
-                    Text("为你精选 · 在线曲目").font(.system(size: 11, weight: .medium)).foregroundStyle(.white.opacity(0.48)).padding(.top, 5)
+                    Text("QQ音乐歌单 · 在线曲目").font(.system(size: 11, weight: .medium)).foregroundStyle(.white.opacity(0.48)).padding(.top, 5)
                 }.padding(24)
             }
             .frame(height: 196)
