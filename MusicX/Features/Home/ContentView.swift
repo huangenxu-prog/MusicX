@@ -585,7 +585,13 @@ struct ContentView: View {
                 let cardWidth = (UIScreen.main.bounds.width - 44) / 2.15
                 HStack(alignment: .top, spacing: 12) {
                     ForEach(items, id: \.title) { item in
-                        Button { discoveryRoute = .playlist(item.title) } label: {
+                        Button {
+                            if item.title == "本周编辑精选" {
+                                discoveryRoute = .featuredPick
+                            } else {
+                                discoveryRoute = .playlist(item.title)
+                            }
+                        } label: {
                             VStack(alignment: .leading, spacing: 7) {
                                 HomeArtwork(name: item.artwork)
                                     .frame(width: cardWidth, height: cardWidth * 0.78)
