@@ -341,7 +341,7 @@ struct MusicDiscoveryPage: View {
         }.padding(.top, 4)
     }
 
-    // Fixed ranking hero: this artwork and copy never change with the selected chart.
+    // DESIGN LOCK: fixed skyline hero from the ranking reference; never swap artwork or copy when chart tabs change.
     private var chartIntro: some View {
         ZStack(alignment: .bottomLeading) {
             LinearGradient(
