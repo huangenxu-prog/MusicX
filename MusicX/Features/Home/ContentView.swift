@@ -281,7 +281,6 @@ struct ContentView: View {
                 case .library: libraryPage
                 }
             }
-            .ignoresSafeArea(edges: selectedTab == .home ? .top : [])
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
          .background { MusicXPageBackground() }
@@ -389,9 +388,9 @@ struct ContentView: View {
         }
         .frame(maxWidth: .infinity, alignment: .bottomLeading)
         .padding(.horizontal, 22)
-        .padding(.top, 62)
-        .padding(.bottom, 24)
-        .frame(height: 190, alignment: .bottomLeading)
+        .padding(.top, 8)
+        .padding(.bottom, 20)
+        .frame(height: 128, alignment: .bottomLeading)
         .background {
             GeometryReader { proxy in
                 ZStack {
@@ -420,6 +419,7 @@ struct ContentView: View {
                 }
                 .frame(width: proxy.size.width, height: proxy.size.height)
             }
+            .ignoresSafeArea(edges: .top)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("发现音乐，好音乐，总在心里")
