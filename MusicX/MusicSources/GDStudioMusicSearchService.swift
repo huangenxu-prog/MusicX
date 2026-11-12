@@ -183,7 +183,7 @@ struct GDStudioMusicSearchService {
     func playlistTracks(playlistID: String, count: Int = 50) async throws -> [MusicSong] {
         let normalizedID = playlistID.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let numericPlaylistID = Int(normalizedID), numericPlaylistID > 0, count > 0 else {
-            throw MusicSourceError.invalidResponse("QQ音乐歌单 ID 无效")
+            throw MusicSourceError.invalidResponse("歌单编号无效")
         }
         let cacheKey = "qq-playlist-tracks|\(normalizedID)|\(count)"
         if let cached: [MusicSong] = await MusicCache.shared.value(for: cacheKey) { return cached }
@@ -216,7 +216,7 @@ struct GDStudioMusicSearchService {
             if rows.isEmpty { hasMore = false }
             begin += rows.count
         }
-        guard !songs.isEmpty else { throw MusicSourceError.invalidResponse("QQ音乐歌单存在，但没有返回可用曲目") }
+        guard !songs.isEmpty else { throw MusicSourceError.invalidResponse("该歌单暂时没有可用歌曲") }
         let result = Array(songs.prefix(count))
         await MusicCache.shared.insert(result, for: cacheKey, ttl: 10 * 60)
         return result
@@ -230,37 +230,58 @@ struct GDStudioMusicSearchService {
         guard let url = URL(string: "https://u.y.qq.com/cgi-bin/musicu.fcg") else {
             throw MusicSourceError.invalidResponse("QQ音乐接口地址无效")
         }
-        let payload: [String: Any] = [
+        let primaryPayload: [String: Any] = [
             module: [
                 "module": module,
                 "method": method,
                 "param": parameters
             ]
         ]
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.timeoutInterval = 12
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("https://y.qq.com/", forHTTPHeaderField: "Referer")
-        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148", forHTTPHeaderField: "User-Agent")
-        request.httpBody = try JSONSerialization.data(withJSONObject: payload, options: [.fragmentsAllowed])
+        let fallbackPayload: [String: Any] = [
+            "req_1": [
+                "module": module,
+                "method": method,
+                "param": parameters
+            ],
+            "comm": ["format": "json", "ct": 19, "cv": 0]
+        ]
 
-        let (data, response) = try await session.data(for: request)
-        guard let http = response as? HTTPURLResponse,
-              (200..<300).contains(http.statusCode) else {
-            throw MusicSourceError.invalidResponse("QQ音乐接口 HTTP \((response as? HTTPURLResponse)?.statusCode ?? -1)")
+        func send(_ payload: [String: Any]) async throws -> [String: Any] {
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.timeoutInterval = 12
+            request.setValue("application/json", forHTTPHeaderField: "Accept")
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("https://y.qq.com/", forHTTPHeaderField: "Referer")
+            request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148", forHTTPHeaderField: "User-Agent")
+            request.httpBody = try JSONSerialization.data(withJSONObject: payload, options: [.fragmentsAllowed])
+
+            let (data, response) = try await session.data(for: request)
+            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+                throw MusicSourceError.invalidResponse("接口 HTTP \((response as? HTTPURLResponse)?.statusCode ?? -1)")
+            }
+            guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                throw MusicSourceError.invalidResponse("接口返回内容不是 JSON 对象")
+            }
+            let topCode = root["code"] as? Int ?? 0
+            let service = (root[module] as? [String: Any]) ?? (root["req_1"] as? [String: Any])
+            guard let service else {
+                throw MusicSourceError.invalidResponse("接口缺少业务响应节点")
+            }
+            let moduleCode = service["code"] as? Int ?? 0
+            guard topCode == 0, moduleCode == 0, let result = service["data"] as? [String: Any] else {
+                throw MusicSourceError.invalidResponse("服务返回错误 top=\(topCode), module=\(moduleCode)")
+            }
+            return result
         }
-        guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let service = root[module] as? [String: Any] else {
-            throw MusicSourceError.invalidResponse("QQ音乐接口返回结构异常")
+
+        do {
+            return try await send(primaryPayload)
+        } catch {
+            // QQ's search gateway has shipped both module-key and req_1 envelopes.
+            // Try the documented desktop-style envelope once before surfacing failure.
+            return try await send(fallbackPayload)
         }
-        let topCode = root["code"] as? Int ?? 0
-        let moduleCode = service["code"] as? Int ?? 0
-        guard topCode == 0, moduleCode == 0, let result = service["data"] as? [String: Any] else {
-            throw MusicSourceError.invalidResponse("QQ音乐服务返回错误 top=\(topCode), module=\(moduleCode)")
-        }
-        return result
     }
 
     /// Reads the public NetEase playlist endpoints used for its live charts.
