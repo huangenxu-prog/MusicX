@@ -57,10 +57,83 @@ struct LXMusicURLResolver: MusicURLResolving {
             }
         }
 
+        if song.source == .qq {
+            if let fallbackURL = try await resolveQQSongThroughNetEase(song, quality: quality) {
+                return fallbackURL
+            }
+        }
+
         throw MusicSourceError.noPlayableURL(
             source: song.source,
             details: failures.suffix(3).joined(separator: "；")
         )
+    }
+
+    /// QQ playlist metadata stays QQ-native. Only when QQ playback URL providers fail,
+    /// search NetEase by title and artist and use a strictly matched NetEase track ID.
+    private func resolveQQSongThroughNetEase(_ song: MusicSong, quality: MusicQuality) async throws -> URL? {
+        let searchService = GDStudioMusicSearchService(session: session)
+        let candidates = try await searchService.search(
+            keyword: song.title,
+            source: .netease,
+            page: 1,
+            count: 12
+        )
+        let wantedTitle = normalizedMatchText(song.title)
+        let wantedArtists = Set(song.artist.split(separator: "/").map {
+            normalizedMatchText(String($0))
+        }.filter { !$0.isEmpty })
+
+        guard let matchedSong = candidates.first(where: { candidate in
+            guard normalizedMatchText(candidate.title) == wantedTitle else { return false }
+            let candidateArtists = candidate.artist.split(separator: "/").map {
+                normalizedMatchText(String($0))
+            }.filter { !$0.isEmpty }
+            return candidateArtists.contains { candidateArtist in
+                wantedArtists.contains { wantedArtist in
+                    candidateArtist == wantedArtist
+                        || candidateArtist.contains(wantedArtist)
+                        || wantedArtist.contains(candidateArtist)
+                }
+            }
+        }) else {
+            MusicSourceDiagnostics.shared.record(
+                event: "resolve-fallback", source: song.source.rawValue,
+                provider: "netease-search", duration: 0, result: "no_exact_match",
+                detail: "title=\(song.title)"
+            )
+            return nil
+        }
+
+        for backend in backends(for: .netease) {
+            try Task.checkCancellation()
+            let startedAt = Date()
+            do {
+                if let url = try await resolveWithRetry(backend, song: matchedSong, quality: quality),
+                   isPlayableURL(url) {
+                    MusicSourceDiagnostics.shared.record(
+                        event: "resolve-fallback", source: song.source.rawValue,
+                        provider: backend.name, duration: Date().timeIntervalSince(startedAt),
+                        result: "url_returned", detail: "matched=\(matchedSong.title) · \(matchedSong.artist)"
+                    )
+                    return url
+                }
+            } catch {
+                if Task.isCancelled || error is CancellationError || (error as? URLError)?.code == .cancelled {
+                    throw CancellationError()
+                }
+                MusicSourceDiagnostics.shared.record(
+                    event: "resolve-fallback", source: song.source.rawValue,
+                    provider: backend.name, duration: Date().timeIntervalSince(startedAt),
+                    result: "failed", detail: error.localizedDescription
+                )
+            }
+        }
+        return nil
+    }
+
+    private func normalizedMatchText(_ value: String) -> String {
+        String(value.lowercased().filter { $0.isLetter || $0.isNumber })
     }
 
     /// Force a fresh provider lookup after AVPlayer rejects a previously resolved URL.
