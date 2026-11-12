@@ -6,6 +6,7 @@ on:
       - home/final-design-asset-pass
     paths:
       - ".github/workflows/import-home-assets.yml"
+      - "MusicX-Complete-Visual-Assets.zip"
   workflow_dispatch:
 
 permissions:
@@ -20,46 +21,41 @@ jobs:
         with:
           ref: home/final-design-asset-pass
 
-      - name: Validate and import six redesigned category images
+      - name: Import complete visual asset bundle
         shell: bash
         run: |
           set -euo pipefail
-          archive="MusicX/Assets.xcassets/MusicX-Redesigned-Category-Assets-v2.zip"
-          test -f "$archive" || { echo "::error::Uploaded category asset ZIP not found."; exit 1; }
+          archive="MusicX-Complete-Visual-Assets.zip"
+          test -f "$archive" || { echo "::error::Complete visual asset ZIP not found at repository root."; exit 1; }
 
-          rm -rf /tmp/musicx-category-assets
-          mkdir -p /tmp/musicx-category-assets
-          unzip -q "$archive" -d /tmp/musicx-category-assets
+          temp="/tmp/musicx-complete-visual-assets"
+          mkdir -p "$temp"
+          unzip -q "$archive" -d "$temp"
 
-          expected=(category_chinese_pop category_classic category_light category_instrumental category_rock category_singers)
+          expected=(category_chinese_pop category_classic category_light category_instrumental category_rock category_singers daily_recommend chart_hot chart_new chart_rising)
           destination="MusicX/Assets.xcassets"
           for name in "${expected[@]}"; do
-            folder="$(find /tmp/musicx-category-assets -type d -name "$name.imageset" -print -quit)"
-            test -n "$folder" || { echo "::error::Missing $name.imageset"; exit 1; }
-            python3 - "$folder" <<'PY'
+            folder="$(find "$temp" -type d -name "$name.imageset" -print -quit)"
+            test -n "$folder" || { echo "::error::Missing $name.imageset in uploaded ZIP."; exit 1; }
+            python3 - "$folder" "$name" <<'PY'
           import json, sys
           from pathlib import Path
-          folder = Path(sys.argv[1])
-          manifest = folder / "Contents.json"
-          data = json.loads(manifest.read_text())
-          for image in data.get("images", []):
-              filename = image.get("filename")
-              if filename and not (folder / filename).is_file():
-                  raise SystemExit(f"Missing image: {folder / filename}")
-          jpgs = list(folder.glob("*.jpg"))
-          if len(jpgs) != 1:
-              raise SystemExit(f"Expected one JPG in {folder}, found {len(jpgs)}")
+          folder, name = Path(sys.argv[1]), sys.argv[2]
+          data = json.loads((folder / "Contents.json").read_text())
+          files = [x.get("filename") for x in data.get("images", []) if x.get("filename")]
+          if len(files) != 1 or not (folder / files[0]).is_file():
+              raise SystemExit(f"Invalid image manifest for {name}: {files}")
+          if not files[0].lower().endswith((".jpg", ".jpeg")):
+              raise SystemExit(f"Unexpected image format for {name}: {files[0]}")
           PY
-            if [ -e "$destination/$name.imageset" ]; then
-              echo "::error::Refusing to overwrite existing asset set: $name"
-              exit 1
-            fi
+            rm -rf "$destination/$name.imageset"
             cp -R "$folder" "$destination/$name.imageset"
+            echo "Imported $name"
           done
 
           rm "$archive"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "$destination"
-          git commit -m "Import six redesigned category image assets"
+          git add "$destination" "$archive"
+          git commit -m "Import complete redesigned MusicX visual assets"
           git push origin HEAD:home/final-design-asset-pass
