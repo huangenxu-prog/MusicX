@@ -1,4 +1,5 @@
 name: MusicX iOS build
+# Build trigger retained for the active QQ Music integration branch.
 
 on:
   push:
