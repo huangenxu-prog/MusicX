@@ -1,4 +1,5 @@
 import SwiftUI
+import AVFoundation
 
 private enum MainTab: String, CaseIterable {
     case home = "首页"
@@ -1888,7 +1889,7 @@ struct ContentView: View {
 
 }
 
-private struct SongArtworkView: View {
+struct SongArtworkView: View {
     let song: MusicSong
     let tint: Color
     let size: CGFloat
