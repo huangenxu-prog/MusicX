@@ -56,6 +56,8 @@ struct MusicDiscoveryPage: View {
     @State private var selectedChartOverride: String?
     @State private var chartSongCache: [String: [MusicSong]] = [:]
     @State private var playlistCardResults: [String: MusicPlaylist] = [:]
+    @State private var isPlaylistUnavailableAlertPresented = false
+    @State private var playlistUnavailableMessage = ""
     private var selectedChart: String {
         if let selectedChartOverride { return selectedChartOverride }
         if case .chart(let name) = route { return name }
@@ -172,6 +174,11 @@ struct MusicDiscoveryPage: View {
             closePage()
         })
         .task(id: route.id) { await loadSongs() }
+        .alert("暂未找到匹配歌单", isPresented: $isPlaylistUnavailableAlertPresented) {
+            Button("知道了", role: .cancel) {}
+        } message: {
+            Text(playlistUnavailableMessage)
+        }
     }
 
     private var topBar: some View {
@@ -455,7 +462,8 @@ struct MusicDiscoveryPage: View {
             } else if let playlist = playlistCardResults[item.title] {
                 onOpenPlaylist(playlist)
             } else {
-                onOpenPlaylistKeyword(item.title)
+                playlistUnavailableMessage = "暂未找到“\\(item.title)”对应的真实歌单，暂不使用普通关键词搜索结果代替分类歌单。"
+                isPlaylistUnavailableAlertPresented = true
             }
         } label: {
             VStack(alignment: .leading, spacing: 8) {
