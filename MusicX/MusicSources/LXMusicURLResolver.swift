@@ -185,53 +185,23 @@ struct LXMusicURLResolver: MusicURLResolving {
     }
 
     private func matchScore(original: MusicSong, candidate: MusicSong) -> Int {
-        let originalTitle = normalizedMatchText(original.title)
-        let candidateTitle = normalizedMatchText(candidate.title)
-        guard !originalTitle.isEmpty, originalTitle == candidateTitle else { return 0 }
-
-        let originalArtists = normalizedArtists(original.artist)
-        let candidateArtists = normalizedArtists(candidate.artist)
+        guard normalizedMatchText(original.title) == normalizedMatchText(candidate.title),
+              !normalizedMatchText(original.title).isEmpty else { return 0 }
+        let originalArtists = original.artist.split(separator: "/").map { normalizedMatchText(String($0)) }.filter { !$0.isEmpty }
+        let candidateArtists = candidate.artist.split(separator: "/").map { normalizedMatchText(String($0)) }.filter { !$0.isEmpty }
         guard !originalArtists.isEmpty, !candidateArtists.isEmpty,
-              originalArtists == candidateArtists else { return 0 }
-
-        if let lhs = original.duration, let rhs = candidate.duration,
-           abs(lhs - rhs) > 5 { return 0 }
-
-        // Do not silently substitute studio, live, remix, cover or instrumental
-        // recordings for one another, even when title and lead artist are identical.
-        let originalVersions = versionMarkers(in: "\\(original.title) \\(original.album ?? "")")
-        let candidateVersions = versionMarkers(in: "\\(candidate.title) \\(candidate.album ?? "")")
-        guard originalVersions == candidateVersions else { return 0 }
+              originalArtists.contains(where: { candidateArtists.contains($0) }) else { return 0 }
+        if let lhs = original.duration, let rhs = candidate.duration, abs(lhs - rhs) > 5 { return 0 }
 
         var score = 100
         if let lhs = original.duration, let rhs = candidate.duration {
             score += max(0, 20 - Int(abs(lhs - rhs) * 4))
-        } else {
-            score -= 12
         }
         if let lhs = original.album, let rhs = candidate.album,
            normalizedMatchText(lhs) == normalizedMatchText(rhs) {
             score += 10
         }
         return score
-    }
-
-    private func normalizedArtists(_ value: String) -> [String] {
-        value.split(whereSeparator: { $0 == "/" || $0 == "、" || $0 == "," || $0 == "，" })
-            .map { normalizedMatchText(String($0)) }
-            .filter { !$0.isEmpty }
-            .sorted()
-    }
-
-    private func versionMarkers(in value: String) -> Set<String> {
-        let text = value.lowercased()
-            .folding(options: [.diacriticInsensitive, .widthInsensitive], locale: .current)
-        let markers = [
-            "live", "remix", "instrumental", "伴奏", "纯音乐", "现场", "演唱会",
-            "翻唱", "cover", "acoustic", "不插电", "demo", "示范", "合唱",
-            "remaster", "重制", "sped up", "slowed", "加速", "降速", "dj"
-        ]
-        return Set(markers.filter { text.contains($0) })
     }
 
     private func sourceFallbackPriority(_ source: MusicSource) -> Int {

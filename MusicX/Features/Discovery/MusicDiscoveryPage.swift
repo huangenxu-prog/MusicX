@@ -643,14 +643,31 @@ struct MusicDiscoveryPage: View {
             ]
 
         var updated = playlistCardResults
+        var assignedPlaylistIDs = Set(updated.values.map(\\.id))
         for (category, keyword) in items where updated[category] == nil {
             guard !Task.isCancelled else { return }
             do {
-                let results = try await service.searchPlaylists(keyword: keyword, count: 10)
-                if let match = results.first(where: {
-                    $0.name.localizedCaseInsensitiveContains(keyword)
-                }) {
+                let results = try await service.searchPlaylists(keyword: keyword, count: 20)
+                let normalizedKeyword = keyword
+                    .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+                    .filter { $0.isLetter || $0.isNumber }
+                let match = results
+                    .filter { !assignedPlaylistIDs.contains($0.id) }
+                    .map { playlist -> (MusicPlaylist, Int) in
+                        let normalizedName = playlist.name
+                            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+                            .filter { $0.isLetter || $0.isNumber }
+                        let score = normalizedName == normalizedKeyword ? 100
+                            : (normalizedName.contains(normalizedKeyword) ? 80
+                            : (normalizedKeyword.contains(normalizedName) && !normalizedName.isEmpty ? 50 : 0))
+                        return (playlist, score)
+                    }
+                    .filter { $0.1 > 0 }
+                    .sorted { $0.1 > $1.1 }
+                    .first?.0
+                if let match {
                     updated[category] = match
+                    assignedPlaylistIDs.insert(match.id)
                     playlistCardResults = updated
                 }
             } catch {
