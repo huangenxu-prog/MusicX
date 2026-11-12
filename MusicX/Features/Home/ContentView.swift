@@ -375,7 +375,7 @@ struct ContentView: View {
             .frame(maxWidth: .infinity)
             // Extend the banner into the status-bar safe area without moving its bottom edge.
             .scaleEffect(x: 1, y: 1.10, anchor: .top)
-            .offset(y: -27)
+            .offset(y: -7)
             .accessibilityLabel("发现音乐，好音乐，总在心里")
     }
 
