@@ -163,7 +163,7 @@ struct MusicDiscoveryPage: View {
             LinearGradient(colors: [.black.opacity(0.02), .black.opacity(0.70)], startPoint: .top, endPoint: .bottom)
             VStack(alignment: .leading, spacing: 7) {
                 Text("排行榜").font(.system(size: 29, weight: .bold, design: .rounded))
-                Text("网易云音乐官方榜单 · 每日更新").font(.system(size: 13, weight: .medium)).foregroundStyle(.white.opacity(0.78))
+                Text("MusicX 精选榜单 · 持续更新").font(.system(size: 13, weight: .medium)).foregroundStyle(.white.opacity(0.78))
             }.padding(22)
         }
         .frame(height: 194).clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
