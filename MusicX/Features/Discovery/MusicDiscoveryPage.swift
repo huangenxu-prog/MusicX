@@ -46,6 +46,7 @@ struct MusicDiscoveryPage: View {
     let duration: TimeInterval
     let onOpenPlaylist: (MusicPlaylist) -> Void
     let onOpenPlaylistKeyword: (String) -> Void
+    let onOpenFeaturedPick: () -> Void
     let onOpenAlbum: (String, String) -> Void
     let onSelectChart: (String) -> Void
 
@@ -449,7 +450,9 @@ struct MusicDiscoveryPage: View {
 
     private func playlistTile(_ item: PlaylistCardItem, width: CGFloat, imageHeight: CGFloat) -> some View {
         Button {
-            if let playlist = playlistCardResults[item.title] {
+            if case .featuredPlaylists = route, item.title == "本周编辑精选" {
+                onOpenFeaturedPick()
+            } else if let playlist = playlistCardResults[item.title] {
                 onOpenPlaylist(playlist)
             } else {
                 onOpenPlaylistKeyword(item.title)
