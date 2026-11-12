@@ -798,6 +798,7 @@ struct MusicDiscoveryPage: View {
                         if seen.insert(key).inserted { collected.append(song) }
                     }
                 } catch {
+                    if Task.isCancelled { return collected }
                     MusicSourceDiagnostics.shared.record(event: "editorial-search", source: source.rawValue,
                         provider: "gdstudio-search", duration: 0, result: "failed",
                         detail: "\(keyword): \(error.localizedDescription)")
@@ -829,6 +830,7 @@ struct MusicDiscoveryPage: View {
                 let rows = try await service.search(keyword: title, source: source, count: 50, albumOnly: true)
                 candidates.append(contentsOf: rows)
             } catch {
+                if Task.isCancelled { return candidates }
                 MusicSourceDiagnostics.shared.record(
                     event: "album-search", source: source.rawValue,
                     provider: "gdstudio-album-search", duration: 0,
@@ -852,6 +854,7 @@ struct MusicDiscoveryPage: View {
                     let rows = try await service.search(keyword: "\(title) \(artist)", source: source, count: 50)
                     candidates.append(contentsOf: rows)
                 } catch {
+                    if Task.isCancelled { return candidates }
                     MusicSourceDiagnostics.shared.record(
                         event: "album-fallback-search", source: source.rawValue,
                         provider: "gdstudio-search", duration: 0,
@@ -917,11 +920,15 @@ struct MusicDiscoveryPage: View {
         }
         do {
             let result = try await service.toplist(name, count: 50)
+            guard !Task.isCancelled else { return }
             chartSongCache[name] = result
             songs = result
             errorMessage = result.isEmpty ? "音源没有返回匹配的歌曲，请稍后重试" : nil
             if !result.isEmpty { onQueueChanged(result) }
-        } catch { errorMessage = error.localizedDescription }
+        } catch {
+            if Task.isCancelled { return }
+            errorMessage = error.localizedDescription
+        }
     }
 
     @MainActor
