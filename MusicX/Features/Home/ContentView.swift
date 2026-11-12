@@ -1100,46 +1100,7 @@ struct ContentView: View {
                         Spacer()
                         Text("正在播放").font(.system(size: 16, weight: .semibold))
                         Spacer()
-                        Menu {
-                            Button {
-                                if let currentSong { toggleFavorite(currentSong) }
-                            } label: {
-                                Label(favorites.contains(currentSong?.id ?? -1) ? "取消喜欢" : "添加到喜欢",
-                                      systemImage: favorites.contains(currentSong?.id ?? -1) ? "heart.slash" : "heart")
-                            }
-                            ShareLink(item: "\(currentSong?.title ?? "歌曲") - \(currentSong?.artist ?? "未知歌手")") {
-                                Label("分享歌曲", systemImage: "square.and.arrow.up")
-                            }
-                            ShareLink(item: MusicSourceDiagnostics.shared.fileURL) {
-                                Label("分享音源诊断", systemImage: "waveform.path")
-                            }
-                            Button {
-                                downloadCurrentSong()
-                            } label: {
-                                Label(isDownloading ? "正在下载…" : (isCurrentSongDownloaded ? "已下载" : "下载歌曲"),
-                                      systemImage: "arrow.down.to.line")
-                            }
-                            .disabled(currentSong?.onlineSong == nil || isDownloading || isCurrentSongDownloaded)
-                            Menu {
-                                Button("查看专辑") {
-                                    if let song = currentSong?.onlineSong {
-                                        isPlayerPresented = false
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { discoveryRoute = .album(title: song.album?.isEmpty == false ? song.album! : song.title, artist: song.artist) }
-                                    }
-                                }
-                                Button("查看歌手") {
-                                    if let artist = currentSong?.artist, !artist.isEmpty {
-                                        isPlayerPresented = false
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { openSearch(query: artist) }
-                                    }
-                                }
-                            } label: {
-                                Label("查看专辑 / 歌手", systemImage: "person.crop.rectangle")
-                            }
-                        } label: {
-                            Image(systemName: "ellipsis").font(.system(size: 19, weight: .semibold))
-                        }
-                        .disabled(currentSong == nil)
+                        Color.clear.frame(width: 19, height: 24)
                     }
                     .foregroundStyle(.white)
                     .padding(.horizontal, 26)
