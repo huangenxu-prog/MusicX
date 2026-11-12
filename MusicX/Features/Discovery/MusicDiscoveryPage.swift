@@ -753,7 +753,9 @@ struct MusicDiscoveryPage: View {
             }
             guard !Task.isCancelled else { return }
             songs = result
-            onQueueChanged(songs)
+            if !songs.isEmpty {
+                onQueueChanged(songs)
+            }
             if songs.isEmpty {
                 errorMessage = playlistLoadError ?? "音源没有返回匹配的歌曲，请稍后重试"
             }
