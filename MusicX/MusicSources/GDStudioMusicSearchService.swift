@@ -113,11 +113,7 @@ struct GDStudioMusicSearchService {
                 if normalizedName == normalizedQuery { score = 100 }
                 else if normalizedName.contains(normalizedQuery) { score = 80 }
                 else if normalizedQuery.contains(normalizedName) { score = 60 }
-                else {
-                    let queryCharacters = Set(normalizedQuery.filter { !$0.isWhitespace })
-                    let overlap = queryCharacters.intersection(Set(normalizedName)).count
-                    score = overlap >= 2 ? overlap : 0
-                }
+                else { score = 0 }
                 return score > 0 ? (row, score) : nil
             }
             .sorted { $0.score > $1.score }
