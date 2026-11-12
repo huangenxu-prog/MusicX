@@ -129,7 +129,7 @@ struct GDStudioMusicSearchService {
     /// Playlist IDs and song MIDs remain QQ Music identifiers throughout this path.
     func playlistTracks(keyword: String, count: Int = 50) async throws -> [MusicSong] {
         let normalizedKeyword = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !normalizedKeyword.isEmpty else { return [] }
+        guard !normalizedKeyword.isEmpty, count > 0 else { return [] }
         let cacheKey = "qq-playlist-tracks|\(normalizedKeyword.lowercased())|\(count)"
         if let cached: [MusicSong] = await MusicCache.shared.value(for: cacheKey) {
             return cached
@@ -141,7 +141,6 @@ struct GDStudioMusicSearchService {
         guard let matchedPlaylist = playlists.first(where: {
             $0.name.localizedCaseInsensitiveCompare(normalizedKeyword) == .orderedSame
                 || $0.name.localizedCaseInsensitiveContains(normalizedQuery)
-                || normalizedQuery.localizedCaseInsensitiveContains($0.name)
         }) else {
             throw MusicSourceError.invalidResponse("QQ音乐没有找到与“\(normalizedKeyword)”相关的真实歌单")
         }
