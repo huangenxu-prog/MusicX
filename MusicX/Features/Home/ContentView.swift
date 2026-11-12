@@ -435,7 +435,7 @@ struct ContentView: View {
             let width = max(0, (proxy.size.width - inset * 2 - gap) / 2)
             HStack(spacing: gap) {
                 recommendationTile(title: "每日推荐", subtitle: "每日更新", icon: "play.fill", colors: [Color(red: 0.94, green: 0.61, blue: 0.39), Color(red: 0.68, green: 0.29, blue: 0.50)], route: .daily, width: width)
-                recommendationTile(title: "精选歌单", subtitle: "遇见更好的自己", icon: "text.alignleft", colors: [Color(red: 0.57, green: 0.43, blue: 0.91), Color(red: 0.27, green: 0.17, blue: 0.64)], route: .featuredPlaylists, width: width)
+                recommendationTile(title: "编辑精选", subtitle: "遇见更好的自己", icon: "text.alignleft", colors: [Color(red: 0.57, green: 0.43, blue: 0.91), Color(red: 0.27, green: 0.17, blue: 0.64)], route: .playlist("本周编辑精选"), width: width)
             }.padding(.horizontal, inset)
         }.frame(height: 84)
     }
