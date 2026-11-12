@@ -762,14 +762,20 @@ struct ContentView: View {
                         .foregroundStyle(MusicXTheme.muted)
                 }
                 Spacer()
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 22, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.9))
-                    .frame(width: 44, height: 44)
-                    .background(.white.opacity(0.07), in: Circle())
-                    .overlay(Circle().stroke(.white.opacity(0.12), lineWidth: 1))
-                    .contentShape(Circle())
-                    .onTapGesture { selectedTab = .search; searchFieldFocused = true }
+                Button {
+                    selectedTab = .search
+                    searchFieldFocused = true
+                } label: {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 22, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.9))
+                        .frame(width: 44, height: 44)
+                        .background(.white.opacity(0.07), in: Circle())
+                        .overlay(Circle().stroke(.white.opacity(0.12), lineWidth: 1))
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("搜索音乐")
             }
 
             HStack(spacing: 8) {
