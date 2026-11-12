@@ -380,8 +380,9 @@ struct MusicDiscoveryPage: View {
     }
 
     private var playlistGrid: some View {
-        GeometryReader { geometry in
-            moodPlaylistRows(width: max((geometry.size.width - 14) / 2, 0))
+        GeometryReader { geometry -> AnyView in
+            let cardWidth = max((geometry.size.width - 14) / 2, 0)
+            return AnyView(moodPlaylistRows(width: cardWidth))
         }
         .frame(height: 3 * 126 + 3 * 42 + 2 * 20)
         .frame(maxWidth: .infinity)
@@ -420,8 +421,9 @@ struct MusicDiscoveryPage: View {
     }
 
     private var featuredPlaylistGrid: some View {
-        GeometryReader { geometry in
-            featuredPlaylistRows(width: max((geometry.size.width - 14) / 2, 0))
+        GeometryReader { geometry -> AnyView in
+            let cardWidth = max((geometry.size.width - 14) / 2, 0)
+            return AnyView(featuredPlaylistRows(width: cardWidth))
         }
         .frame(height: 3 * 118 + 3 * 42 + 2 * 14)
         .frame(maxWidth: .infinity)
