@@ -752,7 +752,7 @@ struct MusicDiscoveryPage: View {
             keywords.append(contentsOf: ["独立音乐", "Indie", "独立乐队"])
         }
         if name.contains("通勤") || name.contains("驾驶") || name.contains("开车") {
-            keywords.append(contentsOf: ["通勤", "驾驶音乐", "开车音乐", "流行歌曲"])
+            keywords.append(contentsOf: ["通勤", "驾驶音乐", "开车音乐"])
         }
         if name.contains("治愈") { keywords.append(contentsOf: ["温柔治愈", "治愈系歌曲", "温柔华语"]) }
         if name.contains("放松") || name.contains("舒缓") { keywords.append(contentsOf: ["放松音乐", "轻音乐", "舒缓歌曲"]) }
