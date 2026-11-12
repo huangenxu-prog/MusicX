@@ -907,7 +907,7 @@ struct MusicDiscoveryPage: View {
         if let cached = chartSongCache[name] {
             songs = cached
             errorMessage = cached.isEmpty ? "音源没有返回匹配的歌曲，请稍后重试" : nil
-            onQueueChanged(cached)
+            if !cached.isEmpty { onQueueChanged(cached) }
             return
         }
         do {
@@ -915,7 +915,7 @@ struct MusicDiscoveryPage: View {
             chartSongCache[name] = result
             songs = result
             errorMessage = result.isEmpty ? "音源没有返回匹配的歌曲，请稍后重试" : nil
-            onQueueChanged(result)
+            if !result.isEmpty { onQueueChanged(result) }
         } catch { errorMessage = error.localizedDescription }
     }
 
@@ -923,7 +923,7 @@ struct MusicDiscoveryPage: View {
     private func loadChart(_ name: String, showInitialLoading: Bool) async {
         if let cached = chartSongCache[name] {
             songs = cached
-            onQueueChanged(cached)
+            if !cached.isEmpty { onQueueChanged(cached) }
             return
         }
         if showInitialLoading { isLoading = true }
@@ -934,7 +934,7 @@ struct MusicDiscoveryPage: View {
             guard !Task.isCancelled else { return }
             chartSongCache[name] = result
             songs = result
-            onQueueChanged(result)
+            if !result.isEmpty { onQueueChanged(result) }
             if result.isEmpty { errorMessage = "音源没有返回匹配的歌曲，请稍后重试" }
         } catch { errorMessage = error.localizedDescription }
     }
