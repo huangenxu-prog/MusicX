@@ -625,10 +625,6 @@ struct ContentView: View {
                 RoundedRectangle(cornerRadius: 30, style: .continuous).fill(.ultraThinMaterial)
                     .overlay(RoundedRectangle(cornerRadius: 30).fill(LinearGradient(colors: [Color.white.opacity(0.15), Color(red: 0.10, green: 0.20, blue: 0.42).opacity(0.34)], startPoint: .topLeading, endPoint: .bottomTrailing)))
                     .overlay(RoundedRectangle(cornerRadius: 30).stroke(LinearGradient(colors: [.white.opacity(0.78), MusicXTheme.blue.opacity(0.52), .white.opacity(0.20)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1.15))
-                    .overlay(alignment: .top) {
-                        Capsule().fill(LinearGradient(colors: [.white.opacity(0.72), MusicXTheme.blue.opacity(0.20), .clear], startPoint: .leading, endPoint: .trailing))
-                            .frame(height: 1.2).padding(.horizontal, 34).padding(.top, 1)
-                    }
                     .shadow(color: MusicXTheme.blue.opacity(0.30), radius: 16, y: 5)
             }
 
