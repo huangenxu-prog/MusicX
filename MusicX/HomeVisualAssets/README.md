@@ -1,14 +1,40 @@
 # MusicX Home Visual Assets
 
-The homepage currently uses a single 4×6 vector artwork sheet as a guaranteed fallback:
+## Current asset-catalog state
 
-- `MusicX/Assets.xcassets/HomeArtworkSheet.imageset/`
-- `MusicX/Features/Home/HomeArtwork.swift`
+The 24 individual homepage image sets are already present in
+`MusicX/Assets.xcassets/`. Each expected image set contains its
+`Contents.json` and matching JPG file.
 
-`HomeArtwork(name:)` now prefers a matching individual asset-catalog image set (for example, `home_hero.imageset`) whenever one is present, and falls back to the vector sheet when it is absent. This lets the photographic pack replace the vector art without further view-code changes.
+`MusicX/Features/Home/HomeArtwork.swift` implements the display priority:
 
-The 24-image photographic pack is supplied separately as `MusicX_Home_Assets_Xcode.zip`. Its 24 image sets have been checked: each `Contents.json` points to an existing JPG. The pack has **not yet been copied into this repository's asset catalog**, so the current app still renders the vector fallback.
+1. Load the matching individual asset-catalog image set when available.
+2. Fall back to `HomeArtworkSheet.imageset` when the individual image is
+   unavailable.
 
-To complete the photographic pass, merge the 24 `.imageset` folders from that ZIP into `MusicX/Assets.xcassets/`. Do not replace the existing `HomeArtworkSheet.imageset`; it remains the fallback.
+The 24 individual asset names are:
 
-No build, IPA, release, or main-branch update is performed by these changes.
+- `home_hero`, `daily_recommend`, `featured_playlist`
+- `chart_hot`, `chart_rising`, `chart_new`
+- `album_01` through `album_05`
+- `playlist_relax`, `playlist_night`, `playlist_drive`
+- `song_01` through `song_06`
+- `guess_01` through `guess_03`
+- `player_cover`
+
+The vector fallback is retained at
+`MusicX/Assets.xcassets/HomeArtworkSheet.imageset/`. Do not re-import the
+24-image pack or remove the fallback unless the asset set is intentionally
+being replaced.
+
+## Validation
+
+The repository script `scripts/validate-home-assets.py` checks the expected
+24 image-set directories, their JPG files, and the corresponding
+`Contents.json` references.
+
+Asset-file presence does not by itself verify that the images visually match
+the design references or that they render correctly on a device. Those still
+require visual/device validation.
+
+No build, IPA, release, or main-branch update is performed by this documentation update.
