@@ -431,9 +431,9 @@ struct ContentView: View {
                 .tracking(1.1)
                 .foregroundStyle(.white.opacity(0.90))
         }
-        .frame(maxWidth: .infinity, minHeight: 150, alignment: .bottomLeading)
+        .frame(maxWidth: .infinity, height: 122, alignment: .bottomLeading)
         .padding(.horizontal, 20)
-        .padding(.top, 66)
+        .padding(.top, 56)
         .accessibilityElement(children: .combine)
     }
 
@@ -1102,10 +1102,10 @@ struct ContentView: View {
                 HStack(spacing: 10) {
                     Group {
                         if currentSong == nil {
-                            HomeArtwork(name: "player_cover").frame(width: 48, height: 48)
+                            HomeArtwork(name: "player_cover").frame(width: 40, height: 40)
                                 .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
                         } else {
-                            songArtwork(currentSong?.onlineSong, tint: currentSong?.tint ?? MusicXTheme.blue, size: 48)
+                            songArtwork(currentSong?.onlineSong, tint: currentSong?.tint ?? MusicXTheme.blue, size: 40)
                         }
                     }
                     VStack(alignment: .leading, spacing: 5) {
@@ -1133,13 +1133,9 @@ struct ContentView: View {
                 Image(systemName: "forward.end.fill").font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.92)).frame(width: 30, height: 46)
             }.buttonStyle(.plain).disabled(playbackQueue.isEmpty)
-            Button { playerDisplayMode = .queue; isPlayerPresented = true } label: {
-                Image(systemName: "list.bullet").font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.92)).frame(width: 30, height: 46)
-            }.buttonStyle(.plain)
         }
         .padding(.horizontal, 14)
-        .frame(height: 76)
+        .frame(height: 68)
         .background {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .fill(Color(red: 0.10, green: 0.12, blue: 0.27).opacity(0.72))
