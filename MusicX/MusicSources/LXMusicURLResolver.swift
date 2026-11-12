@@ -199,8 +199,8 @@ struct LXMusicURLResolver: MusicURLResolving {
 
         // Do not silently substitute studio, live, remix, cover or instrumental
         // recordings for one another, even when title and lead artist are identical.
-        let originalVersions = versionMarkers(in: "\\(original.title) \\(original.album ?? "")")
-        let candidateVersions = versionMarkers(in: "\\(candidate.title) \\(candidate.album ?? "")")
+        let originalVersions = versionMarkers(in: "\(original.title) \(original.album ?? "")")
+        let candidateVersions = versionMarkers(in: "\(candidate.title) \(candidate.album ?? "")")
         guard originalVersions == candidateVersions else { return 0 }
 
         var score = 100
@@ -499,6 +499,16 @@ struct LXMusicURLResolver: MusicURLResolving {
     }
 
     private func isPlayableURL(_ url: URL) -> Bool {
-        ["http", "https"].contains(url.scheme?.lowercased() ?? "")
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let scheme = components.scheme?.lowercased(),
+              scheme == "http" || scheme == "https",
+              let host = components.host,
+              !host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              components.user == nil,
+              components.password == nil,
+              !url.absoluteString.contains(where: { $0.isWhitespace }) else {
+            return false
+        }
+        return true
     }
 }
