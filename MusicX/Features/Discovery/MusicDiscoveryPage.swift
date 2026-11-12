@@ -88,19 +88,6 @@ struct MusicDiscoveryPage: View {
         case .albums: "热门专辑"
         case .charts, .chart: "排行榜"
         case .newReleases: "新歌速递"
-        case .featuredPick:
-            songs = []
-            isLoading = true
-            errorMessage = nil
-            await loadPlaylistCards(forMood: false)
-            guard !Task.isCancelled else { isLoading = false; return }
-            if let playlist = playlistCardResults["本周编辑精选"] {
-                onOpenPlaylist(playlist)
-            } else {
-                errorMessage = "暂未匹配到真实的本周编辑精选歌单，请稍后重试"
-            }
-            isLoading = false
-            return
         case .playlist(let name): name
         case .playlistByID(let playlist): playlist.name
         case .album(let title, _): title
@@ -688,6 +675,20 @@ struct MusicDiscoveryPage: View {
 
     @MainActor
     private func loadSongs() async {
+        if case .featuredPick = route {
+            songs = []
+            isLoading = true
+            errorMessage = nil
+            await loadPlaylistCards(forMood: false)
+            guard !Task.isCancelled else { isLoading = false; return }
+            if let playlist = playlistCardResults["本周编辑精选"] {
+                onOpenPlaylist(playlist)
+            } else {
+                errorMessage = "暂未匹配到真实的本周编辑精选歌单，请稍后重试"
+            }
+            isLoading = false
+            return
+        }
         if case .playlists = route {
             songs = []
             await loadPlaylistCards(forMood: true)
