@@ -554,19 +554,53 @@ struct MusicDiscoveryPage: View {
     }
 
     private func albumBanner(title: String, artist: String) -> some View {
-        HStack(spacing: 18) {
-            Image(albumArtworkName(title: title, artist: artist))
-                .resizable()
-                .scaledToFill()
-                .frame(width: 156, height: 176)
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(.white.opacity(0.16), lineWidth: 1))
-            VStack(alignment: .leading, spacing: 8) {
-                Text(title).font(.system(size: 22, weight: .bold))
-                Text(artist).font(.system(size: 14)).foregroundStyle(MusicXTheme.muted)
-                Text("专辑曲目").font(.system(size: 12)).foregroundStyle(MusicXTheme.muted)
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(spacing: 16) {
+                Image(albumArtworkName(title: title, artist: artist))
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 134, height: 134)
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(.white.opacity(0.16), lineWidth: 1))
+                VStack(alignment: .leading, spacing: 9) {
+                    Text(title).font(.system(size: 27, weight: .bold)).foregroundStyle(.white)
+                    Text(artist).font(.system(size: 15, weight: .medium)).foregroundStyle(MusicXTheme.blue)
+                    Text("专辑 · 共 \\(songs.count) 首").font(.system(size: 13)).foregroundStyle(MusicXTheme.muted)
+                }
+                Spacer(minLength: 0)
             }
-            Spacer(minLength: 0)
+            HStack(spacing: 10) {
+                Button {
+                    guard let first = songs.first else { return }
+                    onQueueChanged(songs)
+                    onPlay(first)
+                } label: {
+                    Label("播放全部", systemImage: "play.fill")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Color(red: 0.035, green: 0.045, blue: 0.11))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 48)
+                        .background(Color(red: 0.94, green: 0.95, blue: 0.99), in: Capsule())
+                }
+                .buttonStyle(.plain)
+                .disabled(songs.isEmpty)
+                Button {
+                    guard !songs.isEmpty else { return }
+                    let shuffledSongs = songs.shuffled()
+                    onQueueChanged(shuffledSongs)
+                    onPlay(shuffledSongs[0])
+                } label: {
+                    Label("随机播放", systemImage: "shuffle")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 48)
+                        .background(Color(red: 0.085, green: 0.105, blue: 0.20), in: Capsule())
+                        .overlay(Capsule().stroke(Color(red: 0.19, green: 0.23, blue: 0.43), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                .disabled(songs.isEmpty)
+            }
         }
     }
 
