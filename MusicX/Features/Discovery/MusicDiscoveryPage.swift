@@ -609,7 +609,8 @@ struct MusicDiscoveryPage: View {
             ("幼鸟指南", "毛不易")
         ]
         return LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 20) {
-            ForEach(Array(items.enumerated()), id: \.element.0) { index, item in
+            ForEach(items.indices, id: \.self) { index in
+                let item = items[index]
                 Button { onOpenAlbum(item.0, item.1) } label: {
                     VStack(alignment: .leading, spacing: 8) {
                         gradientCollectionCard(index: index, title: item.0)
@@ -628,7 +629,17 @@ struct MusicDiscoveryPage: View {
             [Color(red: 0.56, green: 0.34, blue: 0.12), Color(red: 0.24, green: 0.12, blue: 0.08)],
             [Color(red: 0.78, green: 0.72, blue: 0.40), Color(red: 0.35, green: 0.39, blue: 0.18)],
             [Color(red: 0.76, green: 0.84, blue: 0.94), Color(red: 0.30, green: 0.45, blue: 0.62)],
-            [Color(red: 0.04, green: 0.65, blue: 0.72), Color(red: 0.02, green: 0.25, blue: 0.39)]
+            [Color(red: 0.04, green: 0.65, blue: 0.72), Color(red: 0.02, green: 0.25, blue: 0.39)],
+            [Color(red: 0.25, green: 0.62, blue: 0.46), Color(red: 0.04, green: 0.24, blue: 0.22)],
+            [Color(red: 0.62, green: 0.34, blue: 0.76), Color(red: 0.22, green: 0.10, blue: 0.40)],
+            [Color(red: 0.90, green: 0.48, blue: 0.25), Color(red: 0.35, green: 0.13, blue: 0.09)],
+            [Color(red: 0.16, green: 0.48, blue: 0.72), Color(red: 0.04, green: 0.17, blue: 0.34)],
+            [Color(red: 0.78, green: 0.28, blue: 0.42), Color(red: 0.30, green: 0.08, blue: 0.22)],
+            [Color(red: 0.70, green: 0.61, blue: 0.34), Color(red: 0.28, green: 0.20, blue: 0.10)],
+            [Color(red: 0.35, green: 0.53, blue: 0.83), Color(red: 0.10, green: 0.17, blue: 0.43)],
+            [Color(red: 0.44, green: 0.64, blue: 0.60), Color(red: 0.10, green: 0.27, blue: 0.28)],
+            [Color(red: 0.72, green: 0.43, blue: 0.78), Color(red: 0.27, green: 0.11, blue: 0.38)],
+            [Color(red: 0.90, green: 0.66, blue: 0.35), Color(red: 0.38, green: 0.20, blue: 0.10)]
         ]
         let colors = palettes[index % palettes.count]
         return ZStack(alignment: .bottomTrailing) {
