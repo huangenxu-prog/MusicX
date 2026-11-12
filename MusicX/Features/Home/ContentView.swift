@@ -283,7 +283,6 @@ struct ContentView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-         .background { MusicXPageBackground() }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if !(selectedTab == .search && searchFieldFocused) {
                 VStack(spacing: 8) {

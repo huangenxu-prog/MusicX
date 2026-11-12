@@ -45,6 +45,7 @@ struct MusicDiscoveryPage: View {
     let currentTime: TimeInterval
     let duration: TimeInterval
     let onOpenPlaylist: (MusicPlaylist) -> Void
+    let onOpenPlaylistKeyword: (String) -> Void
     let onOpenAlbum: (String, String) -> Void
     let onSelectChart: (String) -> Void
 
