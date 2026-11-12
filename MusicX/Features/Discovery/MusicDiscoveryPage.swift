@@ -39,7 +39,7 @@ private enum RecommendationTab {
 
 struct MusicDiscoveryPage: View {
     let route: MusicDiscoveryRoute
-    let onClose: () -> Void
+    let onClose: (Bool) -> Void
     let onPlay: (MusicSong) -> Void
     let currentSong: MusicSong?
     let isPlaying: Bool
@@ -81,8 +81,8 @@ struct MusicDiscoveryPage: View {
     }
     private let service = GDStudioMusicSearchService()
 
-    private func closePage() {
-        onClose()
+    private func closePage(isSwipeBack: Bool = false) {
+        onClose(isSwipeBack)
     }
 
     private func playlistSubtitle(for name: String) -> String {
@@ -189,7 +189,7 @@ struct MusicDiscoveryPage: View {
             let horizontal = value.translation.width
             let vertical = value.translation.height
             guard value.startLocation.x <= 28, horizontal > 88, horizontal > abs(vertical) * 1.25 else { return }
-            closePage()
+            closePage(isSwipeBack: true)
         })
         .task(id: route.id) {
             if case .daily = route { selectedRecommendationTab = .daily }
