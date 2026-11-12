@@ -380,8 +380,11 @@ struct MusicDiscoveryPage: View {
     }
 
     private var playlistGrid: some View {
-        moodPlaylistRows(width: max((UIScreen.main.bounds.width - 58) / 2, 0))
-            .frame(height: 3 * 126 + 3 * 42 + 2 * 20)
+        let availableWidth = UIScreen.main.bounds.width - 58
+        let cardWidth = max(availableWidth / 2, 0)
+        let gridHeight: CGFloat = 3 * 126 + 3 * 42 + 2 * 20
+        return moodPlaylistRows(width: cardWidth)
+            .frame(height: gridHeight)
             .frame(maxWidth: .infinity)
     }
 
@@ -418,8 +421,11 @@ struct MusicDiscoveryPage: View {
     }
 
     private var featuredPlaylistGrid: some View {
-        featuredPlaylistRows(width: max((UIScreen.main.bounds.width - 58) / 2, 0))
-            .frame(height: 3 * 118 + 3 * 42 + 2 * 14)
+        let availableWidth = UIScreen.main.bounds.width - 58
+        let cardWidth = max(availableWidth / 2, 0)
+        let gridHeight: CGFloat = 3 * 118 + 3 * 42 + 2 * 14
+        return featuredPlaylistRows(width: cardWidth)
+            .frame(height: gridHeight)
             .frame(maxWidth: .infinity)
     }
 
