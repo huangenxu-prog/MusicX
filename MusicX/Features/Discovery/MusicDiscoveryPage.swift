@@ -560,6 +560,7 @@ struct MusicDiscoveryPage: View {
                     $0.name.localizedCaseInsensitiveContains(keyword)
                 }) {
                     updated[category] = match
+                    playlistCardResults = updated
                 }
             } catch {
                 MusicSourceDiagnostics.shared.record(
