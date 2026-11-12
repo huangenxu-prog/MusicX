@@ -142,7 +142,7 @@ struct GDStudioMusicSearchService {
     func playlistTracks(keyword: String, count: Int = 50) async throws -> [MusicSong] {
         let query = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return [] }
-        let cacheKey = "qq-playlist-keyword|\\(query.lowercased())|\\(count)"
+        let cacheKey = "qq-playlist-keyword|\(query.lowercased())|\(count)"
         if let cached: [MusicSong] = await MusicCache.shared.value(for: cacheKey) {
             return cached
         }
@@ -156,7 +156,7 @@ struct GDStudioMusicSearchService {
             return (playlist, score)
         }.filter { $0.1 > 0 }.sorted { $0.1 > $1.1 }
         guard let selected = ranked.first?.0 else {
-            throw MusicSourceError.invalidResponse("没有找到与“\\(query)”匹配的 QQ 音乐歌单")
+            throw MusicSourceError.invalidResponse("没有找到与“\(query)”匹配的 QQ 音乐歌单")
         }
         let tracks = try await playlistTracks(playlistID: selected.sourceID, count: count)
         await MusicCache.shared.insert(tracks, for: cacheKey, ttl: 10 * 60)
