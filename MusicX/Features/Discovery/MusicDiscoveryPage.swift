@@ -30,6 +30,11 @@ private struct PlaylistCardItem {
     let artwork: String
 }
 
+private enum RecommendationTab {
+    case daily
+    case featured
+}
+
 struct MusicDiscoveryPage: View {
     let route: MusicDiscoveryRoute
     let onClose: () -> Void
@@ -60,6 +65,7 @@ struct MusicDiscoveryPage: View {
     @State private var playlistCardResults: [String: MusicPlaylist] = [:]
     @State private var isPlaylistUnavailableAlertPresented = false
     @State private var playlistUnavailableMessage = ""
+    @State private var selectedRecommendationTab: RecommendationTab = .daily
     private var selectedChart: String {
         if let selectedChartOverride { return selectedChartOverride }
         if case .chart(let name) = route { return name }
@@ -89,7 +95,7 @@ struct MusicDiscoveryPage: View {
         case .daily: "每日推荐"
         case .playlists: "心情歌单"
         case .featuredPlaylists: "精选歌单"
-        case .featuredPick: "编辑精选"
+        case .featuredPick: "精选歌单"
         case .albums: "热门专辑"
         case .charts, .chart: "排行榜"
         case .newReleases: "新歌速递"
@@ -138,10 +144,11 @@ struct MusicDiscoveryPage: View {
                 VStack(alignment: .leading, spacing: 24) {
                     topBar
                     switch route {
-                    case .daily: dailyHeader
+                    case .daily, .featuredPick:
+                        recommendationTabs
+                        if selectedRecommendationTab == .daily { dailyHeader } else { featuredRecommendationHeader }
                     case .playlists: playlistIntro
                     case .featuredPlaylists: featuredPlaylistsIntro
-                    case .featuredPick: detailBanner("本周编辑精选", subtitle: "精选歌单")
                     case .albums: albumsIntro
                     case .charts, .chart: chartIntro
                     case .newReleases: newReleasesHeader
@@ -149,7 +156,9 @@ struct MusicDiscoveryPage: View {
                     case .playlistByID(let playlist): detailBanner(playlist.name, subtitle: playlistSubtitle(for: playlist.name))
                     case .album(let title, let artist): albumBanner(title: title, artist: artist)
                     }
-                    if case .playlists = route {
+                    if isRecommendationRoute {
+                        trackList
+                    } else if case .playlists = route {
                         playlistGrid
                     } else if case .featuredPlaylists = route {
                         featuredPlaylistGrid
@@ -175,7 +184,11 @@ struct MusicDiscoveryPage: View {
             guard value.startLocation.x <= 28, horizontal > 88, horizontal > abs(vertical) * 1.25 else { return }
             closePage()
         })
-        .task(id: route.id) { await loadSongs() }
+        .task(id: route.id) {
+            if case .daily = route { selectedRecommendationTab = .daily }
+            if case .featuredPick = route { selectedRecommendationTab = .featured }
+            await loadSongs()
+        }
         .alert("暂未找到匹配歌单", isPresented: $isPlaylistUnavailableAlertPresented) {
             Button("知道了", role: .cancel) {}
         } message: {
@@ -194,6 +207,86 @@ struct MusicDiscoveryPage: View {
             Spacer()
             Color.clear.frame(width: 48, height: 46)
         }.foregroundStyle(.white).padding(.bottom, 4)
+    }
+
+    private var isRecommendationRoute: Bool {
+        if case .daily = route { return true }
+        if case .featuredPick = route { return true }
+        return false
+    }
+
+    private var recommendationTabs: some View {
+        HStack(spacing: 10) {
+            recommendationTabButton("每日推荐", tab: .daily)
+            recommendationTabButton("精选歌单", tab: .featured)
+        }
+    }
+
+    private func recommendationTabButton(_ title: String, tab: RecommendationTab) -> some View {
+        let selected = selectedRecommendationTab == tab
+        return Button {
+            guard selectedRecommendationTab != tab else { return }
+            selectedRecommendationTab = tab
+            Task { await loadRecommendationSongs(for: tab) }
+        } label: {
+            Text(title)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(selected ? Color(red: 0.035, green: 0.045, blue: 0.11) : MusicXTheme.muted)
+                .frame(maxWidth: .infinity)
+                .frame(height: 44)
+                .background(selected ? MusicXTheme.blue : Color(red: 0.085, green: 0.105, blue: 0.20), in: Capsule())
+                .overlay(Capsule().stroke(selected ? .white.opacity(0.14) : Color(red: 0.16, green: 0.19, blue: 0.34), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var featuredRecommendationHeader: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            ZStack(alignment: .bottomLeading) {
+                Image("featured_playlist").resizable().scaledToFill()
+                LinearGradient(colors: [.clear, .black.opacity(0.56)], startPoint: .center, endPoint: .bottom)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("本周精选").font(.system(size: 27, weight: .bold)).foregroundStyle(.white)
+                    Text("歌单").font(.system(size: 14, weight: .medium)).foregroundStyle(.white.opacity(0.84))
+                }
+                .padding(22)
+            }
+            .frame(height: 190)
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            playAllBar
+        }
+    }
+
+    @MainActor
+    private func loadRecommendationSongs(for tab: RecommendationTab) async {
+        let requestToken = UUID()
+        songsLoadToken = requestToken
+        isLoading = true
+        errorMessage = nil
+        defer {
+            if songsLoadToken == requestToken { isLoading = false }
+        }
+        do {
+            let result: [MusicSong]
+            if tab == .daily {
+                result = try await service.search(keyword: "陈奕迅", source: .netease, count: 30)
+            } else {
+                await loadPlaylistCards(forMood: false, onlyCategory: "本周编辑精选")
+                guard !Task.isCancelled, songsLoadToken == requestToken else { return }
+                guard let playlist = playlistCardResults["本周编辑精选"] else {
+                    songs = []
+                    errorMessage = "暂未匹配到本周精选歌单"
+                    return
+                }
+                result = try await service.playlistTracks(playlistID: playlist.sourceID, count: 30)
+            }
+            guard !Task.isCancelled, songsLoadToken == requestToken else { return }
+            songs = result
+            if result.isEmpty { errorMessage = "音源没有返回匹配的歌曲，请稍后重试" }
+        } catch {
+            guard !Task.isCancelled, songsLoadToken == requestToken else { return }
+            errorMessage = error.localizedDescription
+        }
     }
 
     private var dailyHeader: some View {
@@ -725,18 +818,8 @@ struct MusicDiscoveryPage: View {
     private func loadSongs() async {
         let requestToken = UUID()
         songsLoadToken = requestToken
-        if case .featuredPick = route {
-            songs = []
-            isLoading = true
-            errorMessage = nil
-            await loadPlaylistCards(forMood: false, onlyCategory: "本周编辑精选")
-            guard !Task.isCancelled, songsLoadToken == requestToken else { return }
-            if let playlist = playlistCardResults["本周编辑精选"] {
-                onOpenPlaylist(playlist)
-            } else {
-                errorMessage = "暂未匹配到真实的本周编辑精选歌单，请稍后重试"
-            }
-            if songsLoadToken == requestToken { isLoading = false }
+        if isRecommendationRoute {
+            await loadRecommendationSongs(for: selectedRecommendationTab)
             return
         }
         if case .playlists = route {
