@@ -112,8 +112,17 @@ final class PlayerStore: ObservableObject {
             Task { @MainActor [weak self] in self?.recordDiagnostic("app-will-enter-foreground") }
         })
         lifecycleObservers.append(center.addObserver(forName: AVAudioSession.routeChangeNotification, object: nil, queue: .main) { [weak self] note in
-            let reason = (note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt).map(String.init) ?? "unknown"
-            Task { @MainActor [weak self] in self?.recordDiagnostic("audio-route-change=\(reason)") }
+            let rawReason = note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt
+            let reason = rawReason.map(String.init) ?? "unknown"
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.recordDiagnostic("audio-route-change=\(reason)")
+                if rawReason == AVAudioSession.RouteChangeReason.oldDeviceUnavailable.rawValue,
+                   self.wantsPlayback {
+                    self.recordDiagnostic("audio-route-change-pause")
+                    self.pause()
+                }
+            }
         })
         lifecycleObservers.append(center.addObserver(forName: AVAudioSession.mediaServicesWereResetNotification, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor [weak self] in
