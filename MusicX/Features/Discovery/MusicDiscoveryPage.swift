@@ -103,7 +103,7 @@ struct MusicDiscoveryPage: View {
         case .newReleases: "新歌速递"
         case .playlist(let name): name
         case .playlistByID(let playlist): playlist.name
-        case .album(let title, _): title
+        case .album: "专辑"
         case .musicCategory(let title, _, _, _): title
         }
     }
@@ -173,9 +173,13 @@ struct MusicDiscoveryPage: View {
                     } else {
                         if case .charts = route { chartTabs }
                         if case .chart = route { chartTabs }
-                        if case .album = route { albumNote }
-                        if case .musicCategory = route { musicCategoryTrackList }
-                        else { trackList }
+                        if case .album = route {
+                            musicCategoryTrackList
+                        } else if case .musicCategory = route {
+                            musicCategoryTrackList
+                        } else {
+                            trackList
+                        }
                     }
                 }
                 .padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 24)
@@ -321,7 +325,7 @@ struct MusicDiscoveryPage: View {
     }
 
     private var featuredPlaylistsIntro: some View {
-        playlistCategoryIntro(title: "精选歌单", subtitle: "从不同风格与场景中，发现值得收藏的歌单")
+        playlistCategoryIntro(title: "编辑精选", subtitle: "从不同风格与场景中，发现值得收藏的歌单")
     }
 
     private func playlistCategoryIntro(title: String, subtitle: String) -> some View {
@@ -395,7 +399,7 @@ struct MusicDiscoveryPage: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
             .padding(18)
         }
-        .frame(height: 158)
+        .frame(height: 148)
         .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous).stroke(.white.opacity(0.14), lineWidth: 1))
     }
@@ -885,7 +889,7 @@ struct MusicDiscoveryPage: View {
     }
 
     private var trackList: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 2) {
             if isLoading {
                 ProgressView().tint(MusicXTheme.blue).frame(maxWidth: .infinity).padding(.vertical, 28)
             } else if let errorMessage, songs.isEmpty {
@@ -904,8 +908,8 @@ struct MusicDiscoveryPage: View {
                                 Text(String(index + 1)).font(.system(size: 16, weight: .bold, design: .rounded))
                                     .foregroundStyle(isCurrent ? MusicXTheme.blue : (index < 3 ? MusicXTheme.blue : MusicXTheme.muted)).frame(width: 22)
                             }
-                            songArtwork(song, index: index, isCurrent: isCurrent)
-                                .frame(width: 54, height: 54)
+                            songArtwork(song, index: index, isCurrent: isCurrent, size: 44)
+                                .frame(width: 44, height: 44)
                                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                             VStack(alignment: .leading, spacing: 5) {
                                 Text(song.title).font(.system(size: 15, weight: .semibold)).foregroundStyle(isCurrent ? MusicXTheme.blue : .white).lineLimit(1)
