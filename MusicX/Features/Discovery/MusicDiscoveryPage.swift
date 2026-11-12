@@ -602,7 +602,7 @@ struct MusicDiscoveryPage: View {
     }
 
     @MainActor
-    private func loadPlaylistCards(forMood: Bool) async {
+    private func loadPlaylistCards(forMood: Bool, onlyCategory: String? = nil) async {
         let items: [(String, [String])] = forMood
             ? [
                 ("开心愉悦", ["开心", "快乐", "愉悦", "好心情"]),
@@ -628,7 +628,7 @@ struct MusicDiscoveryPage: View {
 
         var updated = playlistCardResults
         var assignedPlaylistIDs = Set(updated.values.map { $0.id })
-        for (category, keywords) in items where updated[category] == nil {
+        for (category, keywords) in items where updated[category] == nil && (onlyCategory == nil || category == onlyCategory) {
             guard !Task.isCancelled else { return }
             var selected: MusicPlaylist?
             var lastError: String?
@@ -679,7 +679,7 @@ struct MusicDiscoveryPage: View {
             songs = []
             isLoading = true
             errorMessage = nil
-            await loadPlaylistCards(forMood: false)
+            await loadPlaylistCards(forMood: false, onlyCategory: "本周编辑精选")
             guard !Task.isCancelled else { isLoading = false; return }
             if let playlist = playlistCardResults["本周编辑精选"] {
                 onOpenPlaylist(playlist)
