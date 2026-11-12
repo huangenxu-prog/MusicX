@@ -384,7 +384,7 @@ struct ContentView: View {
                 Capsule().fill(.white.opacity(0.82)).frame(width: 15, height: 1)
             }
         }
-        .frame(maxWidth: .infinity, minHeight: 190, alignment: .bottomLeading)
+        .frame(maxWidth: .infinity, alignment: .bottomLeading)
         .padding(.horizontal, 22)
         .padding(.top, 62)
         .padding(.bottom, 24)
