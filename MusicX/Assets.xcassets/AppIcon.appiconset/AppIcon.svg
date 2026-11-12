@@ -1,47 +1,29 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-<defs>
- <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-  <stop stop-color="#08cfff"/><stop offset=".28" stop-color="#0867ff"/><stop offset=".62" stop-color="#3028e8"/><stop offset="1" stop-color="#a21cff"/>
- </linearGradient>
- <linearGradient id="glass" x1="0" y1="0" x2=".85" y2="1">
-  <stop stop-color="#8af7ff" stop-opacity=".34"/><stop offset=".36" stop-color="#176dff" stop-opacity=".08"/><stop offset=".72" stop-color="#3212a8" stop-opacity=".10"/><stop offset="1" stop-color="#f05cff" stop-opacity=".34"/>
- </linearGradient>
- <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1">
-  <stop stop-color="#bafaff"/><stop offset=".32" stop-color="#19dfff"/><stop offset=".68" stop-color="#7666ff"/><stop offset="1" stop-color="#ff78ff"/>
- </linearGradient>
- <linearGradient id="note" x1="0" y1="0" x2="1" y2="1">
-  <stop stop-color="#ffffff"/><stop offset=".48" stop-color="#f1f5ff"/><stop offset=".78" stop-color="#d6caff"/><stop offset="1" stop-color="#8ef8ff"/>
- </linearGradient>
- <linearGradient id="orbit" x1="0" y1="0" x2="1" y2="0">
-  <stop stop-color="#f04dff"/><stop offset=".48" stop-color="#b78cff"/><stop offset="1" stop-color="#16efff"/>
- </linearGradient>
- <linearGradient id="wave" x1="0" y1="0" x2="1" y2="0">
-  <stop stop-color="#ef63ff"/><stop offset=".52" stop-color="#4b8cff"/><stop offset="1" stop-color="#16efff"/>
- </linearGradient>
- <radialGradient id="cyanGlow"><stop stop-color="#8bffff" stop-opacity=".95"/><stop offset="1" stop-color="#18aaff" stop-opacity="0"/></radialGradient>
- <radialGradient id="purpleGlow"><stop stop-color="#fa74ff" stop-opacity=".85"/><stop offset="1" stop-color="#9b20ff" stop-opacity="0"/></radialGradient>
- <filter id="soft"><feGaussianBlur stdDeviation="34"/></filter>
- <filter id="glow"><feGaussianBlur stdDeviation="16"/></filter>
- <filter id="noteShadow"><feGaussianBlur stdDeviation="18"/></filter>
- <clipPath id="clip"><rect x="42" y="42" width="940" height="940" rx="208"/></clipPath>
-</defs>
-<g clip-path="url(#clip)">
- <rect width="1024" height="1024" fill="url(#bg)"/>
- <ellipse cx="245" cy="190" rx="380" ry="300" fill="url(#cyanGlow)" filter="url(#soft)"/>
- <ellipse cx="790" cy="810" rx="360" ry="330" fill="url(#purpleGlow)" filter="url(#soft)"/>
- <path d="M35 0H1024V1024H0V170C100 65 300 18 510 32C710 46 850 10 1024 0Z" fill="url(#glass)"/>
- <path d="M72 118C270 42 690 36 930 125" fill="none" stroke="#d8ffff" stroke-opacity=".52" stroke-width="20" stroke-linecap="round" filter="url(#glow)"/>
- <path d="M72 118C270 42 690 36 930 125" fill="none" stroke="#eaffff" stroke-opacity=".72" stroke-width="7" stroke-linecap="round"/>
- <path d="M118 618C260 405 706 318 878 440C1025 550 790 735 510 716C290 702 160 680 118 618Z" fill="none" stroke="url(#orbit)" stroke-width="38" stroke-linecap="round" opacity=".42" filter="url(#glow)"/>
- <path d="M118 618C260 405 706 318 878 440C1025 550 790 735 510 716C290 702 160 680 118 618Z" fill="none" stroke="url(#orbit)" stroke-width="19" stroke-linecap="round"/>
- <path d="M126 618C265 515 395 458 530 438C692 416 815 442 884 496" fill="none" stroke="#fff3ff" stroke-width="8" stroke-linecap="round" opacity=".82"/>
- <path d="M432 270Q432 245 461 237L718 176Q749 169 749 200V646Q749 666 730 676L686 698V353L483 402V668Q483 734 418 759Q348 787 286 747Q224 706 249 643Q274 579 348 570Q393 564 434 591Z" fill="#6ef4ff" opacity=".35" filter="url(#noteShadow)"/>
- <path d="M432 270Q432 245 461 237L718 176Q749 169 749 200V646Q749 666 730 676L686 698V353L483 402V668Q483 734 418 759Q348 787 286 747Q224 706 249 643Q274 579 348 570Q393 564 434 591Z" fill="url(#note)" stroke="#ffffff" stroke-opacity=".82" stroke-width="5"/>
- <path d="M72 832C275 900 642 855 952 718V1024H72Z" fill="#2815a7" opacity=".24"/>
- <path d="M62 848C280 900 568 868 958 724" fill="none" stroke="url(#wave)" stroke-width="28" opacity=".55" filter="url(#glow)"/>
- <path d="M62 848C280 900 568 868 958 724" fill="none" stroke="url(#wave)" stroke-width="10" opacity=".95"/>
-
-
- <path d="M92 180C180 82 320 67 460 75" fill="none" stroke="#ffffff" stroke-opacity=".18" stroke-width="5"/>
-</g>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#25BDF5"/>
+      <stop offset="0.42" stop-color="#1264F5"/>
+      <stop offset="0.76" stop-color="#4526E8"/>
+      <stop offset="1" stop-color="#9A2CF2"/>
+    </linearGradient>
+    <linearGradient id="lowerWave" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#4CD8FF" stop-opacity="0.04"/>
+      <stop offset="0.55" stop-color="#A6A1FF" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#FF8AF0" stop-opacity="0.48"/>
+    </linearGradient>
+    <linearGradient id="note" x1="0" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.72" stop-color="#F4F4FF"/>
+      <stop offset="1" stop-color="#DED9FF"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.18" cy="0.08" r="0.95">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#background)"/>
+  <rect width="1024" height="1024" fill="url(#glow)"/>
+  <path d="M0 690 C210 625 350 760 540 745 C730 730 850 620 1024 585 L1024 1024 L0 1024Z" fill="url(#lowerWave)"/>
+  <path d="M0 760 C245 835 460 830 660 760 C810 708 930 640 1024 620" fill="none" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="9"/>
+  <path d="M438 258 Q438 235 462 229 L704 172 Q732 165 732 194 L732 638 Q732 660 712 670 L674 690 L674 348 L486 393 L486 662 Q486 727 423 755 Q356 785 294 748 Q239 715 250 657 Q262 599 330 581 Q389 565 438 602Z" fill="url(#note)"/>
 </svg>
