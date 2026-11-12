@@ -340,7 +340,7 @@ struct MusicDiscoveryPage: View {
                 HStack(spacing: 10) {
                     Group {
                         if let song {
-                            songArtwork(song, index: abs(song.id.hashValue), isCurrent: true)
+                            songArtwork(song, index: 0, isCurrent: true, size: 48)
                         } else {
                             Image("player_cover")
                                 .resizable()
@@ -531,7 +531,7 @@ struct MusicDiscoveryPage: View {
             .font(.system(size: 12)).foregroundStyle(MusicXTheme.muted)
     }
 
-    private func songArtwork(_ song: MusicSong, index: Int, isCurrent: Bool) -> some View {
+    private func songArtwork(_ song: MusicSong, index: Int, isCurrent: Bool, size: CGFloat = 54) -> some View {
         let palettes: [[Color]] = [
             [Color(red: 0.28, green: 0.52, blue: 0.91), Color(red: 0.10, green: 0.20, blue: 0.43)],
             [Color(red: 0.55, green: 0.36, blue: 0.84), Color(red: 0.22, green: 0.16, blue: 0.48)],
@@ -560,7 +560,7 @@ struct MusicDiscoveryPage: View {
                     .offset(x: 18, y: 18)
             }
         }
-        .frame(width: 54, height: 54)
+        .frame(width: size, height: size)
         .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(.white.opacity(0.16), lineWidth: 0.8))
         .accessibilityLabel("\(song.title) 封面占位图")
     }
