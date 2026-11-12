@@ -91,6 +91,17 @@ struct GDStudioMusicSearchService {
     func searchPlaylists(keyword: String, count: Int = 10) async throws -> [MusicPlaylist] {
         let query = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return [] }
+        let cacheKey = "catalog-playlists|\(query.lowercased())|\(count)"
+        if let cached = await MusicCatalogStore.shared.snapshot(for: cacheKey, as: [MusicPlaylist].self) {
+            if cached.needsRefresh {
+                Task { _ = try? await self.refreshPlaylistSearch(keyword: query, count: count, cacheKey: cacheKey) }
+            }
+            return cached.value
+        }
+        return try await refreshPlaylistSearch(keyword: query, count: count, cacheKey: cacheKey)
+    }
+
+    private func refreshPlaylistSearch(keyword query: String, count: Int, cacheKey: String) async throws -> [MusicPlaylist] {
         let data = try await requestQQMusicU(
             module: "music.search.SearchCgiService",
             method: "DoSearchForQQMusicDesktop",
@@ -104,7 +115,7 @@ struct GDStudioMusicSearchService {
         let body = data["body"] as? [String: Any]
         let container = body?["songlist"] as? [String: Any]
         let rows = container?["list"] as? [[String: Any]] ?? []
-        return rows.compactMap { row in
+        let playlists = rows.compactMap { row in
             guard let rawID = row["dissid"] ?? row["id"] ?? row["tid"] ?? row["dirid"] else {
                 return nil
             }
@@ -249,6 +260,18 @@ struct GDStudioMusicSearchService {
     /// Reads the public NetEase playlist endpoints used for its live charts.
     /// Returned track IDs remain NetEase IDs and are resolved for playback by GD Studio.
     func toplist(_ chartName: String, count: Int = 50) async throws -> [MusicSong] {
+        let normalizedChart = ["热歌榜", "新歌榜", "飙升榜"].contains(chartName) ? chartName : "热歌榜"
+        let cacheKey = "catalog-chart|\(normalizedChart)|\(count)"
+        if let cached = await MusicCatalogStore.shared.snapshot(for: cacheKey, as: [MusicSong].self) {
+            if cached.needsRefresh {
+                Task { _ = try? await self.refreshToplist(normalizedChart, count: count, cacheKey: cacheKey) }
+            }
+            return cached.value
+        }
+        return try await refreshToplist(normalizedChart, count: count, cacheKey: cacheKey)
+    }
+
+    private func refreshToplist(_ chartName: String, count: Int, cacheKey: String) async throws -> [MusicSong] {
         let playlistID: String
         switch chartName {
         case "新歌榜": playlistID = "3779629"
@@ -273,7 +296,7 @@ struct GDStudioMusicSearchService {
         guard let rows = result?["tracks"] as? [[String: Any]] else {
             throw MusicSourceError.invalidResponse("网易云没有返回榜单曲目")
         }
-        return rows.prefix(count).compactMap { row in
+        let songs = rows.prefix(count).compactMap { row in
             guard let id = row["id"] else { return nil }
             let artists = (row["ar"] as? [[String: Any]] ?? row["artists"] as? [[String: Any]] ?? [])
                 .compactMap { $0["name"] as? String }.joined(separator: " / ")

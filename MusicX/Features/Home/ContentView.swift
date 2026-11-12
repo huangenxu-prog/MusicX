@@ -374,7 +374,7 @@ struct ContentView: View {
     private var heroHeader: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("发现音乐")
-                .font(.system(size: 39, weight: .semibold, design: .rounded))
+                .font(.system(size: 44, weight: .semibold, design: .rounded))
                 .tracking(1.2)
                 .foregroundStyle(.white)
                 .shadow(color: Color(red: 0.72, green: 0.42, blue: 0.95).opacity(0.22), radius: 12, y: 3)
@@ -389,7 +389,7 @@ struct ContentView: View {
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .padding(.horizontal, 22)
-        .padding(.top, 68)
+        .padding(.top, 48)
         .frame(height: 175, alignment: .topLeading)
         .background {
             GeometryReader { proxy in
@@ -1065,10 +1065,10 @@ struct ContentView: View {
         .frame(height: 76)
         .background {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color(red: 0.10, green: 0.12, blue: 0.27).opacity(0.94))
+                .fill(Color(red: 0.10, green: 0.12, blue: 0.27).opacity(0.72))
                 .overlay {
                     RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .fill(LinearGradient(colors: [Color(red: 0.40, green: 0.31, blue: 0.66).opacity(0.40), Color(red: 0.08, green: 0.11, blue: 0.25).opacity(0.18)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .fill(LinearGradient(colors: [Color(red: 0.40, green: 0.31, blue: 0.66).opacity(0.34), Color(red: 0.08, green: 0.11, blue: 0.25).opacity(0.12)], startPoint: .topLeading, endPoint: .bottomTrailing))
                 }
         }
         .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(.white.opacity(0.30), lineWidth: 1))
@@ -1635,8 +1635,8 @@ struct ContentView: View {
         .background {
             LinearGradient(
                 colors: [
-                    Color(red: 0.025, green: 0.035, blue: 0.085).opacity(0.94),
-                    Color(red: 0.035, green: 0.045, blue: 0.11).opacity(0.99)
+                    Color(red: 0.025, green: 0.035, blue: 0.085).opacity(0.70),
+                    Color(red: 0.035, green: 0.045, blue: 0.11).opacity(0.82)
                 ],
                 startPoint: .top,
                 endPoint: .bottom
