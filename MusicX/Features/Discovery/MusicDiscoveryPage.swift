@@ -400,23 +400,13 @@ struct MusicDiscoveryPage: View {
     }
 
     private func playlistCardArtwork(for key: String, fallback: String, width: CGFloat, height: CGFloat, cornerRadius: CGFloat) -> some View {
-        ZStack {
-            if let url = playlistCardResults[key]?.artworkURL {
-                AsyncImage(url: url) { phase in
-                    if let image = phase.image {
-                        image.resizable().scaledToFill()
-                    } else {
-                        Image(fallback).resizable().scaledToFill()
-                    }
-                }
-            } else {
-                Image(fallback).resizable().scaledToFill()
-            }
-        }
-        .frame(width: width, height: height)
-        .clipped()
-        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous).stroke(.white.opacity(0.16), lineWidth: 0.8))
+        Image(fallback)
+            .resizable()
+            .scaledToFill()
+            .frame(width: width, height: height)
+            .clipped()
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous).stroke(.white.opacity(0.16), lineWidth: 0.8))
     }
 
     private var playlistGrid: some View {
@@ -476,7 +466,7 @@ struct MusicDiscoveryPage: View {
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Color(red: 0.94, green: 0.95, blue: 0.99))
                     .lineLimit(1)
-                Text(playlistCardResults[item.title]?.name ?? item.subtitle)
+                Text(item.subtitle)
                     .font(.system(size: 12))
                     .foregroundStyle(Color(red: 0.69, green: 0.72, blue: 0.81))
                     .lineLimit(2)
