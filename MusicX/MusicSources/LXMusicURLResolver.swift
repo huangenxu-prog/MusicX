@@ -73,12 +73,22 @@ struct LXMusicURLResolver: MusicURLResolving {
     /// search NetEase by title and artist and use a strictly matched NetEase track ID.
     private func resolveQQSongThroughNetEase(_ song: MusicSong, quality: MusicQuality) async throws -> URL? {
         let searchService = GDStudioMusicSearchService(session: session)
-        let candidates = try await searchService.search(
-            keyword: song.title,
-            source: .netease,
-            page: 1,
-            count: 12
-        )
+        let candidates: [MusicSong]
+        do {
+            candidates = try await searchService.search(
+                keyword: song.title,
+                source: .netease,
+                page: 1,
+                count: 12
+            )
+        } catch {
+            MusicSourceDiagnostics.shared.record(
+                event: "resolve-fallback", source: song.source.rawValue,
+                provider: "netease-search", duration: 0, result: "search_failed",
+                detail: error.localizedDescription
+            )
+            return nil
+        }
         let wantedTitle = normalizedMatchText(song.title)
         let wantedArtists = Set(song.artist.split(separator: "/").map {
             normalizedMatchText(String($0))
@@ -92,8 +102,6 @@ struct LXMusicURLResolver: MusicURLResolving {
             return candidateArtists.contains { candidateArtist in
                 wantedArtists.contains { wantedArtist in
                     candidateArtist == wantedArtist
-                        || candidateArtist.contains(wantedArtist)
-                        || wantedArtist.contains(candidateArtist)
                 }
             }
         }) else {
