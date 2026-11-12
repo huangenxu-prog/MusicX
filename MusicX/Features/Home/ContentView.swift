@@ -344,6 +344,7 @@ struct ContentView: View {
                 currentTime: playerStore.currentTime,
                 duration: playerStore.duration,
                 onOpenPlaylist: { discoveryRoute = .playlist($0) },
+                onOpenAlbum: { discoveryRoute = .album(title: $0, artist: $1) },
                 onSelectChart: { discoveryRoute = .chart($0) })
         }
         .task { await loadHomeSongs() }
@@ -433,7 +434,7 @@ struct ContentView: View {
             let width = max(0, (proxy.size.width - inset * 2 - gap) / 2)
             HStack(spacing: gap) {
                 recommendationTile(title: "每日推荐", subtitle: "每日更新", icon: "play.fill", colors: [Color(red: 0.94, green: 0.61, blue: 0.39), Color(red: 0.68, green: 0.29, blue: 0.50)], route: .daily, width: width)
-                recommendationTile(title: "精选歌单", subtitle: "遇见更好的自己", icon: "text.alignleft", colors: [Color(red: 0.57, green: 0.43, blue: 0.91), Color(red: 0.27, green: 0.17, blue: 0.64)], route: .playlists, width: width)
+                recommendationTile(title: "精选歌单", subtitle: "遇见更好的自己", icon: "text.alignleft", colors: [Color(red: 0.57, green: 0.43, blue: 0.91), Color(red: 0.27, green: 0.17, blue: 0.64)], route: .featuredPlaylists, width: width)
             }.padding(.horizontal, inset)
         }.frame(height: 96)
     }
@@ -516,7 +517,7 @@ struct ContentView: View {
 
     private var albumSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            homeSectionTitle("热门专辑", action: { discoveryRoute = .album(title: "DUO", artist: "陈奕迅") }).padding(.horizontal, 14)
+            homeSectionTitle("热门专辑", action: { discoveryRoute = .albums }).padding(.horizontal, 14)
             GeometryReader { proxy in
                 let gap: CGFloat = 12
                 let width = max(112, (proxy.size.width - 28 - gap * 2) / 3)
@@ -1317,13 +1318,11 @@ struct ContentView: View {
             .frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
             .background {
                 playerArtwork
-                    .frame(width: geometry.size.width, height: geometry.size.height)
-                    .clipped()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .blur(radius: 65)
-                    .overlay(MusicXTheme.background.opacity(0.68))
+                    .overlay(MusicXTheme.background.opacity(0.56))
                     .ignoresSafeArea()
             }
-            .clipped()
         }
         .preferredColorScheme(.dark)
         .task(id: currentSong?.id) { await loadPlayerMetadata() }

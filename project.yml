@@ -17,18 +17,18 @@ targets:
     info:
       path: MusicX/Info.plist
       properties:
-        CFBundleShortVersionString: "2.209"
-        CFBundleVersion: "209"
+        CFBundleShortVersionString: "2.210"
+        CFBundleVersion: "210"
         UILaunchStoryboardName: LaunchScreen
         UIBackgroundModes:
           - audio
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.huangenxu.musicx
-        MARKETING_VERSION: "2.209"
-        CURRENT_PROJECT_VERSION: "209"
-        INFOPLIST_KEY_CFBundleShortVersionString: "2.209"
-        INFOPLIST_KEY_CFBundleVersion: "209"
+        MARKETING_VERSION: "2.210"
+        CURRENT_PROJECT_VERSION: "210"
+        INFOPLIST_KEY_CFBundleShortVersionString: "2.210"
+        INFOPLIST_KEY_CFBundleVersion: "210"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_KEY_UILaunchStoryboardName: LaunchScreen
