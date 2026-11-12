@@ -718,6 +718,7 @@ struct MusicDiscoveryPage: View {
         errorMessage = nil
         defer { isLoading = false }
         do {
+            var playlistLoadError: String?
             let result: [MusicSong]
             switch route {
             case .charts, .chart:
@@ -735,10 +736,17 @@ struct MusicDiscoveryPage: View {
                     do {
                         result = try await service.playlistTracks(playlistID: playlist.sourceID, count: 50)
                     } catch {
-                        result = await searchEditorialTracks(name: playlist.name)
+                        playlistLoadError = "真实歌单曲目加载失败：\\(error.localizedDescription)"
+                        result = []
+                        MusicSourceDiagnostics.shared.record(
+                            event: "playlist-tracks", source: playlist.source.rawValue,
+                            provider: "qq-playlist-detail", duration: 0,
+                            result: "failed", detail: "\\(playlist.name): \\(error.localizedDescription)"
+                        )
                     }
                 } else {
-                    result = await searchEditorialTracks(name: playlist.name)
+                    playlistLoadError = "暂不支持加载该音源的真实歌单曲目。"
+                    result = []
                 }
             default:
                 result = try await service.search(keyword: query, source: .netease, count: 30)
@@ -746,7 +754,9 @@ struct MusicDiscoveryPage: View {
             guard !Task.isCancelled else { return }
             songs = result
             onQueueChanged(songs)
-            if songs.isEmpty { errorMessage = "音源没有返回匹配的歌曲，请稍后重试" }
+            if songs.isEmpty {
+                errorMessage = playlistLoadError ?? "音源没有返回匹配的歌曲，请稍后重试"
+            }
         } catch { errorMessage = error.localizedDescription }
     }
 
