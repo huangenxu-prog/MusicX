@@ -1534,6 +1534,7 @@ struct ContentView: View {
         // A failed track breaks the shuffle forward path. Keep the successful
         // backward history, but do not let Next return to a failed selection path.
         if isShuffleEnabled {
+            shuffleHistory.removeAll { failedPlaybackSongIDs.contains($0) }
             shuffleForwardHistory.removeAll()
         }
 
