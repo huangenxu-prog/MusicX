@@ -6,7 +6,7 @@ on:
       - home/final-design-asset-pass
     paths:
       - ".github/workflows/import-home-assets.yml"
-      - "MusicX-Complete-Visual-Assets.zip"
+      - "MusicX-Visual-Assets-HighQuality-v3.zip"
   workflow_dispatch:
 
 permissions:
@@ -25,7 +25,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          archive="MusicX-Complete-Visual-Assets.zip"
+          archive="MusicX-Visual-Assets-HighQuality-v3.zip"
           if [ ! -f "$archive" ]; then
             echo "No new visual asset ZIP; nothing to import."
             exit 0
