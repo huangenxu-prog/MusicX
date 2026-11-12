@@ -381,52 +381,82 @@ struct MusicDiscoveryPage: View {
 
     private var playlistGrid: some View {
         GeometryReader { geometry in
-            let width = (geometry.size.width - 14) / 2
-            VStack(alignment: .leading, spacing: 20) {
-                playlistRow(
-                    first: PlaylistCardItem(title: "开心愉悦", subtitle: "明亮轻快，让好心情延续", artwork: "category_chinese_pop"),
-                    second: PlaylistCardItem(title: "温柔治愈", subtitle: "温暖柔和，给情绪一点空间", artwork: "playlist_relax"),
-                    width: width, imageHeight: 126
-                )
-                playlistRow(
-                    first: PlaylistCardItem(title: "放松舒缓", subtitle: "舒缓节奏，放松身心", artwork: "category_light"),
-                    second: PlaylistCardItem(title: "安静专注", subtitle: "纯音乐与轻旋律，适合专注", artwork: "category_instrumental"),
-                    width: width, imageHeight: 126
-                )
-                playlistRow(
-                    first: PlaylistCardItem(title: "释放情绪", subtitle: "用更有力量的节奏释放压力", artwork: "category_rock"),
-                    second: PlaylistCardItem(title: "夜晚助眠", subtitle: "安静氛围，适合睡前聆听", artwork: "playlist_night"),
-                    width: width, imageHeight: 126
-                )
-            }
+            moodPlaylistRows(width: max((geometry.size.width - 14) / 2, 0))
         }
         .frame(height: 3 * 126 + 3 * 42 + 2 * 20)
         .frame(maxWidth: .infinity)
     }
 
+    private func moodPlaylistRows(width: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: 20) {
+            moodPlaylistRowOne(width: width)
+            moodPlaylistRowTwo(width: width)
+            moodPlaylistRowThree(width: width)
+        }
+    }
+
+    private func moodPlaylistRowOne(width: CGFloat) -> some View {
+        playlistRow(
+            first: PlaylistCardItem(title: "开心愉悦", subtitle: "明亮轻快，让好心情延续", artwork: "category_chinese_pop"),
+            second: PlaylistCardItem(title: "温柔治愈", subtitle: "温暖柔和，给情绪一点空间", artwork: "playlist_relax"),
+            width: width, imageHeight: 126
+        )
+    }
+
+    private func moodPlaylistRowTwo(width: CGFloat) -> some View {
+        playlistRow(
+            first: PlaylistCardItem(title: "放松舒缓", subtitle: "舒缓节奏，放松身心", artwork: "category_light"),
+            second: PlaylistCardItem(title: "安静专注", subtitle: "纯音乐与轻旋律，适合专注", artwork: "category_instrumental"),
+            width: width, imageHeight: 126
+        )
+    }
+
+    private func moodPlaylistRowThree(width: CGFloat) -> some View {
+        playlistRow(
+            first: PlaylistCardItem(title: "释放情绪", subtitle: "用更有力量的节奏释放压力", artwork: "category_rock"),
+            second: PlaylistCardItem(title: "夜晚助眠", subtitle: "安静氛围，适合睡前聆听", artwork: "playlist_night"),
+            width: width, imageHeight: 126
+        )
+    }
+
     private var featuredPlaylistGrid: some View {
         GeometryReader { geometry in
-            let width = (geometry.size.width - 14) / 2
-            VStack(alignment: .leading, spacing: 14) {
-                playlistRow(
-                    first: PlaylistCardItem(title: "本周编辑精选", subtitle: "近期值得收藏的好歌", artwork: "featured_playlist"),
-                    second: PlaylistCardItem(title: "华语流行精选", subtitle: "熟悉的声音与新鲜旋律", artwork: "category_chinese_pop"),
-                    width: width, imageHeight: 118
-                )
-                playlistRow(
-                    first: PlaylistCardItem(title: "经典金曲精选", subtitle: "历久弥新的经典作品", artwork: "category_classic"),
-                    second: PlaylistCardItem(title: "独立音乐精选", subtitle: "发现不一样的音乐表达", artwork: "category_singers"),
-                    width: width, imageHeight: 118
-                )
-                playlistRow(
-                    first: PlaylistCardItem(title: "影视原声精选", subtitle: "从电影与剧集中寻找旋律", artwork: "category_instrumental"),
-                    second: PlaylistCardItem(title: "通勤驾驶精选", subtitle: "陪伴每一段路程", artwork: "playlist_drive"),
-                    width: width, imageHeight: 118
-                )
-            }
+            featuredPlaylistRows(width: max((geometry.size.width - 14) / 2, 0))
         }
         .frame(height: 3 * 118 + 3 * 42 + 2 * 14)
         .frame(maxWidth: .infinity)
+    }
+
+    private func featuredPlaylistRows(width: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            featuredPlaylistRowOne(width: width)
+            featuredPlaylistRowTwo(width: width)
+            featuredPlaylistRowThree(width: width)
+        }
+    }
+
+    private func featuredPlaylistRowOne(width: CGFloat) -> some View {
+        playlistRow(
+            first: PlaylistCardItem(title: "本周编辑精选", subtitle: "近期值得收藏的好歌", artwork: "featured_playlist"),
+            second: PlaylistCardItem(title: "华语流行精选", subtitle: "熟悉的声音与新鲜旋律", artwork: "category_chinese_pop"),
+            width: width, imageHeight: 118
+        )
+    }
+
+    private func featuredPlaylistRowTwo(width: CGFloat) -> some View {
+        playlistRow(
+            first: PlaylistCardItem(title: "经典金曲精选", subtitle: "历久弥新的经典作品", artwork: "category_classic"),
+            second: PlaylistCardItem(title: "独立音乐精选", subtitle: "发现不一样的音乐表达", artwork: "category_singers"),
+            width: width, imageHeight: 118
+        )
+    }
+
+    private func featuredPlaylistRowThree(width: CGFloat) -> some View {
+        playlistRow(
+            first: PlaylistCardItem(title: "影视原声精选", subtitle: "从电影与剧集中寻找旋律", artwork: "category_instrumental"),
+            second: PlaylistCardItem(title: "通勤驾驶精选", subtitle: "陪伴每一段路程", artwork: "playlist_drive"),
+            width: width, imageHeight: 118
+        )
     }
 
     private func playlistRow(first: PlaylistCardItem, second: PlaylistCardItem, width: CGFloat, imageHeight: CGFloat) -> some View {
