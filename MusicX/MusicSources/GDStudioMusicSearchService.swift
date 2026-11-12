@@ -55,6 +55,17 @@ struct GDStudioMusicSearchService {
             else if let name = row["artist"] as? String { artist = name }
             else { artist = "未知歌手" }
             let album = row["album"] as? String
+            let rawDuration = row["interval"] ?? row["duration"] ?? row["dt"]
+            let parsedDuration: TimeInterval? = {
+                guard let rawDuration else { return nil }
+                if let value = rawDuration as? Double {
+                    return value > 1_000 ? value / 1_000 : value
+                }
+                if let value = rawDuration as? Int {
+                    return value > 1_000 ? Double(value) / 1_000 : Double(value)
+                }
+                return nil
+            }()
             return MusicSong(
                 source: source,
                 sourceID: String(describing: id),
@@ -62,7 +73,7 @@ struct GDStudioMusicSearchService {
                 artist: artist,
                 album: album,
                 artworkURL: nil,
-                duration: nil,
+                duration: parsedDuration,
                 hash: row["hash"] as? String,
                 albumID: row["album_id"].map { String(describing: $0) },
                 pictureID: row["pic_id"].map { String(describing: $0) },
