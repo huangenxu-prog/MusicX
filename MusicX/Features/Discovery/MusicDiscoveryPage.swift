@@ -178,6 +178,7 @@ struct MusicDiscoveryPage: View {
         }
     }
 
+    // These names map to the six imported high-resolution catalog image sets.
     private func categoryArtworkName(for name: String) -> String {
         switch name {
         case "华语流行": "category_chinese_pop"
