@@ -1751,11 +1751,21 @@ struct ContentView: View {
         guard !Task.isCancelled,
               searchText.trimmingCharacters(in: .whitespacesAndNewlines) == keyword else { return }
 
-        // Collapse cross-provider duplicates, preserving the first playable source.
+        // Collapse only the same recording. Keep alternate/live/remix versions separate.
         var seen = Set<String>()
         let uniqueResults = merged.filter { item in
-            let key = "\(normalizedSearchKey(item.title))|\(normalizedSearchKey(item.artist))|\(normalizedSearchKey(item.album ?? ""))"
-            return !key.isEmpty && seen.insert(key).inserted
+            let title = normalizedSearchKey(item.title)
+            let artist = normalizedArtistSearchKey(item.artist)
+            guard !title.isEmpty, !artist.isEmpty else { return true }
+            let version = searchVersionMarkers(item)
+            let durationBucket: String
+            if let duration = item.duration, duration > 0 {
+                durationBucket = String(Int(duration.rounded()))
+            } else {
+                durationBucket = "unknown"
+            }
+            let key = "\(title)|\(artist)|\(version)|\(durationBucket)"
+            return seen.insert(key).inserted
         }
         let results = Array(uniqueResults.prefix(50))
         onlineResults = results.map { item in
@@ -1834,6 +1844,25 @@ struct ContentView: View {
         value.lowercased()
             .folding(options: [.diacriticInsensitive, .widthInsensitive], locale: .current)
             .filter { $0.isLetter || $0.isNumber }
+    }
+
+    private func normalizedArtistSearchKey(_ value: String) -> String {
+        value.split(whereSeparator: { $0 == "/" || $0 == "、" || $0 == "," || $0 == "，" })
+            .map { normalizedSearchKey(String($0)) }
+            .filter { !$0.isEmpty }
+            .sorted()
+            .joined(separator: "+")
+    }
+
+    private func searchVersionMarkers(_ song: MusicSong) -> String {
+        let text = "\(song.title) \(song.album ?? "")".lowercased()
+            .folding(options: [.diacriticInsensitive, .widthInsensitive], locale: .current)
+        let markers = [
+            "live", "remix", "instrumental", "伴奏", "纯音乐", "现场", "演唱会",
+            "翻唱", "cover", "acoustic", "不插电", "demo", "示范", "合唱",
+            "remaster", "重制", "sped up", "slowed", "加速", "降速", "dj"
+        ]
+        return markers.filter { text.contains($0) }.sorted().joined(separator: ",")
     }
 
     private func stableSongID(_ song: MusicSong) -> Int {
