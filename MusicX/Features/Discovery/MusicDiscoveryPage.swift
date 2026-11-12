@@ -748,7 +748,7 @@ struct MusicDiscoveryPage: View {
                 }
                 var seen = Set<String>()
                 result = matched.filter { song in
-                    let key = "\\(song.title.lowercased().filter { $0.isLetter || $0.isNumber })|\\(song.artist.lowercased().filter { $0.isLetter || $0.isNumber })"
+                    let key = "\(song.title.lowercased().filter { $0.isLetter || $0.isNumber })|\(song.artist.lowercased().filter { $0.isLetter || $0.isNumber })"
                     return seen.insert(key).inserted
                 }
             case .playlist:

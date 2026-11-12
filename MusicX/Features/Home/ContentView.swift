@@ -1746,7 +1746,7 @@ struct ContentView: View {
                 if !result.isEmpty {
                     received.append(result)
                     var merged: [MusicSong] = []
-                    let maxCount = received.map(\\.count).max() ?? 0
+                    let maxCount = received.map(\.count).max() ?? 0
                     for index in 0..<maxCount {
                         for sourceResults in received where sourceResults.indices.contains(index) {
                             merged.append(sourceResults[index])
@@ -1759,7 +1759,7 @@ struct ContentView: View {
                         guard !title.isEmpty, !artist.isEmpty else { return true }
                         let version = searchVersionMarkers(item)
                         let durationKey = item.duration.map { String(Int($0.rounded())) } ?? "unknown"
-                        return seen.insert("\\(title)|\\(artist)|\\(version)|\\(durationKey)").inserted
+                        return seen.insert("\(title)|\(artist)|\(version)|\(durationKey)").inserted
                     }
                     onlineResults = Array(uniqueResults.prefix(50)).map { item in
                         AppSong(id: stableSongID(item), title: item.title, artist: item.artist,

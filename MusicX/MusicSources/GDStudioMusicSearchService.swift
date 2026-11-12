@@ -226,11 +226,11 @@ struct GDStudioMusicSearchService {
             guard seenIDs.insert(song.id).inserted else { return false }
             let title = song.title.lowercased().filter { $0.isLetter || $0.isNumber }
             let artist = song.artist.lowercased().filter { $0.isLetter || $0.isNumber }
-            let versionText = "\\(song.title) \\(song.album ?? "")".lowercased()
+            let versionText = "\(song.title) \(song.album ?? "")".lowercased()
             let markers = ["live", "remix", "cover", "dj", "伴奏", "纯音乐", "现场", "翻唱", "acoustic"]
             let version = markers.filter { versionText.contains($0) }.sorted().joined(separator: ",")
             let duration = song.duration.map { String(Int($0.rounded())) } ?? "unknown"
-            let key = "\\(title)|\\(artist)|\\(version)|\\(duration)"
+            let key = "\(title)|\(artist)|\(version)|\(duration)"
             return seenRecordings.insert(key).inserted
         }
         guard !uniqueSongs.isEmpty else { throw MusicSourceError.invalidResponse("该歌单暂时没有可用歌曲") }
@@ -273,7 +273,7 @@ struct GDStudioMusicSearchService {
 
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-            throw MusicSourceError.invalidResponse("QQ 接口 HTTP \\((response as? HTTPURLResponse)?.statusCode ?? -1)")
+            throw MusicSourceError.invalidResponse("QQ 接口 HTTP \((response as? HTTPURLResponse)?.statusCode ?? -1)")
         }
         guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let service = root["req_0"] as? [String: Any] else {
@@ -283,7 +283,7 @@ struct GDStudioMusicSearchService {
         let moduleCode = service["code"] as? Int ?? 0
         guard topCode == 0, moduleCode == 0,
               let result = service["data"] as? [String: Any] else {
-            throw MusicSourceError.invalidResponse("QQ 服务返回错误 top=\\(topCode), module=\\(moduleCode)")
+            throw MusicSourceError.invalidResponse("QQ 服务返回错误 top=\(topCode), module=\(moduleCode)")
         }
         return result
     }
