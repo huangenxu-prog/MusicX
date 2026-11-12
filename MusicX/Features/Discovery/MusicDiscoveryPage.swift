@@ -343,9 +343,9 @@ struct MusicDiscoveryPage: View {
                         if let url = song?.artworkURL {
                             AsyncImage(url: url) { phase in
                                 if let image = phase.image { image.resizable().scaledToFill() }
-                                else { Image(systemName: "music.note").foregroundStyle(.white) }
+                                else { Image("player_cover").resizable().scaledToFill() }
                             }.clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
-                        } else { Image(systemName: "music.note").font(.system(size: 20, weight: .semibold)).foregroundStyle(.white) }
+                        } else { Image("player_cover").resizable().scaledToFill() }
                     }.frame(width: 48, height: 48)
                     VStack(alignment: .leading, spacing: 5) {
                         Text(song?.title ?? "尚未播放").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
@@ -353,15 +353,15 @@ struct MusicDiscoveryPage: View {
                     }
                 }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
             }.buttonStyle(.plain)
-            Button(action: onPrevious) { Image(systemName: "backward.end.fill").font(.system(size: 16, weight: .semibold)).foregroundStyle(.white.opacity(0.92)).frame(width: 28, height: 44) }.buttonStyle(.plain).disabled(song == nil)
+            Button(action: onPrevious) { Image(systemName: "backward.end.fill").font(.system(size: 17, weight: .semibold)).foregroundStyle(.white.opacity(0.92)).frame(width: 30, height: 46) }.buttonStyle(.plain).disabled(song == nil)
             Button(action: onTogglePlayback) {
                 Image(systemName: isPlaying ? "pause.fill" : "play.fill").font(.system(size: 19, weight: .bold)).foregroundStyle(.white)
-                    .frame(width: 42, height: 42).background(.white.opacity(0.22), in: Circle()).overlay(Circle().stroke(.white.opacity(0.30), lineWidth: 1))
+                    .frame(width: 44, height: 44).background(.white.opacity(0.22), in: Circle()).overlay(Circle().stroke(.white.opacity(0.30), lineWidth: 1))
             }.buttonStyle(.plain).disabled(song == nil)
-            Button(action: onNext) { Image(systemName: "forward.end.fill").font(.system(size: 16, weight: .semibold)).foregroundStyle(.white.opacity(0.92)).frame(width: 28, height: 44) }.buttonStyle(.plain).disabled(song == nil)
-            Button(action: onOpenQueue) { Image(systemName: "list.bullet").font(.system(size: 19, weight: .semibold)).foregroundStyle(.white.opacity(0.92)).frame(width: 28, height: 44) }.buttonStyle(.plain)
+            Button(action: onNext) { Image(systemName: "forward.end.fill").font(.system(size: 17, weight: .semibold)).foregroundStyle(.white.opacity(0.92)).frame(width: 30, height: 46) }.buttonStyle(.plain).disabled(song == nil)
+            Button(action: onOpenQueue) { Image(systemName: "list.bullet").font(.system(size: 20, weight: .semibold)).foregroundStyle(.white.opacity(0.92)).frame(width: 30, height: 46) }.buttonStyle(.plain)
         }
-        .padding(.horizontal, 13).frame(height: 76)
+        .padding(.horizontal, 14).frame(height: 76)
         .background {
             RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Color(red: 0.10, green: 0.12, blue: 0.27).opacity(0.72))
                 .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(LinearGradient(colors: [Color(red: 0.40, green: 0.31, blue: 0.66).opacity(0.34), Color(red: 0.08, green: 0.11, blue: 0.25).opacity(0.14)], startPoint: .topLeading, endPoint: .bottomTrailing)))
