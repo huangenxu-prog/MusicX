@@ -1346,6 +1346,14 @@ struct ContentView: View {
                 .simultaneousGesture(DragGesture(minimumDistance: 24, coordinateSpace: .global).onEnded { value in
                     let horizontal = value.translation.width
                     let vertical = value.translation.height
+                    if value.startLocation.y <= 120,
+                       vertical > 110,
+                       vertical > abs(horizontal) * 1.25 {
+                        withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+                            isPlayerPresented = false
+                        }
+                        return
+                    }
                     guard value.startLocation.x <= 28,
                           horizontal > 80,
                           horizontal > abs(vertical) * 1.25 else { return }
@@ -1753,21 +1761,24 @@ struct ContentView: View {
                 .accessibilityAddTraits(selectedTab == tab ? .isSelected : [])
             }
         }
-        .padding(.horizontal, 8)
-        .padding(.top, 3)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
         .background {
-            LinearGradient(
-                colors: [
-                    Color(red: 0.025, green: 0.035, blue: 0.085).opacity(0.70),
-                    Color(red: 0.035, green: 0.045, blue: 0.11).opacity(0.82)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
+            Capsule()
+                .fill(Color(red: 0.045, green: 0.055, blue: 0.12).opacity(0.84))
+                .overlay {
+                    Capsule().fill(LinearGradient(
+                        colors: [
+                            Color(red: 0.22, green: 0.28, blue: 0.52).opacity(0.32),
+                            Color(red: 0.045, green: 0.055, blue: 0.12).opacity(0.18)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ))
+                }
         }
-        .overlay(alignment: .top) {
-            Rectangle().fill(.white.opacity(0.07)).frame(height: 0.6)
-        }
+        .overlay(Capsule().stroke(.white.opacity(0.22), lineWidth: 1))
+        .shadow(color: Color.black.opacity(0.28), radius: 15, y: 6)
     }
 
     private func playSearchResult(_ song: AppSong) {
