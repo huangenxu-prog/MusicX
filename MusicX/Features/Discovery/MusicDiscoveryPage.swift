@@ -21,6 +21,8 @@ enum MusicDiscoveryRoute: Identifiable {
 }
 
 struct MusicDiscoveryPage: View {
+    @Environment(\.dismiss) private var dismiss
+
     let route: MusicDiscoveryRoute
     let onClose: () -> Void
     let onPlay: (MusicSong) -> Void
@@ -55,6 +57,16 @@ struct MusicDiscoveryPage: View {
         }
     }
     private let service = GDStudioMusicSearchService()
+
+    private func closePage() {
+        onClose()
+        dismiss()
+    }
+
+    private func playlistSubtitle(for name: String) -> String {
+        let moodNames: Set<String> = ["开心愉悦", "温柔治愈", "放松舒缓", "安静专注", "释放情绪", "夜晚助眠"]
+        return moodNames.contains(name) ? "心情歌单" : "精选歌单"
+    }
 
     private var title: String {
         switch route {
@@ -113,7 +125,7 @@ struct MusicDiscoveryPage: View {
                     case .albums: albumsIntro
                     case .charts, .chart: chartIntro
                     case .newReleases: newReleasesHeader
-                    case .playlist(let name): detailBanner(name, subtitle: "精选歌单")
+                    case .playlist(let name): detailBanner(name, subtitle: playlistSubtitle(for: name))
                     case .album(let title, let artist): albumBanner(title: title, artist: artist)
                     }
                     if case .playlists = route {
@@ -140,23 +152,21 @@ struct MusicDiscoveryPage: View {
             let horizontal = value.translation.width
             let vertical = value.translation.height
             guard value.startLocation.x <= 28, horizontal > 88, horizontal > abs(vertical) * 1.25 else { return }
-            onClose()
+            closePage()
         })
         .task(id: route.id) { await loadSongs() }
     }
 
     private var topBar: some View {
         HStack {
-            Button { onClose() } label: {
+            Button(action: closePage) {
                 Image(systemName: "chevron.left").font(.system(size: 20, weight: .semibold))
                     .frame(width: 48, height: 46, alignment: .leading).contentShape(Rectangle())
             }.buttonStyle(.plain).zIndex(10)
             Spacer()
             Text(title).font(.system(size: 16, weight: .semibold))
-            Spacer()
-            Image(systemName: "ellipsis").font(.system(size: 18, weight: .semibold))
-                .frame(width: 42, alignment: .trailing).foregroundStyle(.white.opacity(0.75))
-        }.foregroundStyle(.white).padding(.bottom, 4).contentShape(Rectangle())
+            Spacer(minLength: 42)
+        }.foregroundStyle(.white).padding(.bottom, 4)
     }
 
     private var dailyHeader: some View {
@@ -226,13 +236,15 @@ struct MusicDiscoveryPage: View {
     // These names map to the six imported high-resolution catalog image sets.
     private func categoryArtworkName(for name: String) -> String {
         switch name {
-        case "华语流行", "华语精选": "category_chinese_pop"
-        case "经典老歌", "经典回味": "category_classic"
-        case "轻音乐": "category_light"
-        case "纯音乐", "静心时刻": "category_instrumental"
-        case "摇滚": "category_rock"
-        case "本周精选": "featured_playlist"
-        case "旅途精选": "playlist_drive"
+        case "开心愉悦", "华语流行精选": "category_chinese_pop"
+        case "温柔治愈": "playlist_relax"
+        case "放松舒缓": "category_light"
+        case "安静专注", "影视原声精选": "category_instrumental"
+        case "释放情绪": "category_rock"
+        case "夜晚助眠": "playlist_night"
+        case "本周编辑精选": "featured_playlist"
+        case "经典金曲精选": "category_classic"
+        case "通勤驾驶精选": "playlist_drive"
         default: "category_singers"
         }
     }
@@ -338,28 +350,24 @@ struct MusicDiscoveryPage: View {
     }
 
     private var playlistGrid: some View {
-        let items: [(String, String, [Color], String)] = [
-            ("华语流行", "热门华语歌曲", [Color(red: 0.20, green: 0.42, blue: 0.68), Color(red: 0.10, green: 0.16, blue: 0.30)], "category_chinese_pop"),
-            ("轻音乐", "放松与专注", [Color(red: 0.40, green: 0.25, blue: 0.49), Color(red: 0.17, green: 0.14, blue: 0.30)], "category_light"),
-            ("经典老歌", "熟悉的旋律", [Color(red: 0.48, green: 0.28, blue: 0.25), Color(red: 0.20, green: 0.14, blue: 0.17)], "category_classic"),
-            ("纯音乐", "安静聆听", [Color(red: 0.16, green: 0.39, blue: 0.38), Color(red: 0.08, green: 0.20, blue: 0.23)], "category_instrumental"),
-            ("摇滚", "节奏与力量", [Color(red: 0.43, green: 0.22, blue: 0.27), Color(red: 0.19, green: 0.13, blue: 0.22)], "category_rock"),
-            ("歌手精选", "探索喜爱的歌手", [Color(red: 0.27, green: 0.32, blue: 0.53), Color(red: 0.15, green: 0.17, blue: 0.30)], "category_singers")
+        let items: [(String, String, String)] = [
+            ("开心愉悦", "明亮轻快，让好心情延续", "category_chinese_pop"),
+            ("温柔治愈", "温暖柔和，给情绪一点空间", "playlist_relax"),
+            ("放松舒缓", "舒缓节奏，放松身心", "category_light"),
+            ("安静专注", "纯音乐与轻旋律，适合专注", "category_instrumental"),
+            ("释放情绪", "用更有力量的节奏释放压力", "category_rock"),
+            ("夜晚助眠", "安静氛围，适合睡前聆听", "playlist_night")
         ]
-        return LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 15) {
+        return LazyVGrid(columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)], spacing: 20) {
             ForEach(items, id: \.0) { item in
                 Button { onOpenPlaylist(item.0) } label: {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Image(item.3)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(height: 108)
-                            .frame(maxWidth: .infinity)
-                            .clipped()
-                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.white.opacity(0.18), lineWidth: 0.8))
-                        Text(item.0).font(.system(size: 13, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
-                        Text(item.1).font(.system(size: 10, weight: .medium)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Image(item.2).resizable().scaledToFill()
+                            .frame(height: 126).frame(maxWidth: .infinity).clipped()
+                            .clipShape(RoundedRectangle(cornerRadius: 17, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: 17, style: .continuous).stroke(.white.opacity(0.16), lineWidth: 0.8))
+                        Text(item.0).font(.system(size: 15, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
+                        Text(item.1).font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(2).fixedSize(horizontal: false, vertical: true)
                     }.frame(maxWidth: .infinity, alignment: .leading)
                 }.buttonStyle(.plain)
             }
@@ -368,12 +376,12 @@ struct MusicDiscoveryPage: View {
 
     private var featuredPlaylistGrid: some View {
         let items: [(String, String, String)] = [
-            ("本周精选", "近期值得收藏的好歌", "featured_playlist"),
-            ("华语精选", "熟悉的声音与新鲜旋律", "category_chinese_pop"),
-            ("经典回味", "历久弥新的经典作品", "category_classic"),
-            ("独立新声", "发现不一样的音乐表达", "category_singers"),
-            ("静心时刻", "适合阅读与专注的音乐", "category_instrumental"),
-            ("旅途精选", "陪伴每一段路程", "playlist_drive")
+            ("本周编辑精选", "近期值得收藏的好歌", "featured_playlist"),
+            ("华语流行精选", "熟悉的声音与新鲜旋律", "category_chinese_pop"),
+            ("经典金曲精选", "历久弥新的经典作品", "category_classic"),
+            ("独立音乐精选", "发现不一样的音乐表达", "category_singers"),
+            ("影视原声精选", "从电影与剧集中寻找旋律", "category_instrumental"),
+            ("通勤驾驶精选", "陪伴每一段路程", "playlist_drive")
         ]
         return LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
             ForEach(items, id: \.0) { item in
