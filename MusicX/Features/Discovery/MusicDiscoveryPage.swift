@@ -156,7 +156,7 @@ struct MusicDiscoveryPage: View {
                         trackList
                     }
                 }
-                .padding(.horizontal, 22).padding(.top, 12).padding(.bottom, 24)
+                .padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 24)
             }
         }
         .preferredColorScheme(.dark)
@@ -444,14 +444,14 @@ struct MusicDiscoveryPage: View {
     // Mood and editorial categories deliberately share one page template and card geometry.
     private func playlistCategoryGrid(items: [PlaylistCardItem]) -> some View {
         let screenWidth = UIScreen.main.bounds.width
-        let cardWidth = max((screenWidth - 44 - 14) / 2, 0)
+        let cardWidth = max((screenWidth - 32 - 12) / 2, 0)
         return LazyVGrid(
-            columns: [GridItem(.fixed(cardWidth), spacing: 14), GridItem(.fixed(cardWidth), spacing: 14)],
+            columns: [GridItem(.fixed(cardWidth), spacing: 12), GridItem(.fixed(cardWidth), spacing: 12)],
             alignment: .leading,
             spacing: 14
         ) {
             ForEach(items, id: \.title) { item in
-                playlistTile(item, width: cardWidth, imageHeight: 122)
+                playlistTile(item, width: cardWidth, imageHeight: cardWidth * 0.705)
             }
         }
     }
