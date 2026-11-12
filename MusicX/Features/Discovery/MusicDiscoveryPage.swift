@@ -949,14 +949,17 @@ struct MusicDiscoveryPage: View {
     private func loadChart(_ name: String, showInitialLoading: Bool) async {
         let requestToken = UUID()
         chartLoadToken = requestToken
-        if let cached = chartSongCache[name] {
+        if let cached = chartSongCache[name], !cached.isEmpty {
             songs = cached
-            if !cached.isEmpty { onQueueChanged(cached) }
+            errorMessage = nil
+            onQueueChanged(cached)
             return
         }
         if showInitialLoading { isLoading = true }
         errorMessage = nil
-        defer { if showInitialLoading { isLoading = false } }
+        defer {
+            if showInitialLoading, chartLoadToken == requestToken { isLoading = false }
+        }
         do {
             let result = try await service.toplist(name, count: 50)
             guard !Task.isCancelled, chartLoadToken == requestToken else { return }
