@@ -291,29 +291,39 @@ struct ContentView: View {
                   playerStore.isCurrentItem(failedItem) else { return }
             retryCurrentSongWithFreshURL()
         }
-        .fullScreenCover(item: $discoveryRoute) { route in
-            MusicDiscoveryPage(route: route, onClose: { discoveryRoute = nil },
-                onPlay: { playDiscoverySong($0) },
-                currentSong: currentSong?.onlineSong,
-                isPlaying: playerStore.isPlaying,
-                onTogglePlayback: { playerStore.togglePlayback() },
-                onOpenPlayer: { isPlayerPresented = true },
-                onPrevious: { stepSong(by: -1) },
-                onNext: { stepSong(by: 1) },
-                onOpenQueue: { playerDisplayMode = .queue; isPlayerPresented = true },
-                onQueueChanged: {
-                    playbackQueueSongs = $0.map { AppSong(id: stableSongID($0), title: $0.title, artist: $0.artist, album: $0.album ?? "", tint: MusicXTheme.blue, onlineSong: $0) }
-                    hasCustomPlaybackQueue = true
-                    resetShuffleHistory()
-                }, 
-                currentTime: playerStore.currentTime,
-                duration: playerStore.duration,
-                onOpenPlaylist: { discoveryRoute = .playlistByID($0) },
-                onOpenPlaylistKeyword: { discoveryRoute = .playlist($0) },
-                onOpenFeaturedPick: { discoveryRoute = .featuredPick },
-                onOpenAlbum: { discoveryRoute = .album(title: $0, artist: $1) },
-                onSelectChart: { discoveryRoute = .chart($0) })
+        .overlay {
+            if let route = discoveryRoute {
+                MusicDiscoveryPage(route: route, onClose: {
+                    withAnimation(.easeInOut(duration: 0.28)) { discoveryRoute = nil }
+                },
+                    onPlay: { playDiscoverySong($0) },
+                    currentSong: currentSong?.onlineSong,
+                    isPlaying: playerStore.isPlaying,
+                    onTogglePlayback: { playerStore.togglePlayback() },
+                    onOpenPlayer: { isPlayerPresented = true },
+                    onPrevious: { stepSong(by: -1) },
+                    onNext: { stepSong(by: 1) },
+                    onOpenQueue: { playerDisplayMode = .queue; isPlayerPresented = true },
+                    onQueueChanged: {
+                        playbackQueueSongs = $0.map { AppSong(id: stableSongID($0), title: $0.title, artist: $0.artist, album: $0.album ?? "", tint: MusicXTheme.blue, onlineSong: $0) }
+                        hasCustomPlaybackQueue = true
+                        resetShuffleHistory()
+                    },
+                    currentTime: playerStore.currentTime,
+                    duration: playerStore.duration,
+                    onOpenPlaylist: { discoveryRoute = .playlistByID($0) },
+                    onOpenPlaylistKeyword: { discoveryRoute = .playlist($0) },
+                    onOpenFeaturedPick: { discoveryRoute = .featuredPick },
+                    onOpenAlbum: { discoveryRoute = .album(title: $0, artist: $1) },
+                    onSelectChart: { discoveryRoute = .chart($0) })
+                    .id(route.id)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(MusicXPageBackground())
+                    .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
+                    .zIndex(30)
+            }
         }
+        .animation(.easeInOut(duration: 0.28), value: discoveryRoute?.id)
         .task { await loadHomeSongs() }
     }
 
