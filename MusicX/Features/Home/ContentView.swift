@@ -344,6 +344,7 @@ struct ContentView: View {
                 duration: playerStore.duration,
                 onOpenPlaylist: { discoveryRoute = .playlistByID($0) },
                 onOpenPlaylistKeyword: { discoveryRoute = .playlist($0) },
+                onOpenFeaturedPick: { discoveryRoute = .featuredPick },
                 onOpenAlbum: { discoveryRoute = .album(title: $0, artist: $1) },
                 onSelectChart: { discoveryRoute = .chart($0) })
         }
