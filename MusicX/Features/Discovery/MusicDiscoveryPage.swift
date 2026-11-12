@@ -7,6 +7,7 @@ enum MusicDiscoveryRoute: Identifiable {
     case playlist(String)
     case playlistByID(MusicPlaylist)
     case album(title: String, artist: String)
+    case musicCategory(title: String, subtitle: String, artwork: String, keyword: String)
     var id: String {
         switch self {
         case .daily: "daily"
@@ -20,6 +21,7 @@ enum MusicDiscoveryRoute: Identifiable {
         case .playlist(let name): "playlist-\(name)"
         case .playlistByID(let playlist): "playlist-\(playlist.id)"
         case .album(let title, let artist): "album-\(title)-\(artist)"
+        case .musicCategory(let title, _, _, _): "music-category-\(title)"
         }
     }
 }
@@ -102,6 +104,7 @@ struct MusicDiscoveryPage: View {
         case .playlist(let name): name
         case .playlistByID(let playlist): playlist.name
         case .album(let title, _): title
+        case .musicCategory(let title, _, _, _): title
         }
     }
     private var query: String {
@@ -130,6 +133,7 @@ struct MusicDiscoveryPage: View {
             }
         case .playlistByID(let playlist): playlist.name
         case .album(let title, let artist): "\(title) \(artist)"
+        case .musicCategory(_, _, _, let keyword): keyword
         }
     }
 
@@ -155,6 +159,8 @@ struct MusicDiscoveryPage: View {
                     case .playlist(let name): detailBanner(name, subtitle: playlistSubtitle(for: name))
                     case .playlistByID(let playlist): detailBanner(playlist.name, subtitle: playlistSubtitle(for: playlist.name))
                     case .album(let title, let artist): albumBanner(title: title, artist: artist)
+                    case .musicCategory(let title, let subtitle, let artwork, _):
+                        musicCategoryAlbumHeader(title: title, subtitle: subtitle, artwork: artwork)
                     }
                     if isRecommendationRoute {
                         trackList
@@ -168,7 +174,8 @@ struct MusicDiscoveryPage: View {
                         if case .charts = route { chartTabs }
                         if case .chart = route { chartTabs }
                         if case .album = route { albumNote }
-                        trackList
+                        if case .musicCategory = route { musicCategoryTrackList }
+                        else { trackList }
                     }
                 }
                 .padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 24)
@@ -438,6 +445,111 @@ struct MusicDiscoveryPage: View {
             .overlay(RoundedRectangle(cornerRadius: 28, style: .continuous).stroke(.white.opacity(0.13), lineWidth: 1))
             .shadow(color: Color.black.opacity(0.22), radius: 20, y: 10)
             playAllBar
+        }
+    }
+
+    private func musicCategoryAlbumHeader(title: String, subtitle: String, artwork: String) -> some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(spacing: 16) {
+                Image(artwork)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 136, height: 136)
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(.white.opacity(0.16), lineWidth: 1))
+                VStack(alignment: .leading, spacing: 9) {
+                    Text(title).font(.system(size: 23, weight: .bold)).foregroundStyle(.white)
+                    Text(subtitle).font(.system(size: 14, weight: .medium)).foregroundStyle(MusicXTheme.blue)
+                    Text("精选分类 · \(songs.count) 首").font(.system(size: 12)).foregroundStyle(MusicXTheme.muted)
+                }
+                Spacer(minLength: 0)
+            }
+            HStack(spacing: 10) {
+                Button {
+                    guard let first = songs.first else { return }
+                    onQueueChanged(songs)
+                    onPlay(first)
+                } label: {
+                    Label("播放全部", systemImage: "play.fill")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Color(red: 0.035, green: 0.045, blue: 0.11))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 48)
+                        .background(Color(red: 0.94, green: 0.95, blue: 0.99), in: Capsule())
+                }
+                .buttonStyle(.plain)
+                .disabled(songs.isEmpty)
+                Button {
+                    guard !songs.isEmpty else { return }
+                    let shuffled = songs.shuffled()
+                    onQueueChanged(shuffled)
+                    onPlay(shuffled[0])
+                } label: {
+                    Label("随机播放", systemImage: "shuffle")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 48)
+                        .background(Color(red: 0.085, green: 0.105, blue: 0.20), in: Capsule())
+                        .overlay(Capsule().stroke(Color(red: 0.19, green: 0.23, blue: 0.43), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                .disabled(songs.isEmpty)
+            }
+        }
+    }
+
+    private var musicCategoryTrackList: some View {
+        VStack(spacing: 0) {
+            if isLoading {
+                ProgressView().tint(MusicXTheme.blue).frame(maxWidth: .infinity).padding(.vertical, 28)
+            } else if let errorMessage, songs.isEmpty {
+                Text(errorMessage).font(.system(size: 13)).foregroundStyle(MusicXTheme.muted).frame(maxWidth: .infinity).padding(.vertical, 24)
+            } else if songs.isEmpty {
+                Text("暂时没有找到曲目").font(.system(size: 13)).foregroundStyle(MusicXTheme.muted).frame(maxWidth: .infinity).padding(.vertical, 24)
+            } else {
+                ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
+                    let isCurrent = currentSong?.id == song.id
+                    Button {
+                        onQueueChanged(songs)
+                        onPlay(song)
+                    } label: {
+                        HStack(spacing: 14) {
+                            if isCurrent && isPlaying {
+                                Image(systemName: "waveform")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundStyle(MusicXTheme.blue)
+                                    .frame(width: 22)
+                            } else {
+                                Text("\(index + 1)")
+                                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                                    .foregroundStyle(MusicXTheme.muted)
+                                    .frame(width: 22)
+                            }
+                            Text(song.title)
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(isCurrent ? MusicXTheme.blue : .white)
+                                .lineLimit(1)
+                            Spacer(minLength: 8)
+                            Image(systemName: "ellipsis")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(MusicXTheme.muted)
+                        }
+                        .padding(.horizontal, 16)
+                        .frame(height: 76)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(isCurrent ? Color(red: 0.10, green: 0.15, blue: 0.30) : .clear,
+                            in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .overlay(alignment: .bottom) {
+                            if !isCurrent {
+                                Rectangle().fill(Color(red: 0.13, green: 0.16, blue: 0.28)).frame(height: 0.7)
+                                    .padding(.horizontal, 8)
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
         }
     }
 
@@ -897,6 +1009,8 @@ struct MusicDiscoveryPage: View {
                 result = try await service.toplist("新歌榜", count: 50)
             case .album(let albumTitle, let albumArtist):
                 result = await searchAlbumTracks(title: albumTitle, artist: albumArtist)
+            case .musicCategory(_, _, _, let keyword):
+                result = try await service.search(keyword: keyword, source: .netease, count: 30)
             case .featuredPick:
                 result = []
             case .playlist(let name):
