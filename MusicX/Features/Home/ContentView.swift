@@ -691,12 +691,12 @@ struct ContentView: View {
                                 Text("音乐分类").font(.system(size: 20, weight: .bold)).foregroundStyle(.white)
                             }
                             LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-                                SearchCategoryCard(title: "华语流行", subtitle: "精选华语流行", asset: "SearchCategory01", symbol: "circle.fill", tint: Color(red: 0.10, green: 0.43, blue: 0.88)) { searchText = "华语流行" }
-                                SearchCategoryCard(title: "经典老歌", subtitle: "时代金曲回忆", asset: "SearchCategory02", symbol: "mic.fill", tint: Color(red: 0.73, green: 0.20, blue: 0.53)) { searchText = "经典老歌" }
-                                SearchCategoryCard(title: "轻音乐", subtitle: "舒缓 · 放松", asset: "SearchCategory03", symbol: "leaf.fill", tint: Color(red: 0.08, green: 0.55, blue: 0.43)) { searchText = "轻音乐" }
-                                SearchCategoryCard(title: "纯音乐", subtitle: "器乐 · 演奏", asset: "SearchCategory04", symbol: "square.fill", tint: Color(red: 0.48, green: 0.23, blue: 0.80)) { searchText = "纯音乐" }
-                                SearchCategoryCard(title: "摇滚", subtitle: "激情 · 力量", asset: "SearchCategory05", symbol: "bolt.fill", tint: Color(red: 0.82, green: 0.30, blue: 0.10)) { searchText = "摇滚" }
-                                SearchCategoryCard(title: "欧美音乐", subtitle: "欧美流行精选", asset: "SearchCategory06", symbol: "headphones", tint: Color(red: 0.05, green: 0.52, blue: 0.75)) { searchText = "欧美音乐" }
+                                SearchCategoryCard(title: "华语流行", subtitle: "精选华语流行", asset: "SearchCategory01", symbol: "circle.fill", tint: Color(red: 0.10, green: 0.43, blue: 0.88)) { discoveryRoute = .musicCategory(title: "华语流行", subtitle: "精选华语流行", artwork: "category_chinese_pop", keyword: "华语流行") }
+                                SearchCategoryCard(title: "经典老歌", subtitle: "时代金曲回忆", asset: "SearchCategory02", symbol: "mic.fill", tint: Color(red: 0.73, green: 0.20, blue: 0.53)) { discoveryRoute = .musicCategory(title: "经典老歌", subtitle: "时代金曲回忆", artwork: "category_classic", keyword: "经典老歌") }
+                                SearchCategoryCard(title: "轻音乐", subtitle: "舒缓 · 放松", asset: "SearchCategory03", symbol: "leaf.fill", tint: Color(red: 0.08, green: 0.55, blue: 0.43)) { discoveryRoute = .musicCategory(title: "轻音乐", subtitle: "舒缓 · 放松", artwork: "category_light", keyword: "轻音乐") }
+                                SearchCategoryCard(title: "纯音乐", subtitle: "器乐 · 演奏", asset: "SearchCategory04", symbol: "square.fill", tint: Color(red: 0.48, green: 0.23, blue: 0.80)) { discoveryRoute = .musicCategory(title: "纯音乐", subtitle: "器乐 · 演奏", artwork: "category_instrumental", keyword: "纯音乐") }
+                                SearchCategoryCard(title: "摇滚", subtitle: "激情 · 力量", asset: "SearchCategory05", symbol: "bolt.fill", tint: Color(red: 0.82, green: 0.30, blue: 0.10)) { discoveryRoute = .musicCategory(title: "摇滚", subtitle: "激情 · 力量", artwork: "category_rock", keyword: "摇滚") }
+                                SearchCategoryCard(title: "欧美音乐", subtitle: "欧美流行精选", asset: "SearchCategory06", symbol: "headphones", tint: Color(red: 0.05, green: 0.52, blue: 0.75)) { discoveryRoute = .musicCategory(title: "欧美音乐", subtitle: "欧美流行精选", artwork: "category_singers", keyword: "欧美音乐") }
                             }
                         }
                         Text("选择分类，发现更多音乐")
