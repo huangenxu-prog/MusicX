@@ -341,14 +341,37 @@ struct MusicDiscoveryPage: View {
         }.padding(.top, 4)
     }
 
+    // Fixed ranking hero: this artwork and copy never change with the selected chart.
     private var chartIntro: some View {
         ZStack(alignment: .bottomLeading) {
-            Image(chartArtworkName).resizable().scaledToFill()
-            LinearGradient(colors: [.clear, Color(red: 0.035, green: 0.045, blue: 0.11).opacity(0.92)], startPoint: .center, endPoint: .bottom)
-            VStack(alignment: .leading, spacing: 8) {
-                Text(selectedChart).font(.system(size: 29, weight: .bold, design: .rounded))
-                Text(chartSubtitle).font(.system(size: 14, weight: .medium)).foregroundStyle(.white.opacity(0.92))
-            }.padding(22)
+            LinearGradient(
+                stops: [
+                    .init(color: Color(red: 0.48, green: 0.16, blue: 0.62), location: 0.00),
+                    .init(color: Color(red: 0.77, green: 0.30, blue: 0.55), location: 0.34),
+                    .init(color: Color(red: 0.98, green: 0.48, blue: 0.37), location: 0.70),
+                    .init(color: Color(red: 0.96, green: 0.60, blue: 0.30), location: 1.00)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            ChartSkyline()
+                .fill(Color(red: 0.055, green: 0.055, blue: 0.15))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            LinearGradient(
+                colors: [.clear, Color(red: 0.035, green: 0.045, blue: 0.11).opacity(0.96)],
+                startPoint: .center,
+                endPoint: .bottom
+            )
+            VStack(alignment: .leading, spacing: 7) {
+                Text("热歌榜")
+                    .font(.system(size: 27, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                Text("当下最热的 50 首 · 每日更新")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.92))
+            }
+            .padding(.leading, 20)
+            .padding(.bottom, 24)
             Button {
                 guard !songs.isEmpty else { return }
                 onQueueChanged(songs)
@@ -357,32 +380,17 @@ struct MusicDiscoveryPage: View {
                 Label("播放全部", systemImage: "play.fill")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Color(red: 0.035, green: 0.045, blue: 0.11))
-                    .padding(.horizontal, 22).padding(.vertical, 14)
+                    .padding(.horizontal, 22)
+                    .padding(.vertical, 14)
                     .background(Color(red: 0.94, green: 0.95, blue: 0.99), in: Capsule())
             }
             .buttonStyle(.plain)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
             .padding(18)
         }
-        .frame(height: 194)
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(.white.opacity(0.14), lineWidth: 1))
-    }
-
-    private var chartSubtitle: String {
-        switch selectedChart {
-        case "新歌榜": "最新发布的 50 首 · 每日更新"
-        case "飙升榜": "近期热度上升"
-        default: "当下最热的 50 首 · 每日更新"
-        }
-    }
-
-    private var chartArtworkName: String {
-        switch selectedChart {
-        case "飙升榜": "chart_rising"
-        case "新歌榜": "chart_new"
-        default: "chart_hot"
-        }
+        .frame(height: 158)
+        .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous).stroke(.white.opacity(0.14), lineWidth: 1))
     }
 
     private func albumArtworkName(title: String, artist: String) -> String {
@@ -1123,5 +1131,33 @@ struct MusicDiscoveryPage: View {
             guard !Task.isCancelled, chartLoadToken == requestToken else { return }
             errorMessage = error.localizedDescription
         }
+    }
+}
+
+
+// Static city silhouette used by the fixed ranking banner.
+private struct ChartSkyline: Shape {
+    func path(in rect: CGRect) -> Path {
+        let w = rect.width
+        let h = rect.height
+        let points: [(CGFloat, CGFloat)] = [
+            (0.00, 0.78), (0.04, 0.78), (0.04, 0.66), (0.10, 0.66),
+            (0.10, 0.72), (0.16, 0.72), (0.16, 0.57), (0.21, 0.57),
+            (0.21, 0.63), (0.27, 0.63), (0.27, 0.42), (0.32, 0.35),
+            (0.37, 0.42), (0.37, 0.68), (0.43, 0.68), (0.43, 0.58),
+            (0.49, 0.58), (0.49, 0.72), (0.55, 0.72), (0.55, 0.52),
+            (0.61, 0.52), (0.61, 0.68), (0.67, 0.68), (0.67, 0.60),
+            (0.73, 0.60), (0.73, 0.73), (0.79, 0.73), (0.79, 0.55),
+            (0.84, 0.55), (0.84, 0.70), (0.90, 0.70), (0.90, 0.62),
+            (0.95, 0.62), (0.95, 0.75), (1.00, 0.75), (1.00, 1.00),
+            (0.00, 1.00)
+        ]
+        var path = Path()
+        path.move(to: CGPoint(x: 0, y: h))
+        for (x, y) in points {
+            path.addLine(to: CGPoint(x: x * w, y: y * h))
+        }
+        path.closeSubpath()
+        return path
     }
 }
