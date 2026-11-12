@@ -385,12 +385,17 @@ struct MusicDiscoveryPage: View {
     }
 
     private var playlistGrid: some View {
-        let availableWidth: CGFloat = UIScreen.main.bounds.width - 58
-        let cardWidth: CGFloat = Swift.max(availableWidth / 2, CGFloat.zero)
-        let gridHeight = CGFloat(3 * 126 + 3 * 42 + 2 * 20)
+        let screenWidth: CGFloat = UIScreen.main.bounds.width
+        let horizontalInsets: CGFloat = 58
+        let availableWidth: CGFloat = screenWidth - horizontalInsets
+        let halfWidth: CGFloat = availableWidth / CGFloat(2)
+        let cardWidth: CGFloat = Swift.max(halfWidth, CGFloat.zero)
+        let imageHeight: CGFloat = 126
+        let rowTextHeight: CGFloat = 42
+        let rowSpacing: CGFloat = 20
+        let gridHeight: CGFloat = imageHeight * CGFloat(3) + rowTextHeight * CGFloat(3) + rowSpacing * CGFloat(2)
         let rows: AnyView = moodPlaylistRows(width: cardWidth)
-        let sizedRows = rows.frame(height: gridHeight)
-        return AnyView(sizedRows.frame(maxWidth: .infinity))
+        return AnyView(rows.frame(height: gridHeight).frame(maxWidth: CGFloat.infinity))
     }
 
     private func moodPlaylistRows(width: CGFloat) -> AnyView {
@@ -429,12 +434,17 @@ struct MusicDiscoveryPage: View {
     }
 
     private var featuredPlaylistGrid: some View {
-        let availableWidth: CGFloat = UIScreen.main.bounds.width - 58
-        let cardWidth: CGFloat = Swift.max(availableWidth / 2, CGFloat.zero)
-        let gridHeight = CGFloat(3 * 118 + 3 * 42 + 2 * 14)
+        let screenWidth: CGFloat = UIScreen.main.bounds.width
+        let horizontalInsets: CGFloat = 58
+        let availableWidth: CGFloat = screenWidth - horizontalInsets
+        let halfWidth: CGFloat = availableWidth / CGFloat(2)
+        let cardWidth: CGFloat = Swift.max(halfWidth, CGFloat.zero)
+        let imageHeight: CGFloat = 118
+        let rowTextHeight: CGFloat = 42
+        let rowSpacing: CGFloat = 14
+        let gridHeight: CGFloat = imageHeight * CGFloat(3) + rowTextHeight * CGFloat(3) + rowSpacing * CGFloat(2)
         let rows: AnyView = featuredPlaylistRows(width: cardWidth)
-        let sizedRows = rows.frame(height: gridHeight)
-        return AnyView(sizedRows.frame(maxWidth: .infinity))
+        return AnyView(rows.frame(height: gridHeight).frame(maxWidth: CGFloat.infinity))
     }
 
     private func featuredPlaylistRows(width: CGFloat) -> AnyView {
@@ -643,7 +653,7 @@ struct MusicDiscoveryPage: View {
             ]
 
         var updated = playlistCardResults
-        var assignedPlaylistIDs = Set(updated.values.map(\\.id))
+        var assignedPlaylistIDs = Set(updated.values.map { $0.id })
         for (category, keyword) in items where updated[category] == nil {
             guard !Task.isCancelled else { return }
             do {
