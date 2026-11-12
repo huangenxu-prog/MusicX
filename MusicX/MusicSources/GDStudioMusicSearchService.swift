@@ -81,6 +81,10 @@ struct GDStudioMusicSearchService {
     func playlistTracks(keyword: String, count: Int = 50) async throws -> [MusicSong] {
         let normalizedKeyword = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedKeyword.isEmpty else { return [] }
+        let cacheKey = "qq-playlist-tracks|\(normalizedKeyword.lowercased())|\(count)"
+        if let cached: [MusicSong] = await MusicCache.shared.value(for: cacheKey) {
+            return cached
+        }
 
         let searchData = try await requestQQMusicU(
             module: "music.search.SearchCgiService",
@@ -175,7 +179,8 @@ struct GDStudioMusicSearchService {
                 )
             }
             songs.append(contentsOf: pageSongs)
-            hasMore = (detailData["hasmore"] as? Bool) ?? false
+            let moreFlag = detailData["hasmore"]
+            hasMore = (moreFlag as? Bool) ?? ((moreFlag as? Int) == 1)
             if rows.isEmpty { hasMore = false }
             begin += rows.count
         }
@@ -183,7 +188,9 @@ struct GDStudioMusicSearchService {
         guard !songs.isEmpty else {
             throw MusicSourceError.invalidResponse("QQ音乐歌单存在，但没有返回可用曲目")
         }
-        return Array(songs.prefix(count))
+        let result = Array(songs.prefix(count))
+        await MusicCache.shared.insert(result, for: cacheKey, ttl: 10 * 60)
+        return result
     }
 
     private func requestQQMusicU(
