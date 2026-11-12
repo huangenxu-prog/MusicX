@@ -332,7 +332,11 @@ struct MusicDiscoveryPage: View {
 
     private var playAllBar: some View {
         HStack {
-            Button { if let first = songs.first { onPlay(first) } } label: {
+            Button {
+                guard !songs.isEmpty else { return }
+                onQueueChanged(songs)
+                onPlay(songs[0])
+            } label: {
                 Label("播放全部", systemImage: "play.fill")
                     .font(.system(size: 14, weight: .semibold)).padding(.horizontal, 20).padding(.vertical, 13)
                     .background(LinearGradient(colors: [MusicXTheme.blue, Color(red: 0.20, green: 0.43, blue: 0.84)], startPoint: .topLeading, endPoint: .bottomTrailing), in: Capsule())
@@ -579,7 +583,10 @@ struct MusicDiscoveryPage: View {
             } else {
                 ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
                     let isCurrent = currentSong?.id == song.id
-                    Button { onPlay(song) } label: {
+                    Button {
+                        onQueueChanged(songs)
+                        onPlay(song)
+                    } label: {
                         HStack(spacing: 12) {
                             if isChartRoute {
                                 Text(String(index + 1)).font(.system(size: 16, weight: .bold, design: .rounded))
@@ -757,9 +764,6 @@ struct MusicDiscoveryPage: View {
             }
             guard !Task.isCancelled else { return }
             songs = result
-            if !songs.isEmpty {
-                onQueueChanged(songs)
-            }
             if songs.isEmpty {
                 errorMessage = playlistLoadError ?? "音源没有返回匹配的歌曲，请稍后重试"
             }
@@ -919,7 +923,6 @@ struct MusicDiscoveryPage: View {
         if let cached = chartSongCache[name], !cached.isEmpty {
             songs = cached
             errorMessage = nil
-            onQueueChanged(cached)
             return
         }
         isLoading = true
@@ -934,7 +937,6 @@ struct MusicDiscoveryPage: View {
                 chartSongCache[name] = result
                 songs = result
                 errorMessage = nil
-                onQueueChanged(result)
             } else {
                 songs = []
                 errorMessage = "音源没有返回匹配的歌曲，请稍后重试"
@@ -952,7 +954,6 @@ struct MusicDiscoveryPage: View {
         if let cached = chartSongCache[name], !cached.isEmpty {
             songs = cached
             errorMessage = nil
-            onQueueChanged(cached)
             return
         }
         if showInitialLoading { isLoading = true }
@@ -965,7 +966,6 @@ struct MusicDiscoveryPage: View {
             guard !Task.isCancelled, chartLoadToken == requestToken else { return }
             if !result.isEmpty { chartSongCache[name] = result }
             songs = result
-            if !result.isEmpty { onQueueChanged(result) }
             if result.isEmpty { errorMessage = "音源没有返回匹配的歌曲，请稍后重试" }
         } catch {
             guard !Task.isCancelled, chartLoadToken == requestToken else { return }
