@@ -146,7 +146,7 @@ struct MusicDiscoveryPage: View {
     private var newReleasesHeader: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("新歌速递").font(.system(size: 28, weight: .bold))
-            Text("网易云音乐 · 实时新歌榜").font(.system(size: 13)).foregroundStyle(MusicXTheme.muted)
+            Text("MusicX 新歌精选 · 持续更新").font(.system(size: 13)).foregroundStyle(MusicXTheme.muted)
         }
     }
 
