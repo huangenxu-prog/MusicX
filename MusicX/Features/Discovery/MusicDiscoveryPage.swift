@@ -647,6 +647,7 @@ struct MusicDiscoveryPage: View {
                 guard !Task.isCancelled else { return }
                 do {
                     let results = try await service.searchPlaylists(keyword: keyword, count: 30)
+                    guard !Task.isCancelled else { return }
                     let token = normalized(keyword)
                     let match = results
                         .filter { !assignedPlaylistIDs.contains($0.id) }
