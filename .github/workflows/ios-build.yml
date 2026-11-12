@@ -54,6 +54,28 @@ jobs:
           done
           echo "Installed selected 10 artwork image sets from MusicX-Selected-Assets-v1.zip."
 
+      - name: Install unified MusicX redesign assets
+        run: |
+          set -euo pipefail
+          ASSET_CATALOG="$(find . -type d -name Assets.xcassets -print -quit)"
+          test -n "$ASSET_CATALOG"
+          PACKAGE="$ASSET_CATALOG/MusicX-Redesign-Assets.zip"
+          test -s "$PACKAGE"
+          SOURCE="$RUNNER_TEMP/musicx-redesign-assets"
+          mkdir -p "$SOURCE"
+          unzip -oq "$PACKAGE" -d "$SOURCE"
+          test -d "$SOURCE/Assets.xcassets"
+          while IFS= read -r -d '' IMAGE_SET; do
+            NAME="$(basename "$IMAGE_SET")"
+            python3 -m json.tool "$IMAGE_SET/Contents.json" >/dev/null
+            IMAGE_FILE="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["images"][0]["filename"])' "$IMAGE_SET/Contents.json")"
+            test -s "$IMAGE_SET/$IMAGE_FILE"
+            rm -rf "$ASSET_CATALOG/$NAME"
+            cp -R "$IMAGE_SET" "$ASSET_CATALOG/$NAME"
+          done < <(find "$SOURCE/Assets.xcassets" -maxdepth 1 -type d -name '*.imageset' -print0)
+          rm "$PACKAGE"
+          echo "Installed unified redesign image sets; replaced only matching asset names."
+
       - name: Render app icon asset
         run: swift scripts/render-app-icon.swift
 

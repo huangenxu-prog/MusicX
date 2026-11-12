@@ -104,22 +104,22 @@ private struct MusicXPageBackground: View {
                 endPoint: .bottomTrailing
             )
             RadialGradient(
-                colors: [Color(red: 0.08, green: 0.24, blue: 0.48).opacity(0.30), .clear],
-                center: .top,
-                startRadius: 12,
-                endRadius: 470
+                colors: [Color(red: 0.48, green: 0.12, blue: 0.58).opacity(0.48), .clear],
+                center: UnitPoint(x: 0.52, y: 0.03),
+                startRadius: 8,
+                endRadius: 390
             )
             RadialGradient(
-                colors: [Color(red: 0.12, green: 0.20, blue: 0.48).opacity(0.20), .clear],
+                colors: [Color(red: 1.0, green: 0.34, blue: 0.36).opacity(0.24), .clear],
+                center: UnitPoint(x: 0.78, y: 0.15),
+                startRadius: 4,
+                endRadius: 280
+            )
+            RadialGradient(
+                colors: [Color(red: 0.16, green: 0.20, blue: 0.58).opacity(0.20), .clear],
                 center: .bottomTrailing,
                 startRadius: 8,
                 endRadius: 420
-            )
-            RadialGradient(
-                colors: [Color(red: 0.20, green: 0.10, blue: 0.36).opacity(0.12), .clear],
-                center: .bottomLeading,
-                startRadius: 4,
-                endRadius: 360
             )
         }
         .ignoresSafeArea()
@@ -669,10 +669,11 @@ struct ContentView: View {
             }
             .padding(.horizontal, 18).frame(height: 58)
             .background {
-                RoundedRectangle(cornerRadius: 30, style: .continuous).fill(.ultraThinMaterial)
-                    .overlay(RoundedRectangle(cornerRadius: 30).fill(LinearGradient(colors: [Color.white.opacity(0.15), Color(red: 0.10, green: 0.20, blue: 0.42).opacity(0.34)], startPoint: .topLeading, endPoint: .bottomTrailing)))
-                    .overlay(RoundedRectangle(cornerRadius: 30).stroke(LinearGradient(colors: [.white.opacity(0.78), MusicXTheme.blue.opacity(0.52), .white.opacity(0.20)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1.15))
-                    .shadow(color: MusicXTheme.blue.opacity(0.30), radius: 16, y: 5)
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(Color(red: 0.055, green: 0.075, blue: 0.16).opacity(0.88))
+                    .overlay(RoundedRectangle(cornerRadius: 22).fill(LinearGradient(colors: [Color.white.opacity(0.09), Color(red: 0.12, green: 0.10, blue: 0.25).opacity(0.16)], startPoint: .topLeading, endPoint: .bottomTrailing)))
+                    .overlay(RoundedRectangle(cornerRadius: 22).stroke(LinearGradient(colors: [.white.opacity(0.30), Color(red: 0.55, green: 0.42, blue: 0.92).opacity(0.38), .white.opacity(0.08)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1))
+                    .shadow(color: Color(red: 0.36, green: 0.20, blue: 0.62).opacity(0.20), radius: 14, y: 5)
             }
 
             if searchText.isEmpty {
@@ -729,7 +730,7 @@ struct ContentView: View {
             }
             Spacer(minLength: 0)
         }
-                .padding(.horizontal, 22).padding(.top, 28)
+                .padding(.horizontal, 22).padding(.top, 30)
             }
             .scrollDismissesKeyboard(.interactively)
             .onChange(of: searchFieldFocused) { _, focused in
@@ -751,11 +752,12 @@ struct ContentView: View {
     }
 
     private var libraryPage: some View {
-        VStack(alignment: .leading, spacing: 22) {
+        VStack(alignment: .leading, spacing: 20) {
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("音乐库")
                         .font(.system(size: 34, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
                     Text("最近听过的音乐与喜欢的歌曲")
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(MusicXTheme.muted)
@@ -779,8 +781,10 @@ struct ContentView: View {
                             .foregroundStyle(libraryContentType == type ? .white : MusicXTheme.muted)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
-                            .background(libraryContentType == type ? MusicXTheme.blue.opacity(0.25) : Color.white.opacity(0.045), in: Capsule())
-                            .overlay(Capsule().stroke(libraryContentType == type ? MusicXTheme.blue.opacity(0.62) : .white.opacity(0.08), lineWidth: 1))
+                            .background(libraryContentType == type
+                                ? LinearGradient(colors: [Color(red: 0.25, green: 0.48, blue: 0.96).opacity(0.52), Color(red: 0.20, green: 0.25, blue: 0.62).opacity(0.30)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                                : LinearGradient(colors: [Color.white.opacity(0.075), Color.white.opacity(0.025)], startPoint: .topLeading, endPoint: .bottomTrailing), in: Capsule())
+                            .overlay(Capsule().stroke(libraryContentType == type ? Color(red: 0.48, green: 0.66, blue: 1).opacity(0.78) : .white.opacity(0.10), lineWidth: 1))
                     }
                     .buttonStyle(.plain)
                 }
@@ -1021,47 +1025,60 @@ struct ContentView: View {
     }
 
     private var miniPlayer: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
             Button { if currentSong != nil { isPlayerPresented = true } } label: {
-                HStack(spacing: 12) {
+                HStack(spacing: 10) {
                     Group {
                         if currentSong == nil {
-                            HomeArtwork(name: "player_cover").frame(width: 28, height: 28)
-                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            HomeArtwork(name: "player_cover").frame(width: 48, height: 48)
+                                .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
                         } else {
-                            songArtwork(currentSong?.onlineSong, tint: currentSong?.tint ?? MusicXTheme.blue, size: 28)
+                            songArtwork(currentSong?.onlineSong, tint: currentSong?.tint ?? MusicXTheme.blue, size: 48)
                         }
                     }
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(currentSong?.title ?? "尚未播放").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
-                        Text(currentSong?.artist ?? "选择一首歌曲开始聆听").font(.system(size: 11)).foregroundStyle(.white.opacity(0.70)).lineLimit(1)
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(currentSong?.title ?? "尚未播放")
+                            .font(.system(size: 14, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
+                        Text(currentSong?.artist ?? "选择一首歌曲开始聆听")
+                            .font(.system(size: 11)).foregroundStyle(.white.opacity(0.72)).lineLimit(1)
                     }
                 }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
             }.buttonStyle(.plain)
             Button { stepSong(by: -1) } label: {
-                Image(systemName: "backward.end.fill").font(.system(size: 15, weight: .semibold)).foregroundStyle(.white.opacity(0.88)).frame(width: 26, height: 34)
+                Image(systemName: "backward.end.fill").font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.92)).frame(width: 30, height: 46)
             }.buttonStyle(.plain).disabled(playbackQueue.isEmpty)
             Button { if currentSong != nil { playerStore.togglePlayback() } } label: {
                 Group {
                     if isResolvingSong || playerStore.isBuffering { ProgressView().tint(.white) }
-                    else { Image(systemName: playerStore.isPlaying ? "pause.fill" : "play.fill").font(.system(size: 18, weight: .bold)).foregroundStyle(.white) }
-                }.frame(width: 32, height: 32).background(.white.opacity(0.18), in: Circle()).overlay(Circle().stroke(.white.opacity(0.34), lineWidth: 1))
+                    else { Image(systemName: playerStore.isPlaying ? "pause.fill" : "play.fill").font(.system(size: 19, weight: .bold)).foregroundStyle(.white) }
+                }
+                .frame(width: 44, height: 44)
+                .background(.white.opacity(0.22), in: Circle())
+                .overlay(Circle().stroke(.white.opacity(0.30), lineWidth: 1))
             }.buttonStyle(.plain).disabled(currentSong == nil)
             Button { stepSong(by: 1) } label: {
-                Image(systemName: "forward.end.fill").font(.system(size: 15, weight: .semibold)).foregroundStyle(.white.opacity(0.88)).frame(width: 26, height: 34)
+                Image(systemName: "forward.end.fill").font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.92)).frame(width: 30, height: 46)
             }.buttonStyle(.plain).disabled(playbackQueue.isEmpty)
             Button { playerDisplayMode = .queue; isPlayerPresented = true } label: {
-                Image(systemName: "list.bullet").font(.system(size: 19, weight: .semibold)).foregroundStyle(.white.opacity(0.88)).frame(width: 26, height: 34)
+                Image(systemName: "list.bullet").font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.92)).frame(width: 30, height: 46)
             }.buttonStyle(.plain)
         }
-        .padding(.horizontal, 10).frame(height: 38)
+        .padding(.horizontal, 14)
+        .frame(height: 76)
         .background {
-            Capsule().fill(.ultraThinMaterial.opacity(0.68))
-                .overlay(Capsule().fill(LinearGradient(colors: [Color(red: 0.06, green: 0.16, blue: 0.34).opacity(0.46), Color(red: 0.20, green: 0.10, blue: 0.34).opacity(0.34)], startPoint: .leading, endPoint: .trailing)))
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Color(red: 0.10, green: 0.12, blue: 0.27).opacity(0.94))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(LinearGradient(colors: [Color(red: 0.40, green: 0.31, blue: 0.66).opacity(0.40), Color(red: 0.08, green: 0.11, blue: 0.25).opacity(0.18)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                }
         }
-        .overlay(Capsule().stroke(.white.opacity(0.12), lineWidth: 0.7))
-        .shadow(color: MusicXTheme.blue.opacity(0.10), radius: 14, y: 5)
-        .padding(.horizontal, 10)
+        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(.white.opacity(0.30), lineWidth: 1))
+        .shadow(color: Color.black.opacity(0.30), radius: 16, y: 7)
+        .padding(.horizontal, 12)
     }
 
         private var progressFraction: CGFloat {
@@ -1633,41 +1650,24 @@ struct ContentView: View {
                     if tab == .search && selectedTab != .search {
                         searchSuggestions = ["十年", "突然好想你", "晴天", "青花瓷", "稻香", "后来", "演员", "夜曲", "富士山下", "海阔天空"].shuffled().prefix(4).map { $0 }
                     }
-                    withAnimation(.spring(response: 0.52, dampingFraction: 0.76, blendDuration: 0.18)) {
+                    withAnimation(.easeInOut(duration: 0.20)) {
                         selectedTab = tab
                     }
                 } label: {
-                    VStack(spacing: 3) {
-                        Image(systemName: tab.symbol).font(.system(size: 22, weight: .semibold))
-                            .frame(height: 23)
-                            .symbolEffect(.bounce, value: selectedTab == tab)
-                            .shadow(color: selectedTab == tab ? Color.cyan.opacity(0.48) : .clear,
-                                    radius: selectedTab == tab ? 6 : 0, y: 0)
-                        Text(tab.rawValue).font(.system(size: 13, weight: .semibold)).frame(height: 15)
-                            .shadow(color: selectedTab == tab ? Color.cyan.opacity(0.34) : .clear,
-                                    radius: selectedTab == tab ? 6 : 0, y: 0)
+                    VStack(spacing: 5) {
+                        Image(systemName: tab.symbol)
+                            .font(.system(size: 25, weight: .medium))
+                            .frame(height: 29)
+                            .shadow(color: selectedTab == tab ? Color(red: 0.28, green: 0.58, blue: 1).opacity(0.72) : .clear,
+                                    radius: selectedTab == tab ? 9 : 0, y: 0)
+                        Text(tab.rawValue)
+                            .font(.system(size: 13, weight: .semibold))
                     }
-                    .foregroundStyle(selectedTab == tab ? Color(red: 0.34, green: 0.78, blue: 1) : .white.opacity(0.72))
-                    .frame(maxWidth: .infinity).frame(height: 54)
-                    .scaleEffect(selectedTab == tab ? 1.035 : 1)
-                    .background {
-                        if selectedTab == tab {
-                            RoundedRectangle(cornerRadius: 26, style: .continuous)
-                                .fill(.ultraThinMaterial)
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 26, style: .continuous)
-                                        .fill(LinearGradient(colors: [Color.cyan.opacity(0.11), Color.blue.opacity(0.055), .white.opacity(0.018)],
-                                                             startPoint: .topLeading, endPoint: .bottomTrailing))
-                                }
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 26, style: .continuous)
-                                        .stroke(LinearGradient(colors: [.white.opacity(0.20), Color.cyan.opacity(0.12), .white.opacity(0.03)],
-                                                               startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1)
-                                }
-                                .shadow(color: Color.cyan.opacity(0.08), radius: 9, y: 2)
-                                .matchedGeometryEffect(id: "active-tab-glass", in: tabSelectionNamespace)
-                        }
-                    }
+                    .foregroundStyle(selectedTab == tab
+                        ? Color(red: 0.36, green: 0.66, blue: 1)
+                        : .white.opacity(0.78))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 66)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -1675,14 +1675,21 @@ struct ContentView: View {
                 .accessibilityAddTraits(selectedTab == tab ? .isSelected : [])
             }
         }
-        .padding(.horizontal, 9)
+        .padding(.horizontal, 8)
+        .padding(.top, 3)
         .background {
-            Capsule().fill(.ultraThinMaterial.opacity(0.70))
-                .overlay(Capsule().fill(LinearGradient(colors: [Color(red: 0.06, green: 0.16, blue: 0.34).opacity(0.46), Color(red: 0.20, green: 0.10, blue: 0.34).opacity(0.34)], startPoint: .leading, endPoint: .trailing)))
+            LinearGradient(
+                colors: [
+                    Color(red: 0.025, green: 0.035, blue: 0.085).opacity(0.94),
+                    Color(red: 0.035, green: 0.045, blue: 0.11).opacity(0.99)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
         }
-        .overlay(Capsule().stroke(.white.opacity(0.14), lineWidth: 0.7))
-        .shadow(color: MusicXTheme.blue.opacity(0.12), radius: 15, y: 5)
-        .padding(.horizontal, 10)
+        .overlay(alignment: .top) {
+            Rectangle().fill(.white.opacity(0.07)).frame(height: 0.6)
+        }
     }
 
     private func playSearchResult(_ song: AppSong) {
