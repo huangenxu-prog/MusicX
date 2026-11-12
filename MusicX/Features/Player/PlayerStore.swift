@@ -151,7 +151,8 @@ final class PlayerStore: ObservableObject {
             Task { @MainActor [weak self] in
                 guard let self,
                       let item = notification.object as? AVPlayerItem,
-                      item === self.player.currentItem else { return }
+                      item === self.player.currentItem,
+                      self.wantsPlayback else { return }
                 self.wantsPlayback = false
                 self.isPlaying = false
                 self.currentTime = self.duration
