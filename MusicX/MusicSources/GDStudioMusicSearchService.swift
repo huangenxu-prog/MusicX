@@ -76,79 +76,154 @@ struct GDStudioMusicSearchService {
     }
 
     
-    /// Searches for a real NetEase playlist, then loads its tracks by playlist ID.
+    /// Searches QQ Music's real playlist index, then loads the selected playlist's tracks.
+    /// Playlist IDs and song MIDs remain QQ Music identifiers throughout this path.
     func playlistTracks(keyword: String, count: Int = 50) async throws -> [MusicSong] {
-        var searchComponents = URLComponents(string: "https://music.163.com/api/search/get/web")
-        searchComponents?.queryItems = [
-            URLQueryItem(name: "s", value: keyword),
-            URLQueryItem(name: "type", value: "1000"),
-            URLQueryItem(name: "limit", value: "5"),
-            URLQueryItem(name: "offset", value: "0")
-        ]
-        guard let searchURL = searchComponents?.url else {
-            throw MusicSourceError.invalidResponse("无法生成歌单搜索请求")
-        }
-        var searchRequest = URLRequest(url: searchURL)
-        searchRequest.timeoutInterval = 12
-        searchRequest.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148", forHTTPHeaderField: "User-Agent")
-        searchRequest.setValue("https://music.163.com/", forHTTPHeaderField: "Referer")
-        let (searchData, searchResponse) = try await session.data(for: searchRequest)
-        guard let searchHTTP = searchResponse as? HTTPURLResponse, (200..<300).contains(searchHTTP.statusCode) else {
-            throw MusicSourceError.invalidResponse("网易云歌单搜索 HTTP \((searchResponse as? HTTPURLResponse)?.statusCode ?? -1)")
-        }
-        let searchRoot = try JSONSerialization.jsonObject(with: searchData) as? [String: Any]
-        let searchResult = searchRoot?["result"] as? [String: Any]
-        guard let playlists = searchResult?["playlists"] as? [[String: Any]],
-              !playlists.isEmpty else {
-            throw MusicSourceError.invalidResponse("没有找到匹配的真实歌单")
-        }
         let normalizedKeyword = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
-        let matchedPlaylist = playlists.first { row in
-            let name = row["name"] as? String ?? ""
-            return name.localizedCaseInsensitiveCompare(normalizedKeyword) == .orderedSame
-        } ?? playlists.first { row in
-            let name = row["name"] as? String ?? ""
-            return name.localizedCaseInsensitiveContains(normalizedKeyword)
+        guard !normalizedKeyword.isEmpty else { return [] }
+
+        let searchData = try await requestQQMusicU(
+            module: "music.search.SearchCgiService",
+            method: "DoSearchForQQMusicDesktop",
+            parameters: [
+                "query": normalizedKeyword,
+                "num_per_page": 10,
+                "page_num": 1,
+                "search_type": 3
+            ]
+        )
+        let body = searchData["body"] as? [String: Any]
+        let playlistContainer = body?["songlist"] as? [String: Any]
+        let playlists = playlistContainer?["list"] as? [[String: Any]] ?? []
+
+        let normalizedQuery = normalizedKeyword.lowercased()
+        let matchedPlaylist = playlists
+            .compactMap { row -> (row: [String: Any], score: Int)? in
+                let name = (row["dissname"] as? String)
+                    ?? (row["name"] as? String)
+                    ?? (row["title"] as? String)
+                    ?? ""
+                guard !name.isEmpty else { return nil }
+                let normalizedName = name.lowercased()
+                let score: Int
+                if normalizedName == normalizedQuery { score = 100 }
+                else if normalizedName.contains(normalizedQuery) { score = 80 }
+                else if normalizedQuery.contains(normalizedName) { score = 60 }
+                else {
+                    let queryCharacters = Set(normalizedQuery.filter { !$0.isWhitespace })
+                    let overlap = queryCharacters.intersection(Set(normalizedName)).count
+                    score = overlap >= 2 ? overlap : 0
+                }
+                return score > 0 ? (row, score) : nil
+            }
+            .sorted { $0.score > $1.score }
+            .first?.row
+
+        guard let matchedPlaylist,
+              let rawPlaylistID = matchedPlaylist["dissid"]
+                ?? matchedPlaylist["id"]
+                ?? matchedPlaylist["tid"]
+                ?? matchedPlaylist["dirid"] else {
+            throw MusicSourceError.invalidResponse("QQ音乐没有找到与“\(normalizedKeyword)”相关的真实歌单")
         }
-        guard let playlistID = matchedPlaylist?["id"] else {
-            throw MusicSourceError.invalidResponse("没有找到与“\\(normalizedKeyword)”匹配的歌单，已停止使用无关歌单替代")
+
+        let playlistID = String(describing: rawPlaylistID)
+        guard let numericPlaylistID = Int(playlistID), numericPlaylistID > 0 else {
+            throw MusicSourceError.invalidResponse("QQ音乐返回了无效歌单 ID")
         }
-        var detailComponents = URLComponents(string: "https://music.163.com/api/playlist/detail")
-        detailComponents?.queryItems = [URLQueryItem(name: "id", value: String(describing: playlistID))]
-        guard let detailURL = detailComponents?.url else {
-            throw MusicSourceError.invalidResponse("无法生成歌单详情请求")
-        }
-        var detailRequest = URLRequest(url: detailURL)
-        detailRequest.timeoutInterval = 12
-        detailRequest.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148", forHTTPHeaderField: "User-Agent")
-        detailRequest.setValue("https://music.163.com/", forHTTPHeaderField: "Referer")
-        let (detailData, detailResponse) = try await session.data(for: detailRequest)
-        guard let detailHTTP = detailResponse as? HTTPURLResponse, (200..<300).contains(detailHTTP.statusCode) else {
-            throw MusicSourceError.invalidResponse("网易云歌单详情 HTTP \((detailResponse as? HTTPURLResponse)?.statusCode ?? -1)")
-        }
-        let detailRoot = try JSONSerialization.jsonObject(with: detailData) as? [String: Any]
-        let detailResult = detailRoot?["result"] as? [String: Any] ?? detailRoot?["playlist"] as? [String: Any]
-        guard let rows = detailResult?["tracks"] as? [[String: Any]] else {
-            throw MusicSourceError.invalidResponse("网易云没有返回歌单曲目")
-        }
-        return rows.prefix(count).compactMap { row in
-            guard let id = row["id"] else { return nil }
-            let artists = (row["ar"] as? [[String: Any]] ?? row["artists"] as? [[String: Any]] ?? [])
-                .compactMap { $0["name"] as? String }.joined(separator: " / ")
-            let albumInfo = row["al"] as? [String: Any] ?? row["album"] as? [String: Any] ?? [:]
-            let albumName = albumInfo["name"] as? String
-            let artwork = (albumInfo["picUrl"] as? String).flatMap(URL.init(string:))
-            let duration = (row["dt"] as? Double).map { $0 / 1000 }
-                ?? (row["duration"] as? Double).map { $0 / 1000 }
-            return MusicSong(
-                source: .netease, sourceID: String(describing: id),
-                title: row["name"] as? String ?? "未知歌曲",
-                artist: artists.isEmpty ? "未知歌手" : artists,
-                album: albumName, artworkURL: artwork, duration: duration,
-                hash: nil, albumID: albumInfo["id"].map { String(describing: $0) },
-                pictureID: nil, lyricID: String(describing: id)
+
+        var songs: [MusicSong] = []
+        var begin = 0
+        let pageSize = 30
+        var hasMore = true
+        while songs.count < count && hasMore {
+            try Task.checkCancellation()
+            let remaining = count - songs.count
+            let detailData = try await requestQQMusicU(
+                module: "music.srfDissInfo.aiDissInfo",
+                method: "uniform_get_Dissinfo",
+                parameters: [
+                    "disstid": numericPlaylistID,
+                    "song_begin": begin,
+                    "song_num": min(pageSize, remaining)
+                ]
             )
+            let rows = detailData["songlist"] as? [[String: Any]] ?? []
+            let pageSongs = rows.compactMap { row -> MusicSong? in
+                guard let rawID = row["mid"] as? String, !rawID.isEmpty else { return nil }
+                let artists = (row["singer"] as? [[String: Any]] ?? [])
+                    .compactMap { $0["name"] as? String }
+                    .joined(separator: " / ")
+                let albumInfo = row["album"] as? [String: Any] ?? [:]
+                let albumName = albumInfo["name"] as? String
+                let albumMID = albumInfo["mid"] as? String
+                let artworkURL = albumMID.flatMap { URL(string: "https://y.gtimg.cn/music/photo_new/T002R300x300M000\($0).jpg?max_age=2592000") }
+                let duration = (row["interval"] as? Double)
+                    ?? (row["interval"] as? Int).map(Double.init)
+                return MusicSong(
+                    source: .qq,
+                    sourceID: rawID,
+                    title: row["name"] as? String ?? "未知歌曲",
+                    artist: artists.isEmpty ? "未知歌手" : artists,
+                    album: albumName,
+                    artworkURL: artworkURL,
+                    duration: duration,
+                    hash: nil,
+                    albumID: albumMID,
+                    pictureID: albumMID,
+                    lyricID: rawID
+                )
+            }
+            songs.append(contentsOf: pageSongs)
+            hasMore = (detailData["hasmore"] as? Bool) ?? false
+            if rows.isEmpty { hasMore = false }
+            begin += rows.count
         }
+
+        guard !songs.isEmpty else {
+            throw MusicSourceError.invalidResponse("QQ音乐歌单存在，但没有返回可用曲目")
+        }
+        return Array(songs.prefix(count))
+    }
+
+    private func requestQQMusicU(
+        module: String,
+        method: String,
+        parameters: [String: Any]
+    ) async throws -> [String: Any] {
+        guard let url = URL(string: "https://u.y.qq.com/cgi-bin/musicu.fcg") else {
+            throw MusicSourceError.invalidResponse("QQ音乐接口地址无效")
+        }
+        let payload: [String: Any] = [
+            module: [
+                "module": module,
+                "method": method,
+                "param": parameters
+            ]
+        ]
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 12
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("https://y.qq.com/", forHTTPHeaderField: "Referer")
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148", forHTTPHeaderField: "User-Agent")
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload, options: [.fragmentsAllowed])
+
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse,
+              (200..<300).contains(http.statusCode) else {
+            throw MusicSourceError.invalidResponse("QQ音乐接口 HTTP \((response as? HTTPURLResponse)?.statusCode ?? -1)")
+        }
+        guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let service = root[module] as? [String: Any] else {
+            throw MusicSourceError.invalidResponse("QQ音乐接口返回结构异常")
+        }
+        let code = service["code"] as? Int ?? 0
+        guard code == 0, let result = service["data"] as? [String: Any] else {
+            throw MusicSourceError.invalidResponse("QQ音乐服务返回错误 code=\(code)")
+        }
+        return result
     }
 
     /// Reads the public NetEase playlist endpoints used for its live charts.
