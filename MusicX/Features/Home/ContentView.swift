@@ -365,7 +365,6 @@ struct ContentView: View {
             .padding(.bottom, 8)
         }
         .scrollBounceBehavior(.basedOnSize)
-        .ignoresSafeArea(edges: .top)
     }
 
     private var heroAndRecommendation: some View {
