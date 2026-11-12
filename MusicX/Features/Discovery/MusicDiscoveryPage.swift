@@ -79,9 +79,13 @@ struct MusicDiscoveryPage: View {
 
     var body: some View {
         ZStack {
-            MusicXTheme.background.ignoresSafeArea()
+            ZStack {
+                MusicXTheme.background
+                RadialGradient(colors: [MusicXTheme.blue.opacity(0.16), .clear], center: .top, startRadius: 12, endRadius: 520)
+                RadialGradient(colors: [Color.purple.opacity(0.08), .clear], center: .bottomTrailing, startRadius: 10, endRadius: 420)
+            }.ignoresSafeArea()
             ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 22) {
+                VStack(alignment: .leading, spacing: 24) {
                     topBar
                     switch route {
                     case .daily: dailyHeader
@@ -100,7 +104,7 @@ struct MusicDiscoveryPage: View {
                         trackList
                     }
                 }
-                .padding(.horizontal, 22).padding(.top, 12).padding(.bottom, 32)
+                .padding(.horizontal, 22).padding(.top, 12).padding(.bottom, 36)
             }
         }
         .preferredColorScheme(.dark)
@@ -112,12 +116,16 @@ struct MusicDiscoveryPage: View {
 
     private var topBar: some View {
         HStack {
-            Button(action: onClose) { Image(systemName: "chevron.left").font(.system(size: 18, weight: .semibold)).frame(width: 40, height: 42, alignment: .leading) }
+            Button(action: onClose) {
+                Image(systemName: "chevron.left").font(.system(size: 18, weight: .semibold))
+                    .frame(width: 42, height: 42, alignment: .leading).contentShape(Rectangle())
+            }
             Spacer()
             Text(title).font(.system(size: 16, weight: .semibold))
             Spacer()
-            Image(systemName: "ellipsis").frame(width: 40, alignment: .trailing).foregroundStyle(.white.opacity(0.8))
-        }.foregroundStyle(.white)
+            Image(systemName: "ellipsis").font(.system(size: 18, weight: .semibold))
+                .frame(width: 42, alignment: .trailing).foregroundStyle(.white.opacity(0.75))
+        }.foregroundStyle(.white).padding(.bottom, 4)
     }
 
     private var dailyHeader: some View {
@@ -150,14 +158,29 @@ struct MusicDiscoveryPage: View {
 
     private var chartIntro: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("排行榜").font(.system(size: 28, weight: .bold))
-            Text("网易云音乐官方榜单").font(.system(size: 13)).foregroundStyle(MusicXTheme.muted)
+            Text("排行榜").font(.system(size: 30, weight: .bold, design: .rounded))
+            Text("网易云音乐官方榜单 · 每日更新").font(.system(size: 13, weight: .medium)).foregroundStyle(MusicXTheme.muted)
         }
     }
 
     private func detailBanner(_ name: String, subtitle: String) -> some View {
-        VStack(alignment: .leading, spacing: 15) {
-            artwork(title: name, subtitle: subtitle, colors: [Color(red: 0.40, green: 0.25, blue: 0.49), Color(red: 0.17, green: 0.14, blue: 0.30)], height: 190)
+        VStack(alignment: .leading, spacing: 18) {
+            ZStack(alignment: .bottomLeading) {
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(LinearGradient(colors: [Color(red: 0.30, green: 0.34, blue: 0.66), Color(red: 0.13, green: 0.16, blue: 0.34), Color(red: 0.08, green: 0.11, blue: 0.22)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                Circle().fill(MusicXTheme.blue.opacity(0.24)).frame(width: 210, height: 210).blur(radius: 42).offset(x: 210, y: -70)
+                Image(systemName: "waveform").font(.system(size: 100, weight: .ultraLight))
+                    .foregroundStyle(.white.opacity(0.14)).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing).padding(26)
+                VStack(alignment: .leading, spacing: 7) {
+                    Text(name).font(.system(size: 27, weight: .bold, design: .rounded)).foregroundStyle(.white)
+                    Text(subtitle).font(.system(size: 14, weight: .medium)).foregroundStyle(.white.opacity(0.70))
+                    Text("为你精选 · 在线曲目").font(.system(size: 11, weight: .medium)).foregroundStyle(.white.opacity(0.48)).padding(.top, 5)
+                }.padding(24)
+            }
+            .frame(height: 196)
+            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 28, style: .continuous).stroke(.white.opacity(0.13), lineWidth: 1))
+            .shadow(color: Color.black.opacity(0.22), radius: 20, y: 10)
             playAllBar
         }
     }
@@ -188,10 +211,14 @@ struct MusicDiscoveryPage: View {
     private var playAllBar: some View {
         HStack {
             Button { if let first = songs.first { onPlay(first) } } label: {
-                Label("播放全部", systemImage: "play.fill").font(.system(size: 14, weight: .semibold)).padding(.horizontal, 18).padding(.vertical, 11).background(MusicXTheme.blue, in: Capsule())
+                Label("播放全部", systemImage: "play.fill")
+                    .font(.system(size: 14, weight: .semibold)).padding(.horizontal, 20).padding(.vertical, 13)
+                    .background(LinearGradient(colors: [MusicXTheme.blue, Color(red: 0.20, green: 0.43, blue: 0.84)], startPoint: .topLeading, endPoint: .bottomTrailing), in: Capsule())
+                    .overlay(Capsule().stroke(.white.opacity(0.20), lineWidth: 1))
+                    .shadow(color: MusicXTheme.blue.opacity(0.22), radius: 12, y: 5)
             }.buttonStyle(.plain)
             Spacer()
-            Text("\(songs.count) 首 · 在线曲目").font(.system(size: 12)).foregroundStyle(MusicXTheme.muted)
+            Text("\(songs.count) 首 · 在线曲目").font(.system(size: 12, weight: .medium)).foregroundStyle(MusicXTheme.muted)
         }
     }
 
@@ -269,8 +296,9 @@ struct MusicDiscoveryPage: View {
             ForEach(["热歌榜", "新歌榜", "飙升榜"], id: \.self) { name in
                 Button { onSelectChart(name) } label: {
                     Text(name).font(.system(size: 13, weight: .semibold)).foregroundStyle(selectedChart == name ? .white : MusicXTheme.muted)
-                        .padding(.horizontal, 16).padding(.vertical, 10)
-                        .background(selectedChart == name ? MusicXTheme.blue : MusicXTheme.surface, in: Capsule())
+                         .padding(.horizontal, 17).padding(.vertical, 11)
+                        .background(selectedChart == name ? MusicXTheme.blue.opacity(0.92) : Color.white.opacity(0.055), in: Capsule())
+                        .overlay(Capsule().stroke(selectedChart == name ? Color.white.opacity(0.22) : Color.white.opacity(0.08), lineWidth: 1))
                 }.buttonStyle(.plain)
             }
         }
@@ -279,6 +307,31 @@ struct MusicDiscoveryPage: View {
     private var albumNote: some View {
         Text("曲目根据在线音源搜索结果整理，具体收录信息以音源返回为准。")
             .font(.system(size: 12)).foregroundStyle(MusicXTheme.muted)
+    }
+
+    private func songArtwork(_ song: MusicSong, index: Int, isCurrent: Bool) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 13, style: .continuous)
+                .fill(LinearGradient(colors: index.isMultiple(of: 2)
+                    ? [Color(red: 0.20, green: 0.42, blue: 0.68), Color(red: 0.10, green: 0.16, blue: 0.30)]
+                    : [Color(red: 0.40, green: 0.25, blue: 0.49), Color(red: 0.17, green: 0.14, blue: 0.30)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing))
+            if let url = song.artworkURL {
+                AsyncImage(url: url) { phase in
+                    if let image = phase.image { image.resizable().scaledToFill() }
+                    else { Image(systemName: isCurrent ? "waveform" : "music.note").font(.system(size: 20, weight: .medium)).foregroundStyle(.white.opacity(0.78)) }
+                }
+            } else {
+                Image(systemName: isCurrent ? "waveform" : "music.note").font(.system(size: 20, weight: .medium)).foregroundStyle(.white.opacity(0.78))
+            }
+        }
+        .overlay(alignment: .bottomTrailing) {
+            if isCurrent && isPlaying {
+                Image(systemName: "waveform").font(.system(size: 10, weight: .bold)).foregroundStyle(.white)
+                    .padding(5).background(MusicXTheme.blue, in: Circle()).padding(4)
+            }
+        }
+        .clipped()
     }
 
     private var trackList: some View {
@@ -298,10 +351,9 @@ struct MusicDiscoveryPage: View {
                                 Text(String(index + 1)).font(.system(size: 16, weight: .bold, design: .rounded))
                                     .foregroundStyle(isCurrent ? MusicXTheme.blue : (index < 3 ? MusicXTheme.blue : MusicXTheme.muted)).frame(width: 22)
                             }
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(LinearGradient(colors: index.isMultiple(of: 2) ? [Color(red: 0.20, green: 0.42, blue: 0.68), Color(red: 0.10, green: 0.16, blue: 0.30)] : [Color(red: 0.40, green: 0.25, blue: 0.49), Color(red: 0.17, green: 0.14, blue: 0.30)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                                .frame(width: 48, height: 48)
-                                .overlay(Image(systemName: isCurrent && isPlaying ? "waveform" : "music.note").foregroundStyle(isCurrent ? MusicXTheme.blue : .white.opacity(0.8)))
+                            songArtwork(song, index: index, isCurrent: isCurrent)
+                                .frame(width: 54, height: 54)
+                                .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
                             VStack(alignment: .leading, spacing: 5) {
                                 Text(song.title).font(.system(size: 15, weight: .semibold)).foregroundStyle(isCurrent ? MusicXTheme.blue : .white).lineLimit(1)
                                 Text(song.artist).font(.system(size: 12)).foregroundStyle(isCurrent ? .white.opacity(0.78) : MusicXTheme.muted).lineLimit(1)
@@ -312,10 +364,10 @@ struct MusicDiscoveryPage: View {
                             }
                             Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)).foregroundStyle(MusicXTheme.muted.opacity(0.7))
                         }
-                        .padding(.horizontal, 10).padding(.vertical, 8)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .contentShape(Rectangle())
-                        .background(isCurrent ? MusicXTheme.blue.opacity(0.13) : .clear, in: RoundedRectangle(cornerRadius: 14))
+                         .padding(.horizontal, 12).padding(.vertical, 10)
+                        .frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
+                        .background(isCurrent ? MusicXTheme.blue.opacity(0.12) : Color.white.opacity(0.018), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(isCurrent ? MusicXTheme.blue.opacity(0.30) : Color.white.opacity(0.045), lineWidth: 1))
                         .overlay(alignment: .leading) {
                             if isCurrent { Capsule().fill(MusicXTheme.blue).frame(width: 3).padding(.vertical, 8) }
                         }
