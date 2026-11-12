@@ -55,6 +55,7 @@ struct MusicDiscoveryPage: View {
     @State private var errorMessage: String?
     @State private var selectedChartOverride: String?
     @State private var chartSongCache: [String: [MusicSong]] = [:]
+    @State private var chartLoadToken = UUID()
     @State private var playlistCardResults: [String: MusicPlaylist] = [:]
     @State private var isPlaylistUnavailableAlertPresented = false
     @State private var playlistUnavailableMessage = ""
@@ -913,21 +914,33 @@ struct MusicDiscoveryPage: View {
     private func selectChart(_ name: String) async {
         guard name != selectedChart else { return }
         selectedChartOverride = name
-        if let cached = chartSongCache[name] {
+        let requestToken = UUID()
+        chartLoadToken = requestToken
+        if let cached = chartSongCache[name], !cached.isEmpty {
             songs = cached
-            errorMessage = cached.isEmpty ? "音源没有返回匹配的歌曲，请稍后重试" : nil
-            if !cached.isEmpty { onQueueChanged(cached) }
+            errorMessage = nil
+            onQueueChanged(cached)
             return
+        }
+        isLoading = true
+        errorMessage = nil
+        defer {
+            if chartLoadToken == requestToken { isLoading = false }
         }
         do {
             let result = try await service.toplist(name, count: 50)
-            guard !Task.isCancelled else { return }
-            chartSongCache[name] = result
-            songs = result
-            errorMessage = result.isEmpty ? "音源没有返回匹配的歌曲，请稍后重试" : nil
-            if !result.isEmpty { onQueueChanged(result) }
+            guard !Task.isCancelled, chartLoadToken == requestToken else { return }
+            if !result.isEmpty {
+                chartSongCache[name] = result
+                songs = result
+                errorMessage = nil
+                onQueueChanged(result)
+            } else {
+                songs = []
+                errorMessage = "音源没有返回匹配的歌曲，请稍后重试"
+            }
         } catch {
-            if Task.isCancelled { return }
+            guard !Task.isCancelled, chartLoadToken == requestToken else { return }
             errorMessage = error.localizedDescription
         }
     }
