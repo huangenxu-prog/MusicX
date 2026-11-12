@@ -64,7 +64,8 @@ jobs:
           SOURCE="$RUNNER_TEMP/musicx-redesign-assets"
           mkdir -p "$SOURCE"
           unzip -oq "$PACKAGE" -d "$SOURCE"
-          test -d "$SOURCE/Assets.xcassets"
+          REDESIGN_CATALOG="$(find "$SOURCE" -type d -name Assets.xcassets -print -quit)"
+          test -n "$REDESIGN_CATALOG"
           while IFS= read -r -d '' IMAGE_SET; do
             NAME="$(basename "$IMAGE_SET")"
             python3 -m json.tool "$IMAGE_SET/Contents.json" >/dev/null
@@ -72,7 +73,7 @@ jobs:
             test -s "$IMAGE_SET/$IMAGE_FILE"
             rm -rf "$ASSET_CATALOG/$NAME"
             cp -R "$IMAGE_SET" "$ASSET_CATALOG/$NAME"
-          done < <(find "$SOURCE/Assets.xcassets" -maxdepth 1 -type d -name '*.imageset' -print0)
+          done < <(find "$REDESIGN_CATALOG" -maxdepth 1 -type d -name '*.imageset' -print0)
           rm "$PACKAGE"
           echo "Installed unified redesign image sets; replaced only matching asset names."
 
