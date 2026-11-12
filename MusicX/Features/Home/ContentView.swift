@@ -1430,14 +1430,20 @@ struct ContentView: View {
 
     private func stepSong(by offset: Int) {
         let queue = playbackQueue
-        guard !queue.isEmpty else { return }
+        guard !queue.isEmpty, offset == -1 || offset == 1 else { return }
         let index = queue.firstIndex(where: { $0.id == currentSong?.id }) ?? 0
         if isShuffleEnabled && queue.count > 1 {
             let candidates = queue.filter { $0.id != currentSong?.id }
             if let next = candidates.randomElement() { select(next) }
             return
         }
-        select(queue[(index + offset + queue.count) % queue.count])
+
+        let nextIndex = index + offset
+        if queue.indices.contains(nextIndex) {
+            select(queue[nextIndex])
+        } else if repeatMode == 1 {
+            select(offset > 0 ? queue[0] : queue[queue.count - 1])
+        }
     }
 
     /// A resolved stream URL can expire before playback starts. Invalidate the cached
