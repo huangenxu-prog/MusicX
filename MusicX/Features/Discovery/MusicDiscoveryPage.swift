@@ -29,8 +29,6 @@ private struct PlaylistCardItem {
 }
 
 struct MusicDiscoveryPage: View {
-    @Environment(\.dismiss) private var dismiss
-
     let route: MusicDiscoveryRoute
     let onClose: () -> Void
     let onPlay: (MusicSong) -> Void
@@ -70,7 +68,6 @@ struct MusicDiscoveryPage: View {
 
     private func closePage() {
         onClose()
-        dismiss()
     }
 
     private func playlistSubtitle(for name: String) -> String {
