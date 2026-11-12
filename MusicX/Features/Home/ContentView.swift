@@ -1098,14 +1098,6 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(.horizontal, 18)
                     .contentShape(Rectangle())
-                    .simultaneousGesture(DragGesture(minimumDistance: 30).onEnded { value in
-                        let horizontal = value.translation.width
-                        let vertical = value.translation.height
-                        guard abs(horizontal) > 55, abs(horizontal) > abs(vertical) * 1.2 else { return }
-                        withAnimation(.easeInOut(duration: 0.22)) {
-                            playerDisplayMode = horizontal < 0 ? playerDisplayMode.next : playerDisplayMode.previous
-                        }
-                    })
 
                     // Fixed lower controls: track information, timeline and transport.
                     HStack(alignment: .center, spacing: 14) {
@@ -1241,11 +1233,14 @@ struct ContentView: View {
                     .padding(.bottom, 8)
                 }
                 .frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
-                .simultaneousGesture(DragGesture(minimumDistance: 45).onEnded { value in
-                    if value.translation.height > 95 && abs(value.translation.width) < 85 {
-                        withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
-                            isPlayerPresented = false
-                        }
+                .simultaneousGesture(DragGesture(minimumDistance: 24, coordinateSpace: .global).onEnded { value in
+                    let horizontal = value.translation.width
+                    let vertical = value.translation.height
+                    guard value.startLocation.x <= 28,
+                          horizontal > 80,
+                          horizontal > abs(vertical) * 1.25 else { return }
+                    withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+                        isPlayerPresented = false
                     }
                 })
             .frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
