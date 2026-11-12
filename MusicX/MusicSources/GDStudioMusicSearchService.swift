@@ -125,6 +125,33 @@ struct GDStudioMusicSearchService {
         }
     }
 
+    /// Resolves a legacy editorial keyword to a QQ playlist, then loads by its native ID.
+    /// This keeps existing string-based routes working while avoiding a second fuzzy
+    /// search in the track-loading path.
+    func playlistTracks(keyword: String, count: Int = 50) async throws -> [MusicSong] {
+        let query = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return [] }
+        let cacheKey = "qq-playlist-keyword|\\(query.lowercased())|\\(count)"
+        if let cached: [MusicSong] = await MusicCache.shared.value(for: cacheKey) {
+            return cached
+        }
+        let playlists = try await searchPlaylists(keyword: query, count: 20)
+        let normalizedQuery = query.filter { !$0.isWhitespace }.lowercased()
+        let ranked = playlists.map { playlist -> (MusicPlaylist, Int) in
+            let name = playlist.name.filter { !$0.isWhitespace }.lowercased()
+            let score = name == normalizedQuery ? 100
+                : (name.contains(normalizedQuery) ? 80
+                : (normalizedQuery.contains(name) && !name.isEmpty ? 60 : 0))
+            return (playlist, score)
+        }.filter { $0.1 > 0 }.sorted { $0.1 > $1.1 }
+        guard let selected = ranked.first?.0 else {
+            throw MusicSourceError.invalidResponse("没有找到与“\\(query)”匹配的 QQ 音乐歌单")
+        }
+        let tracks = try await playlistTracks(playlistID: selected.sourceID, count: count)
+        await MusicCache.shared.insert(tracks, for: cacheKey, ttl: 10 * 60)
+        return tracks
+    }
+
     /// Loads tracks directly from a previously resolved QQ Music playlist ID.
     func playlistTracks(playlistID: String, count: Int = 50) async throws -> [MusicSong] {
         let normalizedID = playlistID.trimmingCharacters(in: .whitespacesAndNewlines)

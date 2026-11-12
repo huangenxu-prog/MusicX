@@ -385,12 +385,12 @@ struct MusicDiscoveryPage: View {
     }
 
     private var playlistGrid: some View {
-        let availableWidth = UIScreen.main.bounds.width - 58
-        let cardWidth = max(availableWidth / 2, 0)
-        let gridHeight: CGFloat = 3 * 126 + 3 * 42 + 2 * 20
-        return moodPlaylistRows(width: cardWidth)
-            .frame(height: gridHeight)
-            .frame(maxWidth: .infinity)
+        let availableWidth: CGFloat = UIScreen.main.bounds.width - 58
+        let cardWidth: CGFloat = Swift.max(availableWidth / 2, CGFloat.zero)
+        let gridHeight = CGFloat(3 * 126 + 3 * 42 + 2 * 20)
+        let rows: AnyView = moodPlaylistRows(width: cardWidth)
+        let sizedRows = rows.frame(height: gridHeight)
+        return AnyView(sizedRows.frame(maxWidth: .infinity))
     }
 
     private func moodPlaylistRows(width: CGFloat) -> AnyView {
@@ -429,12 +429,12 @@ struct MusicDiscoveryPage: View {
     }
 
     private var featuredPlaylistGrid: some View {
-        let availableWidth = UIScreen.main.bounds.width - 58
-        let cardWidth = max(availableWidth / 2, 0)
-        let gridHeight: CGFloat = 3 * 118 + 3 * 42 + 2 * 14
-        return featuredPlaylistRows(width: cardWidth)
-            .frame(height: gridHeight)
-            .frame(maxWidth: .infinity)
+        let availableWidth: CGFloat = UIScreen.main.bounds.width - 58
+        let cardWidth: CGFloat = Swift.max(availableWidth / 2, CGFloat.zero)
+        let gridHeight = CGFloat(3 * 118 + 3 * 42 + 2 * 14)
+        let rows: AnyView = featuredPlaylistRows(width: cardWidth)
+        let sizedRows = rows.frame(height: gridHeight)
+        return AnyView(sizedRows.frame(maxWidth: .infinity))
     }
 
     private func featuredPlaylistRows(width: CGFloat) -> AnyView {
