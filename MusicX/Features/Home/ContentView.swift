@@ -124,7 +124,7 @@ struct ContentView: View {
     @State private var selectedTab: MainTab = .home
     @Namespace private var tabSelectionNamespace
     @State private var searchText = ""
-    @State private var searchSuggestions = ["十年", "突然好想你", "晴天", "青花瓷", "稻香", "后来", "演员", "夜曲", "富士山下", "海阔天空"].shuffled().prefix(4).map { $0 }
+    @State private var searchSuggestions = ["十年", "突然好想你", "晴天", "青花瓷"]
     @FocusState private var searchFieldFocused: Bool
     @State private var libraryFilter: LibraryFilter = .recent
     @State private var libraryContentType: LibraryContentType = .songs
@@ -591,100 +591,108 @@ struct ContentView: View {
         ScrollViewReader { proxy in
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
-            pageHeader("搜索", subtitle: "搜索歌曲、歌手或专辑")
-            HStack(spacing: 12) {
-                Image(systemName: "magnifyingglass").foregroundStyle(MusicXTheme.muted)
-                TextField("输入歌曲、歌手或专辑", text: $searchText)
-                    .font(.system(size: 16))
-                    .tint(MusicXTheme.blue)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-                    .focused($searchFieldFocused)
-                if !searchText.isEmpty {
-                    Button { searchText = "" } label: {
-                        Image(systemName: "xmark.circle.fill").foregroundStyle(MusicXTheme.muted)
-                    }
-                }
-            }
-            .padding(.horizontal, 17).frame(height: 48)
-            .background {
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(Color(red: 0.055, green: 0.075, blue: 0.16).opacity(0.88))
-                    .overlay(RoundedRectangle(cornerRadius: 22).fill(LinearGradient(colors: [Color.white.opacity(0.09), Color(red: 0.12, green: 0.10, blue: 0.25).opacity(0.16)], startPoint: .topLeading, endPoint: .bottomTrailing)))
-                    .overlay(RoundedRectangle(cornerRadius: 22).stroke(LinearGradient(colors: [.white.opacity(0.30), Color(red: 0.55, green: 0.42, blue: 0.92).opacity(0.38), .white.opacity(0.08)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1))
-                    .shadow(color: Color(red: 0.36, green: 0.20, blue: 0.62).opacity(0.20), radius: 14, y: 5)
-            }
-
-            if searchText.isEmpty {
-                VStack(alignment: .leading, spacing: 14) {
-                    HStack(spacing: 8) {
-                        Text("🔥").font(.system(size: 19))
-                        Text("热门搜索").font(.system(size: 18, weight: .bold))
-                    }
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 9) {
-                            ForEach(Array(searchSuggestions.enumerated()), id: \.element) { index, title in
-                                Button { searchText = title; searchFieldFocused = false } label: {
-                                    Text(title).font(.system(size: 13, weight: .medium)).foregroundStyle(.white.opacity(0.96))
-                                        .padding(.horizontal, 15).padding(.vertical, 9)
-                                        .background {
-                                            Capsule().fill(index == 0
-                                                ? LinearGradient(colors: [MusicXTheme.blue.opacity(0.82), Color(red: 0.08, green: 0.25, blue: 0.72).opacity(0.88)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                                                : LinearGradient(colors: [Color.white.opacity(0.16), Color(red: 0.05, green: 0.10, blue: 0.22).opacity(0.62)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                                        }
-                                        .overlay(Capsule().stroke(index == 0 ? MusicXTheme.blue.opacity(0.95) : .white.opacity(0.34), lineWidth: 0.9))
-                                        .shadow(color: index == 0 ? MusicXTheme.blue.opacity(0.62) : .black.opacity(0.18), radius: index == 0 ? 11 : 4, y: 2)
-                                }.buttonStyle(.plain)
+                    pageHeader("搜索", subtitle: "搜索歌曲、歌手或专辑")
+                    HStack(spacing: 12) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 21, weight: .medium))
+                            .foregroundStyle(Color(red: 0.69, green: 0.73, blue: 0.84))
+                        TextField("输入歌曲、歌手或专辑", text: $searchText)
+                            .font(.system(size: 16))
+                            .tint(MusicXTheme.blue)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
+                            .focused($searchFieldFocused)
+                        if !searchText.isEmpty {
+                            Button { searchText = "" } label: {
+                                Image(systemName: "xmark.circle.fill").foregroundStyle(MusicXTheme.muted)
                             }
                         }
                     }
-                }.padding(.top, 2)
+                    .padding(.horizontal, 18)
+                    .frame(height: 48)
+                    .background(Color(red: 0.075, green: 0.09, blue: 0.17), in: Capsule())
+                    .overlay(Capsule().stroke(Color(red: 0.19, green: 0.23, blue: 0.43), lineWidth: 1))
+                    .shadow(color: Color(red: 0.16, green: 0.22, blue: 0.55).opacity(0.10), radius: 12, y: 4)
 
-                VStack(alignment: .leading, spacing: 14) {
-                    Text("音乐分类").font(.system(size: 20, weight: .bold))
-                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-                        SearchCategoryCard(title: "华语流行", subtitle: "精选华语流行", asset: "SearchCategory01", symbol: "opticaldisc", tint: Color(red: 0.10, green: 0.48, blue: 0.95)) { searchText = "华语流行" }
-                        SearchCategoryCard(title: "经典老歌", subtitle: "时代金曲回忆", asset: "SearchCategory02", symbol: "mic.fill", tint: Color(red: 0.80, green: 0.22, blue: 0.62)) { searchText = "经典老歌" }
-                        SearchCategoryCard(title: "轻音乐", subtitle: "舒缓 · 放松", asset: "SearchCategory03", symbol: "leaf.fill", tint: Color(red: 0.10, green: 0.58, blue: 0.48)) { searchText = "轻音乐" }
-                        SearchCategoryCard(title: "纯音乐", subtitle: "器乐 · 演奏", asset: "SearchCategory04", symbol: "pianokeys", tint: Color(red: 0.48, green: 0.22, blue: 0.78)) { searchText = "纯音乐" }
-                        SearchCategoryCard(title: "摇滚", subtitle: "激情 · 力量", asset: "SearchCategory05", symbol: "guitars.fill", tint: Color(red: 0.82, green: 0.30, blue: 0.12)) { searchText = "摇滚" }
-                        SearchCategoryCard(title: "欧美音乐", subtitle: "欧美流行精选", asset: "SearchCategory06", symbol: "headphones", tint: Color(red: 0.05, green: 0.58, blue: 0.82)) { searchText = "欧美音乐" }
+                    if searchText.isEmpty {
+                        VStack(alignment: .leading, spacing: 14) {
+                            HStack(spacing: 10) {
+                                Capsule().fill(MusicXTheme.blue).frame(width: 4, height: 20)
+                                Text("热门搜索").font(.system(size: 20, weight: .bold)).foregroundStyle(.white)
+                            }
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 9) {
+                                    ForEach(Array(searchSuggestions.enumerated()), id: \.element) { index, title in
+                                        Button {
+                                            searchText = title
+                                            searchFieldFocused = false
+                                        } label: {
+                                            Text(title)
+                                                .font(.system(size: 14, weight: .medium))
+                                                .foregroundStyle(index == 0 ? Color(red: 0.035, green: 0.055, blue: 0.12) : .white)
+                                                .padding(.horizontal, 17)
+                                                .frame(height: 40)
+                                                .background(index == 0 ? MusicXTheme.blue : Color(red: 0.085, green: 0.105, blue: 0.20), in: Capsule())
+                                                .overlay(Capsule().stroke(index == 0 ? .white.opacity(0.12) : Color(red: 0.16, green: 0.19, blue: 0.34), lineWidth: 1))
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                            }
+                        }
+
+                        VStack(alignment: .leading, spacing: 14) {
+                            HStack(spacing: 10) {
+                                Capsule().fill(MusicXTheme.blue).frame(width: 4, height: 20)
+                                Text("音乐分类").font(.system(size: 20, weight: .bold)).foregroundStyle(.white)
+                            }
+                            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                                SearchCategoryCard(title: "华语流行", subtitle: "精选华语流行", asset: "SearchCategory01", symbol: "circle.fill", tint: Color(red: 0.10, green: 0.43, blue: 0.88)) { searchText = "华语流行" }
+                                SearchCategoryCard(title: "经典老歌", subtitle: "时代金曲回忆", asset: "SearchCategory02", symbol: "mic.fill", tint: Color(red: 0.73, green: 0.20, blue: 0.53)) { searchText = "经典老歌" }
+                                SearchCategoryCard(title: "轻音乐", subtitle: "舒缓 · 放松", asset: "SearchCategory03", symbol: "leaf.fill", tint: Color(red: 0.08, green: 0.55, blue: 0.43)) { searchText = "轻音乐" }
+                                SearchCategoryCard(title: "纯音乐", subtitle: "器乐 · 演奏", asset: "SearchCategory04", symbol: "square.fill", tint: Color(red: 0.48, green: 0.23, blue: 0.80)) { searchText = "纯音乐" }
+                                SearchCategoryCard(title: "摇滚", subtitle: "激情 · 力量", asset: "SearchCategory05", symbol: "bolt.fill", tint: Color(red: 0.82, green: 0.30, blue: 0.10)) { searchText = "摇滚" }
+                                SearchCategoryCard(title: "欧美音乐", subtitle: "欧美流行精选", asset: "SearchCategory06", symbol: "headphones", tint: Color(red: 0.05, green: 0.52, blue: 0.75)) { searchText = "欧美音乐" }
+                            }
+                        }
+                        Text("选择分类，发现更多音乐")
+                            .font(.system(size: 14))
+                            .foregroundStyle(MusicXTheme.muted)
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 1)
+                    } else {
+                        HStack {
+                            Text("搜索结果").font(.system(size: 19, weight: .bold)).id("searchResults")
+                            Spacer()
+                            Text(isSearching ? "搜索中…" : "\(filteredSongs.count) 首")
+                                .font(.system(size: 13)).foregroundStyle(MusicXTheme.muted)
+                        }
+                        if filteredSongs.isEmpty {
+                            emptyState(icon: "music.note.list", title: searchError == nil ? "正在搜索在线音源" : "暂时没有搜索结果", detail: searchError ?? "请稍候")
+                        } else {
+                            VStack(spacing: 17) {
+                                ForEach(filteredSongs) { song in songRow(song, startsSearchQueue: true) }
+                            }
+                        }
                     }
+                    Spacer(minLength: 0)
                 }
-                Text("选择分类，发现更多音乐").font(.system(size: 13)).foregroundStyle(MusicXTheme.muted).padding(.top, 1)
-            } else {
-                HStack {
-                    Text("搜索结果").font(.system(size: 19, weight: .bold))
-                        .id("searchResults")
-                    Spacer()
-                    Text(isSearching ? "搜索中…" : "\(filteredSongs.count) 首").font(.system(size: 13)).foregroundStyle(MusicXTheme.muted)
-                }
-                if filteredSongs.isEmpty {
-                    emptyState(icon: "music.note.list", title: searchError == nil ? "正在搜索在线音源" : "暂时没有搜索结果", detail: searchError ?? "请稍候")
-                } else {
-                    VStack(spacing: 17) {
-                        ForEach(filteredSongs) { song in songRow(song, startsSearchQueue: true) }
-                    }
-                }
-            }
-            Spacer(minLength: 0)
-        }
-                .padding(.horizontal, 22).padding(.top, 30)
+                .padding(.horizontal, 16)
+                .padding(.top, 70)
+                .padding(.bottom, 24)
             }
             .scrollDismissesKeyboard(.interactively)
             .onChange(of: searchFieldFocused) { _, focused in
                 guard focused else { return }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                    withAnimation(.easeOut(duration: 0.2)) {
-                        proxy.scrollTo("searchResults", anchor: .top)
-                    }
+                    withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo("searchResults", anchor: .top) }
                 }
             }
             .task(id: searchText) {
-            let keyword = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !keyword.isEmpty else { onlineResults = []; searchError = nil; return }
-            try? await Task.sleep(for: .milliseconds(450))
-            guard !Task.isCancelled else { return }
+                let keyword = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !keyword.isEmpty else { onlineResults = []; searchError = nil; return }
+                try? await Task.sleep(for: .milliseconds(450))
+                guard !Task.isCancelled else { return }
                 await searchOnline(keyword)
             }
         }
@@ -861,15 +869,6 @@ struct ContentView: View {
     private func homeSongRow(_ song: AppSong, artworkName: String? = nil) -> some View {
         Button { selectManually(song) } label: {
             HStack(spacing: 12) {
-                Group {
-                    if let artworkName {
-                        HomeArtwork(name: artworkName)
-                    } else {
-                        songArtwork(song.onlineSong, tint: song.tint, size: 46)
-                    }
-                }
-                .frame(width: 46, height: 46)
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 VStack(alignment: .leading, spacing: 3) {
                     Text(song.title).font(.system(size: 16, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
                     Text(song.artist).font(.system(size: 12)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
@@ -953,16 +952,11 @@ struct ContentView: View {
                     Text(title).font(.system(size: 15, weight: .bold)).foregroundStyle(.white).lineLimit(1)
                     Text(subtitle).font(.system(size: 10, weight: .medium)).foregroundStyle(.white.opacity(0.82)).lineLimit(1).minimumScaleFactor(0.72)
                 }.padding(12)
-                Image(systemName: icon)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.88))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                    .padding(12)
             }
-            .frame(width: width, height: 104)
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(.white.opacity(0.24), lineWidth: 0.9))
-            .shadow(color: color.opacity(0.14), radius: 9, y: 3)
+            .frame(width: width, height: 118)
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(.white.opacity(0.26), lineWidth: 1))
+            .shadow(color: color.opacity(0.24), radius: 15, y: 7)
         }.buttonStyle(.plain)
     }
 
@@ -2057,29 +2051,30 @@ private struct SearchCategoryCard: View {
     var body: some View {
         Button(action: action) {
             ZStack(alignment: .leading) {
-                Image(asset).resizable().scaledToFill()
-                LinearGradient(colors: [.black.opacity(0.10), tint.opacity(0.06), .black.opacity(0.24)], startPoint: .leading, endPoint: .trailing)
-                VStack(alignment: .leading, spacing: 6) {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(LinearGradient(colors: [tint, tint.opacity(0.76), Color(red: 0.045, green: 0.065, blue: 0.13)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                RadialGradient(colors: [.white.opacity(0.24), .clear], center: UnitPoint(x: 0.22, y: 0.16), startRadius: 2, endRadius: 145)
+                VStack(alignment: .leading, spacing: 8) {
+                    Image(systemName: symbol)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 36, height: 36)
+                        .background(.white.opacity(0.24), in: Circle())
+                        .overlay(Circle().stroke(.white.opacity(0.18), lineWidth: 0.8))
+                    Spacer(minLength: 0)
                     Text(title).font(.system(size: 18, weight: .bold)).foregroundStyle(.white)
-                        .shadow(color: .black.opacity(0.30), radius: 5, y: 1)
-                    Text(subtitle).font(.system(size: 11, weight: .medium)).foregroundStyle(.white.opacity(0.90))
-                        .shadow(color: .black.opacity(0.28), radius: 4, y: 1)
-                }.padding(.leading, 15)
-                RoundedRectangle(cornerRadius: 17, style: .continuous)
-                    .fill(LinearGradient(colors: [.white.opacity(0.18), .clear, tint.opacity(0.10)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .blendMode(.screen)
-                    .allowsHitTesting(false)
+                    Text(subtitle).font(.system(size: 12, weight: .medium)).foregroundStyle(.white.opacity(0.88))
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
             }
             .frame(maxWidth: .infinity)
             .frame(height: 100)
-            .clipped()
-            .clipShape(RoundedRectangle(cornerRadius: 17, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 17, style: .continuous)
-                    .stroke(LinearGradient(colors: [.white.opacity(0.62), tint.opacity(0.60), .white.opacity(0.16)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1)
-            }
-            .shadow(color: tint.opacity(0.22), radius: 9, y: 3)
-        }.buttonStyle(.plain)
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(.white.opacity(0.28), lineWidth: 1))
+            .shadow(color: tint.opacity(0.22), radius: 12, y: 5)
+        }
+        .buttonStyle(.plain)
     }
 }
 
