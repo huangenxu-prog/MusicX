@@ -20,6 +20,12 @@ enum MusicDiscoveryRoute: Identifiable {
     }
 }
 
+private struct PlaylistCardItem {
+    let title: String
+    let subtitle: String
+    let artwork: String
+}
+
 struct MusicDiscoveryPage: View {
     @Environment(\.dismiss) private var dismiss
 
@@ -374,109 +380,90 @@ struct MusicDiscoveryPage: View {
     }
 
     private var playlistGrid: some View {
-        let items: [(String, String, String)] = [
-            ("开心愉悦", "明亮轻快，让好心情延续", "category_chinese_pop"),
-            ("温柔治愈", "温暖柔和，给情绪一点空间", "playlist_relax"),
-            ("放松舒缓", "舒缓节奏，放松身心", "category_light"),
-            ("安静专注", "纯音乐与轻旋律，适合专注", "category_instrumental"),
-            ("释放情绪", "用更有力量的节奏释放压力", "category_rock"),
-            ("夜晚助眠", "安静氛围，适合睡前聆听", "playlist_night")
-        ]
-        return GeometryReader { geometry in
-            let cardWidth = max(0, (geometry.size.width - 14) / 2)
+        GeometryReader { geometry in
+            let width = (geometry.size.width - 14) / 2
             VStack(alignment: .leading, spacing: 20) {
-                ForEach(0..<3, id: \.self) { row in
-                    HStack(alignment: .top, spacing: 14) {
-                        ForEach(0..<2, id: \.self) { column in
-                            let item = items[row * 2 + column]
-                            Button {
-                                onOpenPlaylist(playlistCardResults[item.0]?.name ?? item.0)
-                            } label: {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    playlistCardArtwork(
-                                        for: item.0,
-                                        fallback: item.2,
-                                        width: cardWidth,
-                                        height: 126,
-                                        cornerRadius: 17
-                                    )
-                                    Text(item.0)
-                                        .font(.system(size: 15, weight: .semibold))
-                                        .foregroundStyle(.white)
-                                        .lineLimit(1)
-                                    Text(playlistCardResults[item.0]?.name ?? item.1)
-                                        .font(.system(size: 11))
-                                        .foregroundStyle(MusicXTheme.muted)
-                                        .lineLimit(2)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }
-                                .frame(width: cardWidth, alignment: .leading)
-                                .clipped()
-                                .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .frame(width: geometry.size.width, alignment: .leading)
-                }
+                playlistRow(
+                    first: PlaylistCardItem(title: "开心愉悦", subtitle: "明亮轻快，让好心情延续", artwork: "category_chinese_pop"),
+                    second: PlaylistCardItem(title: "温柔治愈", subtitle: "温暖柔和，给情绪一点空间", artwork: "playlist_relax"),
+                    width: width, imageHeight: 126
+                )
+                playlistRow(
+                    first: PlaylistCardItem(title: "放松舒缓", subtitle: "舒缓节奏，放松身心", artwork: "category_light"),
+                    second: PlaylistCardItem(title: "安静专注", subtitle: "纯音乐与轻旋律，适合专注", artwork: "category_instrumental"),
+                    width: width, imageHeight: 126
+                )
+                playlistRow(
+                    first: PlaylistCardItem(title: "释放情绪", subtitle: "用更有力量的节奏释放压力", artwork: "category_rock"),
+                    second: PlaylistCardItem(title: "夜晚助眠", subtitle: "安静氛围，适合睡前聆听", artwork: "playlist_night"),
+                    width: width, imageHeight: 126
+                )
             }
-            .frame(width: geometry.size.width, alignment: .topLeading)
         }
-        .frame(height: 3 * 126 + 3 * 8 + 2 * 20 + 3 * 40)
+        .frame(height: 3 * 126 + 3 * 42 + 2 * 20)
         .frame(maxWidth: .infinity)
     }
 
     private var featuredPlaylistGrid: some View {
-        let items: [(String, String, String)] = [
-            ("本周编辑精选", "近期值得收藏的好歌", "featured_playlist"),
-            ("华语流行精选", "熟悉的声音与新鲜旋律", "category_chinese_pop"),
-            ("经典金曲精选", "历久弥新的经典作品", "category_classic"),
-            ("独立音乐精选", "发现不一样的音乐表达", "category_singers"),
-            ("影视原声精选", "从电影与剧集中寻找旋律", "category_instrumental"),
-            ("通勤驾驶精选", "陪伴每一段路程", "playlist_drive")
-        ]
-        return GeometryReader { geometry in
-            let cardWidth = max(0, (geometry.size.width - 14) / 2)
+        GeometryReader { geometry in
+            let width = (geometry.size.width - 14) / 2
             VStack(alignment: .leading, spacing: 14) {
-                ForEach(0..<3, id: \.self) { row in
-                    HStack(alignment: .top, spacing: 14) {
-                        ForEach(0..<2, id: \.self) { column in
-                            let item = items[row * 2 + column]
-                            Button {
-                                onOpenPlaylist(playlistCardResults[item.0]?.name ?? item.0)
-                            } label: {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    playlistCardArtwork(
-                                        for: item.0,
-                                        fallback: item.2,
-                                        width: cardWidth,
-                                        height: 118,
-                                        cornerRadius: 16
-                                    )
-                                    Text(item.0)
-                                        .font(.system(size: 15, weight: .semibold))
-                                        .foregroundStyle(.white)
-                                        .lineLimit(1)
-                                    Text(playlistCardResults[item.0]?.name ?? item.1)
-                                        .font(.system(size: 11))
-                                        .foregroundStyle(MusicXTheme.muted)
-                                        .lineLimit(2)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }
-                                .frame(width: cardWidth, alignment: .leading)
-                                .clipped()
-                                .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .frame(width: geometry.size.width, alignment: .leading)
-                }
+                playlistRow(
+                    first: PlaylistCardItem(title: "本周编辑精选", subtitle: "近期值得收藏的好歌", artwork: "featured_playlist"),
+                    second: PlaylistCardItem(title: "华语流行精选", subtitle: "熟悉的声音与新鲜旋律", artwork: "category_chinese_pop"),
+                    width: width, imageHeight: 118
+                )
+                playlistRow(
+                    first: PlaylistCardItem(title: "经典金曲精选", subtitle: "历久弥新的经典作品", artwork: "category_classic"),
+                    second: PlaylistCardItem(title: "独立音乐精选", subtitle: "发现不一样的音乐表达", artwork: "category_singers"),
+                    width: width, imageHeight: 118
+                )
+                playlistRow(
+                    first: PlaylistCardItem(title: "影视原声精选", subtitle: "从电影与剧集中寻找旋律", artwork: "category_instrumental"),
+                    second: PlaylistCardItem(title: "通勤驾驶精选", subtitle: "陪伴每一段路程", artwork: "playlist_drive"),
+                    width: width, imageHeight: 118
+                )
             }
-            .frame(width: geometry.size.width, alignment: .topLeading)
         }
-        .frame(height: 3 * 118 + 3 * 8 + 2 * 14 + 3 * 40)
+        .frame(height: 3 * 118 + 3 * 42 + 2 * 14)
         .frame(maxWidth: .infinity)
+    }
+
+    private func playlistRow(first: PlaylistCardItem, second: PlaylistCardItem, width: CGFloat, imageHeight: CGFloat) -> some View {
+        HStack(alignment: .top, spacing: 14) {
+            playlistTile(first, width: width, imageHeight: imageHeight)
+            playlistTile(second, width: width, imageHeight: imageHeight)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func playlistTile(_ item: PlaylistCardItem, width: CGFloat, imageHeight: CGFloat) -> some View {
+        Button {
+            onOpenPlaylist(playlistCardResults[item.title]?.name ?? item.title)
+        } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                playlistCardArtwork(
+                    for: item.title,
+                    fallback: item.artwork,
+                    width: width,
+                    height: imageHeight,
+                    cornerRadius: 16
+                )
+                Text(item.title)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                Text(playlistCardResults[item.title]?.name ?? item.subtitle)
+                    .font(.system(size: 11))
+                    .foregroundStyle(MusicXTheme.muted)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(width: width, alignment: .leading)
+            .clipped()
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     private var albumGrid: some View {
