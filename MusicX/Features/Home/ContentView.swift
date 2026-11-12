@@ -141,6 +141,7 @@ struct ContentView: View {
     @StateObject private var playerStore = PlayerStore()
     @State private var onlineResults: [AppSong] = []
     @State private var isSearching = false
+    @State private var searchRequestID = UUID()
     @State private var searchError: String?
     @State private var isPlayerPresented = false
     @State private var playbackRequestID = UUID()
@@ -1707,10 +1708,14 @@ struct ContentView: View {
     private func searchOnline(_ keyword: String) async {
         let query = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { onlineResults = []; searchError = nil; return }
+        let requestID = UUID()
+        searchRequestID = requestID
         isSearching = true
         searchError = nil
         onlineResults = []
-        defer { isSearching = false }
+        defer {
+            if searchRequestID == requestID { isSearching = false }
+        }
 
         let service = GDStudioMusicSearchService()
         var received: [[MusicSong]] = []
@@ -1722,6 +1727,7 @@ struct ContentView: View {
             }
             for await result in group {
                 guard !Task.isCancelled,
+                      searchRequestID == requestID,
                       searchText.trimmingCharacters(in: .whitespacesAndNewlines) == query else { continue }
                 if !result.isEmpty {
                     received.append(result)
@@ -1748,7 +1754,9 @@ struct ContentView: View {
                 }
             }
         }
-        guard searchText.trimmingCharacters(in: .whitespacesAndNewlines) == query else { return }
+        guard !Task.isCancelled,
+              searchRequestID == requestID,
+              searchText.trimmingCharacters(in: .whitespacesAndNewlines) == query else { return }
         if onlineResults.isEmpty { searchError = "当前音源暂未返回结果" }
     }
 
