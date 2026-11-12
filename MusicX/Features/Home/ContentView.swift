@@ -450,7 +450,7 @@ struct ContentView: View {
                     .background(Color(red: 0.91, green: 0.93, blue: 0.98), in: Capsule())
             }
             .buttonStyle(.plain)
-            Button { discoveryRoute = .featuredPick } label: {
+            Button { discoveryRoute = .featuredPlaylists } label: {
                 Text("精选歌单")
                     .font(.system(size: 16, weight: .medium))
                     .foregroundStyle(Color(red: 0.78, green: 0.81, blue: 0.91))
