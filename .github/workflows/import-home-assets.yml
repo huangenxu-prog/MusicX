@@ -1,11 +1,11 @@
-name: Import MusicX home image assets
+name: Import redesigned MusicX category assets
 
 on:
   push:
     branches:
       - home/final-design-asset-pass
     paths:
-      - "MusicX_Home_Assets_Xcode_20261111.zip"
+      - ".github/workflows/import-home-assets.yml"
   workflow_dispatch:
 
 permissions:
@@ -20,61 +20,46 @@ jobs:
         with:
           ref: home/final-design-asset-pass
 
-      - name: Validate and import image sets
+      - name: Validate and import six redesigned category images
         shell: bash
         run: |
           set -euo pipefail
-          archive="MusicX_Home_Assets_Xcode_20261111.zip"
-          test -f "$archive" || { echo "::error::Upload $archive to the repository root first."; exit 1; }
+          archive="MusicX/Assets.xcassets/MusicX-Redesigned-Category-Assets-v2.zip"
+          test -f "$archive" || { echo "::error::Uploaded category asset ZIP not found."; exit 1; }
 
-          rm -rf /tmp/musicx-home-assets
-          mkdir -p /tmp/musicx-home-assets
-          unzip -q "$archive" -d /tmp/musicx-home-assets
+          rm -rf /tmp/musicx-category-assets
+          mkdir -p /tmp/musicx-category-assets
+          unzip -q "$archive" -d /tmp/musicx-category-assets
 
-          mapfile -t sets < <(find /tmp/musicx-home-assets -mindepth 1 -maxdepth 1 -type d -name '*.imageset' | sort)
-          if [ "${#sets[@]}" -ne 24 ]; then
-            echo "::error::Expected 24 .imageset folders, found ${#sets[@]}."
-            exit 1
-          fi
-
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-          root = Path("/tmp/musicx-home-assets")
-          sets = sorted(root.glob("*.imageset"))
-          if len(sets) != 24:
-              raise SystemExit("Expected exactly 24 image sets")
-          for folder in sets:
-              manifest = folder / "Contents.json"
-              if not manifest.is_file():
-                  raise SystemExit(f"Missing {manifest}")
-              data = json.loads(manifest.read_text())
-              for image in data.get("images", []):
-                  filename = image.get("filename")
-                  if filename and not (folder / filename).is_file():
-                      raise SystemExit(f"Missing image {folder / filename}")
-          jpgs = list(root.glob("*.imageset/*.jpg"))
-          if len(jpgs) != 24:
-              raise SystemExit(f"Expected 24 JPGs, found {len(jpgs)}")
-          print("Validated 24 image sets and 24 JPG files.")
-          PY
-
+          expected=(category_chinese_pop category_classic category_light category_instrumental category_rock category_singers)
           destination="MusicX/Assets.xcassets"
-          test -d "$destination" || { echo "::error::Asset catalog not found: $destination"; exit 1; }
-
-          for folder in "${sets[@]}"; do
-            name="$(basename "$folder")"
-            if [ -e "$destination/$name" ]; then
+          for name in "${expected[@]}"; do
+            folder="$(find /tmp/musicx-category-assets -type d -name "$name.imageset" -print -quit)"
+            test -n "$folder" || { echo "::error::Missing $name.imageset"; exit 1; }
+            python3 - "$folder" <<'PY'
+          import json, sys
+          from pathlib import Path
+          folder = Path(sys.argv[1])
+          manifest = folder / "Contents.json"
+          data = json.loads(manifest.read_text())
+          for image in data.get("images", []):
+              filename = image.get("filename")
+              if filename and not (folder / filename).is_file():
+                  raise SystemExit(f"Missing image: {folder / filename}")
+          jpgs = list(folder.glob("*.jpg"))
+          if len(jpgs) != 1:
+              raise SystemExit(f"Expected one JPG in {folder}, found {len(jpgs)}")
+          PY
+            if [ -e "$destination/$name.imageset" ]; then
               echo "::error::Refusing to overwrite existing asset set: $name"
               exit 1
             fi
-            cp -R "$folder" "$destination/$name"
+            cp -R "$folder" "$destination/$name.imageset"
           done
 
           rm "$archive"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "$destination"
-          git add -u "$archive" 2>/dev/null || true
-          git commit -m "Import 24 homepage photo asset sets"
+          git commit -m "Import six redesigned category image assets"
           git push origin HEAD:home/final-design-asset-pass
