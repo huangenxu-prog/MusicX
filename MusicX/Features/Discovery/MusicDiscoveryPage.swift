@@ -321,7 +321,7 @@ struct MusicDiscoveryPage: View {
     }
 
     private var featuredPlaylistsIntro: some View {
-        playlistCategoryIntro(title: "编辑精选", subtitle: "从不同风格与场景中，发现值得收藏的歌单")
+        playlistCategoryIntro(title: "精选歌单", subtitle: "从不同风格与场景中，发现值得收藏的歌单")
     }
 
     private func playlistCategoryIntro(title: String, subtitle: String) -> some View {
