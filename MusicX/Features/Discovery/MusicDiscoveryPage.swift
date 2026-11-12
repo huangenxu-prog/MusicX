@@ -643,16 +643,16 @@ struct MusicDiscoveryPage: View {
                 HStack(spacing: 10) {
                     Group {
                         if let song {
-                            SongArtworkView(song: song, tint: MusicXTheme.blue, size: 48)
+                            SongArtworkView(song: song, tint: MusicXTheme.blue, size: 40)
                         } else {
                             Image("player_cover")
                                 .resizable()
                                 .scaledToFill()
-                                .frame(width: 48, height: 48)
+                                .frame(width: 40, height: 40)
                                 .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
                         }
                     }
-                    .frame(width: 48, height: 48)
+                    .frame(width: 40, height: 40)
                     VStack(alignment: .leading, spacing: 5) {
                         Text(song?.title ?? "尚未播放")
                             .font(.system(size: 14, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
@@ -674,13 +674,9 @@ struct MusicDiscoveryPage: View {
                 Image(systemName: "forward.end.fill").font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.92)).frame(width: 30, height: 46)
             }.buttonStyle(.plain).disabled(song == nil)
-            Button(action: onOpenQueue) {
-                Image(systemName: "list.bullet").font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.92)).frame(width: 30, height: 46)
-            }.buttonStyle(.plain)
         }
         .padding(.horizontal, 14)
-        .frame(height: 76)
+        .frame(height: 68)
         .background {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .fill(Color(red: 0.10, green: 0.12, blue: 0.27).opacity(0.72))
