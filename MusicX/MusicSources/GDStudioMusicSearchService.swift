@@ -125,31 +125,14 @@ struct GDStudioMusicSearchService {
         }
     }
 
-    /// Searches QQ Music's real playlist index, then loads the selected playlist's tracks.
-    /// Playlist IDs and song MIDs remain QQ Music identifiers throughout this path.
-    func playlistTracks(keyword: String, count: Int = 50) async throws -> [MusicSong] {
-        let normalizedKeyword = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !normalizedKeyword.isEmpty, count > 0 else { return [] }
-        let cacheKey = "qq-playlist-tracks|\(normalizedKeyword.lowercased())|\(count)"
-        if let cached: [MusicSong] = await MusicCache.shared.value(for: cacheKey) {
-            return cached
+    /// Loads tracks directly from a previously resolved QQ Music playlist ID.
+    func playlistTracks(playlistID: String, count: Int = 50) async throws -> [MusicSong] {
+        let normalizedID = playlistID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let numericPlaylistID = Int(normalizedID), numericPlaylistID > 0, count > 0 else {
+            throw MusicSourceError.invalidResponse("QQ音乐歌单 ID 无效")
         }
-
-        let playlists = try await searchPlaylists(keyword: normalizedKeyword, count: 10)
-
-        let normalizedQuery = normalizedKeyword.lowercased()
-        guard let matchedPlaylist = playlists.first(where: {
-            $0.name.localizedCaseInsensitiveCompare(normalizedKeyword) == .orderedSame
-                || $0.name.localizedCaseInsensitiveContains(normalizedQuery)
-        }) else {
-            throw MusicSourceError.invalidResponse("QQ音乐没有找到与“\(normalizedKeyword)”相关的真实歌单")
-        }
-
-        let playlistID = matchedPlaylist.sourceID
-        guard let numericPlaylistID = Int(playlistID), numericPlaylistID > 0 else {
-            throw MusicSourceError.invalidResponse("QQ音乐返回了无效歌单 ID")
-        }
-
+        let cacheKey = "qq-playlist-tracks|\(normalizedID)|\(count)"
+        if let cached: [MusicSong] = await MusicCache.shared.value(for: cacheKey) { return cached }
         var songs: [MusicSong] = []
         var begin = 0
         let pageSize = 30
@@ -157,40 +140,21 @@ struct GDStudioMusicSearchService {
         while songs.count < count && hasMore {
             try Task.checkCancellation()
             let remaining = count - songs.count
-            let detailData = try await requestQQMusicU(
-                module: "music.srfDissInfo.aiDissInfo",
+            let detailData = try await requestQQMusicU(module: "music.srfDissInfo.aiDissInfo",
                 method: "uniform_get_Dissinfo",
-                parameters: [
-                    "disstid": numericPlaylistID,
-                    "song_begin": begin,
-                    "song_num": min(pageSize, remaining)
-                ]
-            )
+                parameters: ["disstid": numericPlaylistID, "song_begin": begin, "song_num": min(pageSize, remaining)])
             let rows = detailData["songlist"] as? [[String: Any]] ?? []
             let pageSongs = rows.compactMap { row -> MusicSong? in
                 guard let rawID = row["mid"] as? String, !rawID.isEmpty else { return nil }
-                let artists = (row["singer"] as? [[String: Any]] ?? [])
-                    .compactMap { $0["name"] as? String }
-                    .joined(separator: " / ")
+                let artists = (row["singer"] as? [[String: Any]] ?? []).compactMap { $0["name"] as? String }.joined(separator: " / ")
                 let albumInfo = row["album"] as? [String: Any] ?? [:]
                 let albumName = albumInfo["name"] as? String
                 let albumMID = albumInfo["mid"] as? String
                 let artworkURL = albumMID.flatMap { URL(string: "https://y.gtimg.cn/music/photo_new/T002R300x300M000\($0).jpg?max_age=2592000") }
-                let duration = (row["interval"] as? Double)
-                    ?? (row["interval"] as? Int).map(Double.init)
-                return MusicSong(
-                    source: .qq,
-                    sourceID: rawID,
-                    title: row["name"] as? String ?? "未知歌曲",
-                    artist: artists.isEmpty ? "未知歌手" : artists,
-                    album: albumName,
-                    artworkURL: artworkURL,
-                    duration: duration,
-                    hash: nil,
-                    albumID: albumMID,
-                    pictureID: albumMID,
-                    lyricID: rawID
-                )
+                let duration = (row["interval"] as? Double) ?? (row["interval"] as? Int).map(Double.init)
+                return MusicSong(source: .qq, sourceID: rawID, title: row["name"] as? String ?? "未知歌曲",
+                    artist: artists.isEmpty ? "未知歌手" : artists, album: albumName, artworkURL: artworkURL,
+                    duration: duration, hash: nil, albumID: albumMID, pictureID: albumMID, lyricID: rawID)
             }
             songs.append(contentsOf: pageSongs)
             let moreFlag = detailData["hasmore"]
@@ -198,10 +162,7 @@ struct GDStudioMusicSearchService {
             if rows.isEmpty { hasMore = false }
             begin += rows.count
         }
-
-        guard !songs.isEmpty else {
-            throw MusicSourceError.invalidResponse("QQ音乐歌单存在，但没有返回可用曲目")
-        }
+        guard !songs.isEmpty else { throw MusicSourceError.invalidResponse("QQ音乐歌单存在，但没有返回可用曲目") }
         let result = Array(songs.prefix(count))
         await MusicCache.shared.insert(result, for: cacheKey, ttl: 10 * 60)
         return result

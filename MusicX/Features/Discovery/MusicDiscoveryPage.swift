@@ -3,7 +3,7 @@ import SwiftUI
 enum MusicDiscoveryRoute: Identifiable {
     case daily, playlists, featuredPlaylists, albums, charts, newReleases
     case chart(String)
-    case playlist(String)
+    case playlist(MusicPlaylist)
     case album(title: String, artist: String)
     var id: String {
         switch self {
@@ -14,7 +14,7 @@ enum MusicDiscoveryRoute: Identifiable {
         case .charts: "charts"
         case .newReleases: "new-releases"
         case .chart(let name): "chart-\(name)"
-        case .playlist(let name): "playlist-\(name)"
+        case .playlist(let playlist): "playlist-\(playlist.id)"
         case .album(let title, let artist): "album-\(title)-\(artist)"
         }
     }
@@ -42,7 +42,7 @@ struct MusicDiscoveryPage: View {
     let onQueueChanged: ([MusicSong]) -> Void
     let currentTime: TimeInterval
     let duration: TimeInterval
-    let onOpenPlaylist: (String) -> Void
+    let onOpenPlaylist: (MusicPlaylist) -> Void
     let onOpenAlbum: (String, String) -> Void
     let onSelectChart: (String) -> Void
 
@@ -85,7 +85,7 @@ struct MusicDiscoveryPage: View {
         case .albums: "热门专辑"
         case .charts, .chart: "排行榜"
         case .newReleases: "新歌速递"
-        case .playlist(let name): name
+        case .playlist(let playlist): playlist.name
         case .album(let title, _): title
         }
     }
@@ -97,8 +97,8 @@ struct MusicDiscoveryPage: View {
         case .charts: "陈奕迅"
         case .chart(let name): name == "新歌榜" ? "新歌" : name == "飙升榜" ? "飙升" : "热歌"
         case .newReleases: "新歌"
-        case .playlist(let name):
-            switch name {
+        case .playlist(let playlist):
+            switch playlist.name {
             case "开心愉悦": "开心"
             case "温柔治愈": "治愈"
             case "放松舒缓": "放松"
@@ -134,7 +134,7 @@ struct MusicDiscoveryPage: View {
                     case .albums: albumsIntro
                     case .charts, .chart: chartIntro
                     case .newReleases: newReleasesHeader
-                    case .playlist(let name): detailBanner(name, subtitle: playlistSubtitle(for: name))
+                    case .playlist(let playlist): detailBanner(playlist.name, subtitle: playlistSubtitle(for: playlist.name))
                     case .album(let title, let artist): albumBanner(title: title, artist: artist)
                     }
                     if case .playlists = route {
@@ -477,7 +477,7 @@ struct MusicDiscoveryPage: View {
 
     private func playlistTile(_ item: PlaylistCardItem, width: CGFloat, imageHeight: CGFloat) -> some View {
         Button {
-            onOpenPlaylist(playlistCardResults[item.title]?.name ?? item.title)
+            if let playlist = playlistCardResults[item.title] { onOpenPlaylist(playlist) }
         } label: {
             VStack(alignment: .leading, spacing: 8) {
                 playlistCardArtwork(
@@ -686,8 +686,9 @@ struct MusicDiscoveryPage: View {
                 result = try await service.toplist("新歌榜", count: 50)
             case .album:
                 result = try await service.search(keyword: query, source: .netease, count: 50, albumOnly: true)
-            case .playlist:
-                result = try await service.playlistTracks(keyword: query, count: 50)
+            case .playlist(let playlist):
+                guard playlist.source == .qq else { throw MusicSourceError.invalidResponse("暂不支持该平台的歌单详情") }
+                result = try await service.playlistTracks(playlistID: playlist.sourceID, count: 50)
             default:
                 result = try await service.search(keyword: query, source: .netease, count: 30)
             }
