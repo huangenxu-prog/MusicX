@@ -666,7 +666,7 @@ struct ContentView: View {
                     }
                 }
             }
-            .padding(.horizontal, 18).frame(height: 58)
+            .padding(.horizontal, 17).frame(height: 48)
             .background {
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .fill(Color(red: 0.055, green: 0.075, blue: 0.16).opacity(0.88))
@@ -779,7 +779,7 @@ struct ContentView: View {
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundStyle(libraryContentType == type ? .white : MusicXTheme.muted)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
+                            .padding(.vertical, 10)
                             .background(libraryContentType == type
                                 ? LinearGradient(colors: [Color(red: 0.25, green: 0.48, blue: 0.96).opacity(0.52), Color(red: 0.20, green: 0.25, blue: 0.62).opacity(0.30)], startPoint: .topLeading, endPoint: .bottomTrailing)
                                 : LinearGradient(colors: [Color.white.opacity(0.075), Color.white.opacity(0.025)], startPoint: .topLeading, endPoint: .bottomTrailing), in: Capsule())
@@ -798,8 +798,8 @@ struct ContentView: View {
                         Text(filter.rawValue)
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(libraryFilter == filter ? .white : MusicXTheme.muted)
-                            .padding(.horizontal, 14).padding(.vertical, 9)
-                            .background(libraryFilter == filter ? MusicXTheme.blue.opacity(0.24) : .white.opacity(0.055), in: Capsule())
+                            .padding(.horizontal, 15).padding(.vertical, 8)
+                            .background(libraryFilter == filter ? MusicXTheme.blue.opacity(0.28) : .white.opacity(0.045), in: Capsule())
                             .overlay(Capsule().stroke(libraryFilter == filter ? MusicXTheme.blue.opacity(0.48) : .white.opacity(0.08), lineWidth: 0.8))
                     }
                     .buttonStyle(.plain)
@@ -819,7 +819,7 @@ struct ContentView: View {
                     Spacer()
                 } else {
                     ScrollView(showsIndicators: false) {
-                        VStack(spacing: 16) {
+                        VStack(spacing: 12) {
                             ForEach(librarySongs) { song in songRow(song) }
                         }
                         .padding(.top, 4)
@@ -950,10 +950,8 @@ struct ContentView: View {
 
     private func songRow(_ song: AppSong, number: String? = nil, startsSearchQueue: Bool = false) -> some View {
         HStack(spacing: 13) {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(LinearGradient(colors: [song.tint, song.tint.opacity(0.45)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                .frame(width: 54, height: 54)
-                .overlay(Image(systemName: "music.note").font(.system(size: 20)).foregroundStyle(.white.opacity(0.8)))
+            songArtwork(song.onlineSong, tint: song.tint, size: 54)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             Button { startsSearchQueue ? playSearchResult(song) : select(song) } label: {
                 VStack(alignment: .leading, spacing: 5) {
                     Text(song.title).font(.system(size: 16, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
@@ -2102,7 +2100,7 @@ private struct SearchCategoryCard: View {
                     .allowsHitTesting(false)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 91)
+            .frame(height: 100)
             .clipped()
             .clipShape(RoundedRectangle(cornerRadius: 17, style: .continuous))
             .overlay {
