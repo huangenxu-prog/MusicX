@@ -732,8 +732,25 @@ struct MusicDiscoveryPage: View {
                 result = []
             case .newReleases:
                 result = try await service.toplist("新歌榜", count: 50)
-            case .album:
-                result = try await service.search(keyword: query, source: .netease, count: 50, albumOnly: true)
+            case .album(let albumTitle, let albumArtist):
+                async let netease = try? service.search(keyword: query, source: .netease, count: 50, albumOnly: true)
+                async let qq = try? service.search(keyword: query, source: .qq, count: 50, albumOnly: true)
+                async let kuwo = try? service.search(keyword: query, source: .kuwo, count: 50, albumOnly: true)
+                async let kugou = try? service.search(keyword: query, source: .kugou, count: 50, albumOnly: true)
+                async let migu = try? service.search(keyword: query, source: .migu, count: 50, albumOnly: true)
+                let candidates = (await netease ?? []) + (await qq ?? []) + (await kuwo ?? []) + (await kugou ?? []) + (await migu ?? [])
+                let normalizedAlbum = albumTitle.lowercased().filter { $0.isLetter || $0.isNumber }
+                let normalizedArtist = albumArtist.lowercased().filter { $0.isLetter || $0.isNumber }
+                let matched = candidates.filter { song in
+                    let album = (song.album ?? "").lowercased().filter { $0.isLetter || $0.isNumber }
+                    let artist = song.artist.lowercased().filter { $0.isLetter || $0.isNumber }
+                    return album == normalizedAlbum && (artist.contains(normalizedArtist) || normalizedArtist.contains(artist))
+                }
+                var seen = Set<String>()
+                result = matched.filter { song in
+                    let key = "\\(song.title.lowercased().filter { $0.isLetter || $0.isNumber })|\\(song.artist.lowercased().filter { $0.isLetter || $0.isNumber })"
+                    return seen.insert(key).inserted
+                }
             case .playlist:
                 result = try await service.playlistTracks(keyword: query, count: 50)
             case .playlistByID(let playlist):

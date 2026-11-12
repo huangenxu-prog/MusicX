@@ -291,6 +291,7 @@ struct ContentView: View {
                 }
                 .padding(.top, 8)
                 .padding(.bottom, 0)
+                .offset(y: 16)
                 .zIndex(20)
                 .background {
                     LinearGradient(colors: [Color(red: 0.015, green: 0.035, blue: 0.085).opacity(0.02),
@@ -1724,57 +1725,51 @@ struct ContentView: View {
 
     @MainActor
     private func searchOnline(_ keyword: String) async {
+        let query = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { onlineResults = []; searchError = nil; return }
         isSearching = true
         searchError = nil
+        onlineResults = []
         defer { isSearching = false }
-        let service = GDStudioMusicSearchService()
-        async let netease = try? service.search(keyword: keyword, source: .netease, count: 50)
-        async let qq = try? service.search(keyword: keyword, source: .qq, count: 50)
-        async let kuwo = try? service.search(keyword: keyword, source: .kuwo, count: 50)
-        async let kugou = try? service.search(keyword: keyword, source: .kugou, count: 50)
-        async let migu = try? service.search(keyword: keyword, source: .migu, count: 50)
-        let sourceResults = [
-            await netease ?? [],
-            await qq ?? [],
-            await kuwo ?? [],
-            await kugou ?? [],
-            await migu ?? []
-        ]
-        // Interleave all providers with an implemented native playback resolver.
-        var merged: [MusicSong] = []
-        let maxCount = sourceResults.map(\.count).max() ?? 0
-        for index in 0..<maxCount {
-            for source in sourceResults where source.indices.contains(index) {
-                merged.append(source[index])
-            }
-        }
-        guard !Task.isCancelled,
-              searchText.trimmingCharacters(in: .whitespacesAndNewlines) == keyword else { return }
 
-        // Collapse only the same recording. Keep alternate/live/remix versions separate.
-        var seen = Set<String>()
-        let uniqueResults = merged.filter { item in
-            let title = normalizedSearchKey(item.title)
-            let artist = normalizedArtistSearchKey(item.artist)
-            guard !title.isEmpty, !artist.isEmpty else { return true }
-            let version = searchVersionMarkers(item)
-            let durationBucket: String
-            if let duration = item.duration, duration > 0 {
-                durationBucket = String(Int(duration.rounded()))
-            } else {
-                durationBucket = "unknown"
+        let service = GDStudioMusicSearchService()
+        var received: [[MusicSong]] = []
+        await withTaskGroup(of: [MusicSong].self) { group in
+            for source in [MusicSource.netease, .qq, .kuwo, .kugou, .migu] {
+                group.addTask {
+                    (try? await service.search(keyword: query, source: source, count: 50)) ?? []
+                }
             }
-            let key = "\(title)|\(artist)|\(version)|\(durationBucket)"
-            return seen.insert(key).inserted
+            for await result in group {
+                guard !Task.isCancelled,
+                      searchText.trimmingCharacters(in: .whitespacesAndNewlines) == query else { continue }
+                if !result.isEmpty {
+                    received.append(result)
+                    var merged: [MusicSong] = []
+                    let maxCount = received.map(\\.count).max() ?? 0
+                    for index in 0..<maxCount {
+                        for sourceResults in received where sourceResults.indices.contains(index) {
+                            merged.append(sourceResults[index])
+                        }
+                    }
+                    var seen = Set<String>()
+                    let uniqueResults = merged.filter { item in
+                        let title = normalizedSearchKey(item.title)
+                        let artist = normalizedArtistSearchKey(item.artist)
+                        guard !title.isEmpty, !artist.isEmpty else { return true }
+                        let version = searchVersionMarkers(item)
+                        let durationKey = item.duration.map { String(Int($0.rounded())) } ?? "unknown"
+                        return seen.insert("\\(title)|\\(artist)|\\(version)|\\(durationKey)").inserted
+                    }
+                    onlineResults = Array(uniqueResults.prefix(50)).map { item in
+                        AppSong(id: stableSongID(item), title: item.title, artist: item.artist,
+                                album: item.album ?? "", tint: searchTint(for: item.source), onlineSong: item)
+                    }
+                }
+            }
         }
-        let results = Array(uniqueResults.prefix(50))
-        onlineResults = results.map { item in
-            AppSong(id: stableSongID(item), title: item.title, artist: item.artist,
-                     album: item.album ?? "",
-                     tint: searchTint(for: item.source),
-                     onlineSong: item)
-        }
-        if results.isEmpty { searchError = "当前音源暂未返回结果" }
+        guard searchText.trimmingCharacters(in: .whitespacesAndNewlines) == query else { return }
+        if onlineResults.isEmpty { searchError = "当前音源暂未返回结果" }
     }
 
     @MainActor
