@@ -38,6 +38,20 @@ jobs:
             plutil -lint "$ASSET_CATALOG/SearchCategory${n}.imageset/Contents.json" || python3 -m json.tool "$ASSET_CATALOG/SearchCategory${n}.imageset/Contents.json" >/dev/null
           done
 
+      - name: Install 10 standalone MusicX artwork assets
+        run: |
+          ASSET_CATALOG="$(find . -type d -name Assets.xcassets -print -quit)"
+          test -n "$ASSET_CATALOG"
+          unzip -oq "$ASSET_CATALOG/MusicX-10-Standalone-Assets-Final.zip" -d "$RUNNER_TEMP/musicx-artwork"
+          SOURCE="$RUNNER_TEMP/musicx-artwork/MusicX-10-Standalone-Assets"
+          for name in category_chinese_pop category_classic category_instrumental category_light category_rock category_singers chart_hot chart_new chart_rising daily_recommend; do
+            test -s "$SOURCE/$name.imageset/$name.jpg"
+            python3 -m json.tool "$SOURCE/$name.imageset/Contents.json" >/dev/null
+            rm -rf "$ASSET_CATALOG/$name.imageset"
+            cp -R "$SOURCE/$name.imageset" "$ASSET_CATALOG/$name.imageset"
+          done
+          echo "Installed 10 standalone artwork image sets."
+
       - name: Render app icon asset
         run: swift scripts/render-app-icon.swift
 
