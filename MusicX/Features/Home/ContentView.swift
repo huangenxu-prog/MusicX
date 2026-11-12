@@ -348,7 +348,7 @@ struct ContentView: View {
                     .id(route.id)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(MusicXPageBackground())
-                    .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
+                    .transition(.asymmetric(insertion: .move(edge: .leading), removal: .move(edge: .trailing)))
                     .zIndex(30)
             }
         }
@@ -356,7 +356,7 @@ struct ContentView: View {
         .overlay {
             if isPlayerPresented {
                 nowPlayingPage
-                    .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
+                    .transition(.asymmetric(insertion: .move(edge: .leading), removal: .move(edge: .trailing)))
                     .zIndex(40)
             }
         }
