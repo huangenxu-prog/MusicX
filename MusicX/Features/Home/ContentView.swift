@@ -367,9 +367,9 @@ struct ContentView: View {
                         endPoint: .bottom
                     )
                 }
-                .frame(width: proxy.size.width, height: 235)
+                .frame(width: proxy.size.width, height: 300)
             }
-            .frame(height: 235)
+            .frame(height: 300)
             .ignoresSafeArea(edges: .top)
             .allowsHitTesting(false)
         }
@@ -529,9 +529,9 @@ struct ContentView: View {
             GeometryReader { proxy in
                 let width = max(0, (proxy.size.width - 44) / 3)
                 HStack(spacing: 8) {
-                    chartTile("热歌榜", subtitle: "当下最热的50首", rank: "01", icon: "crown.fill", color: Color(red: 0.95, green: 0.47, blue: 0.38), width: width)
-                    chartTile("飙升榜", subtitle: "近期热度上升", rank: "02", icon: "flame.fill", color: Color(red: 0.61, green: 0.35, blue: 0.91), width: width)
-                    chartTile("新歌榜", subtitle: "最新发布的50首", rank: "03", icon: "waveform", color: Color(red: 0.05, green: 0.70, blue: 0.83), width: width)
+                    chartTile("热歌榜", subtitle: "Top 50", rank: "01", icon: "crown.fill", color: Color(red: 0.95, green: 0.47, blue: 0.38), width: width)
+                    chartTile("飙升榜", subtitle: "热度上升", rank: "02", icon: "flame.fill", color: Color(red: 0.61, green: 0.35, blue: 0.91), width: width)
+                    chartTile("新歌榜", subtitle: "最新 50 首", rank: "03", icon: "waveform", color: Color(red: 0.05, green: 0.70, blue: 0.83), width: width)
                 }.padding(.horizontal, 14)
             }.frame(height: 104)
         }
