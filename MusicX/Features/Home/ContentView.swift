@@ -1650,7 +1650,7 @@ struct ContentView: View {
                 try Task.checkCancellation()
                 guard playbackRequestID == requestID else { return }
                 playerStore.play(url: url, title: onlineSong.title, artist: onlineSong.artist,
-                                 album: onlineSong.album, artworkURL: onlineSong.artworkURL)
+                                 album: onlineSong.album, artworkURL: onlineSong.artworkURL, artworkSong: onlineSong)
             } catch is CancellationError {
                 return
             } catch {
@@ -1845,7 +1845,7 @@ struct ContentView: View {
                     guard playbackRequestID == requestID else { return }
                     currentSong = song
                     playerStore.play(url: url, title: onlineSong.title, artist: onlineSong.artist,
-                                     album: onlineSong.album, artworkURL: onlineSong.artworkURL)
+                                     album: onlineSong.album, artworkURL: onlineSong.artworkURL, artworkSong: onlineSong)
                 } catch is CancellationError {
                     return
                 } catch {
