@@ -131,8 +131,9 @@ struct MusicDiscoveryPage: View {
     private var dailyHeader: some View {
         VStack(alignment: .leading, spacing: 15) {
             ZStack(alignment: .bottomLeading) {
-                LinearGradient(colors: [Color(red: 0.20, green: 0.42, blue: 0.68), Color(red: 0.10, green: 0.16, blue: 0.30)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                Image(systemName: "sun.horizon.fill").font(.system(size: 110, weight: .ultraLight)).foregroundStyle(.white.opacity(0.16)).frame(maxWidth: .infinity, alignment: .trailing).padding(20)
+                Image("daily_recommend").resizable().scaledToFill()
+                LinearGradient(colors: [.black.opacity(0.04), .black.opacity(0.72)], startPoint: .top, endPoint: .bottom)
+                Image(systemName: "sun.horizon.fill").font(.system(size: 88, weight: .ultraLight)).foregroundStyle(.white.opacity(0.20)).frame(maxWidth: .infinity, alignment: .topTrailing).padding(20)
                 VStack(alignment: .leading, spacing: 7) {
                     Text("为你精选").font(.system(size: 27, weight: .bold))
                     Text("根据在线曲库整理 · 每日更新").font(.system(size: 13)).foregroundStyle(.white.opacity(0.72))
@@ -157,18 +158,41 @@ struct MusicDiscoveryPage: View {
     }
 
     private var chartIntro: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("排行榜").font(.system(size: 30, weight: .bold, design: .rounded))
-            Text("网易云音乐官方榜单 · 每日更新").font(.system(size: 13, weight: .medium)).foregroundStyle(MusicXTheme.muted)
+        ZStack(alignment: .bottomLeading) {
+            Image(chartArtworkName).resizable().scaledToFill()
+            LinearGradient(colors: [.black.opacity(0.02), .black.opacity(0.70)], startPoint: .top, endPoint: .bottom)
+            VStack(alignment: .leading, spacing: 7) {
+                Text("排行榜").font(.system(size: 29, weight: .bold, design: .rounded))
+                Text("网易云音乐官方榜单 · 每日更新").font(.system(size: 13, weight: .medium)).foregroundStyle(.white.opacity(0.78))
+            }.padding(22)
+        }
+        .frame(height: 174).clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(.white.opacity(0.13), lineWidth: 1))
+    }
+
+    private var chartArtworkName: String {
+        switch selectedChart {
+        case "新歌榜": "chart_new"
+        case "飙升榜": "chart_rising"
+        default: "chart_hot"
+        }
+    }
+
+    private func categoryArtworkName(for name: String) -> String {
+        switch name {
+        case "轻音乐": "playlist_relax"
+        case "车载必听": "playlist_drive"
+        case "深夜独白": "playlist_night"
+        default: "featured_playlist"
         }
     }
 
     private func detailBanner(_ name: String, subtitle: String) -> some View {
         VStack(alignment: .leading, spacing: 18) {
             ZStack(alignment: .bottomLeading) {
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .fill(LinearGradient(colors: [Color(red: 0.30, green: 0.34, blue: 0.66), Color(red: 0.13, green: 0.16, blue: 0.34), Color(red: 0.08, green: 0.11, blue: 0.22)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                Circle().fill(MusicXTheme.blue.opacity(0.24)).frame(width: 210, height: 210).blur(radius: 42).offset(x: 210, y: -70)
+                Image(categoryArtworkName(for: name)).resizable().scaledToFill()
+                LinearGradient(colors: [.black.opacity(0.02), .black.opacity(0.66)], startPoint: .top, endPoint: .bottom)
+                Circle().fill(MusicXTheme.blue.opacity(0.18)).frame(width: 210, height: 210).blur(radius: 42).offset(x: 210, y: -70)
                 Image(systemName: "waveform").font(.system(size: 100, weight: .ultraLight))
                     .foregroundStyle(.white.opacity(0.14)).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing).padding(26)
                 VStack(alignment: .leading, spacing: 7) {
@@ -268,24 +292,29 @@ struct MusicDiscoveryPage: View {
     }
 
     private var playlistGrid: some View {
-        let items: [(String, String, [Color])] = [
-            ("华语流行", "热门华语歌曲", [Color(red: 0.20, green: 0.42, blue: 0.68), Color(red: 0.10, green: 0.16, blue: 0.30)]),
-            ("轻音乐", "放松与专注", [Color(red: 0.40, green: 0.25, blue: 0.49), Color(red: 0.17, green: 0.14, blue: 0.30)]),
-            ("经典老歌", "熟悉的旋律", [Color(red: 0.48, green: 0.28, blue: 0.25), Color(red: 0.20, green: 0.14, blue: 0.17)]),
-            ("纯音乐", "安静聆听", [Color(red: 0.16, green: 0.39, blue: 0.38), Color(red: 0.08, green: 0.20, blue: 0.23)]),
-            ("摇滚", "节奏与力量", [Color(red: 0.43, green: 0.22, blue: 0.27), Color(red: 0.19, green: 0.13, blue: 0.22)]),
-            ("周杰伦", "歌手精选", [Color(red: 0.27, green: 0.32, blue: 0.53), Color(red: 0.15, green: 0.17, blue: 0.30)])
+        let items: [(String, String, [Color], String)] = [
+            ("华语流行", "热门华语歌曲", [Color(red: 0.20, green: 0.42, blue: 0.68), Color(red: 0.10, green: 0.16, blue: 0.30)], "featured_playlist"),
+            ("轻音乐", "放松与专注", [Color(red: 0.40, green: 0.25, blue: 0.49), Color(red: 0.17, green: 0.14, blue: 0.30)], "playlist_relax"),
+            ("经典老歌", "熟悉的旋律", [Color(red: 0.48, green: 0.28, blue: 0.25), Color(red: 0.20, green: 0.14, blue: 0.17)], "playlist_night"),
+            ("纯音乐", "安静聆听", [Color(red: 0.16, green: 0.39, blue: 0.38), Color(red: 0.08, green: 0.20, blue: 0.23)], "playlist_relax"),
+            ("摇滚", "节奏与力量", [Color(red: 0.43, green: 0.22, blue: 0.27), Color(red: 0.19, green: 0.13, blue: 0.22)], "playlist_drive"),
+            ("周杰伦", "歌手精选", [Color(red: 0.27, green: 0.32, blue: 0.53), Color(red: 0.15, green: 0.17, blue: 0.30)], "featured_playlist")
         ]
         return LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
             ForEach(items, id: \.0) { item in
                 Button { onOpenPlaylist(item.0) } label: {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Image(systemName: "music.note.list").font(.system(size: 25))
-                        Spacer(minLength: 20)
-                        Text(item.0).font(.system(size: 17, weight: .bold))
-                        Text(item.1).font(.system(size: 12)).foregroundStyle(.white.opacity(0.7))
-                    }.foregroundStyle(.white).padding(16).frame(maxWidth: .infinity, minHeight: 148, alignment: .leading)
-                        .background(LinearGradient(colors: item.2, startPoint: .topLeading, endPoint: .bottomTrailing), in: RoundedRectangle(cornerRadius: 20))
+                    ZStack(alignment: .bottomLeading) {
+                        Image(item.3).resizable().scaledToFill()
+                        LinearGradient(colors: [.black.opacity(0.02), .black.opacity(0.70)], startPoint: .top, endPoint: .bottom)
+                        VStack(alignment: .leading, spacing: 7) {
+                            Spacer()
+                            Text(item.0).font(.system(size: 17, weight: .bold))
+                            Text(item.1).font(.system(size: 12)).foregroundStyle(.white.opacity(0.78))
+                        }.foregroundStyle(.white).padding(16)
+                    }
+                    .frame(maxWidth: .infinity).frame(height: 148).clipped()
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(.white.opacity(0.13), lineWidth: 1))
                 }.buttonStyle(.plain)
             }
         }
