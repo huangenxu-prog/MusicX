@@ -3,6 +3,7 @@ import SwiftUI
 enum MusicDiscoveryRoute: Identifiable {
     case daily, playlists, featuredPlaylists, albums, charts, newReleases
     case chart(String)
+    case featuredPick
     case playlist(String)
     case playlistByID(MusicPlaylist)
     case album(title: String, artist: String)
@@ -15,6 +16,7 @@ enum MusicDiscoveryRoute: Identifiable {
         case .charts: "charts"
         case .newReleases: "new-releases"
         case .chart(let name): "chart-\(name)"
+        case .featuredPick: "featured-pick"
         case .playlist(let name): "playlist-\(name)"
         case .playlistByID(let playlist): "playlist-\(playlist.id)"
         case .album(let title, let artist): "album-\(title)-\(artist)"
@@ -82,9 +84,23 @@ struct MusicDiscoveryPage: View {
         case .daily: "每日推荐"
         case .playlists: "心情歌单"
         case .featuredPlaylists: "精选歌单"
+        case .featuredPick: "编辑精选"
         case .albums: "热门专辑"
         case .charts, .chart: "排行榜"
         case .newReleases: "新歌速递"
+        case .featuredPick:
+            songs = []
+            isLoading = true
+            errorMessage = nil
+            await loadPlaylistCards(forMood: false)
+            guard !Task.isCancelled else { isLoading = false; return }
+            if let playlist = playlistCardResults["本周编辑精选"] {
+                onOpenPlaylist(playlist)
+            } else {
+                errorMessage = "暂未匹配到真实的本周编辑精选歌单，请稍后重试"
+            }
+            isLoading = false
+            return
         case .playlist(let name): name
         case .playlistByID(let playlist): playlist.name
         case .album(let title, _): title
@@ -94,7 +110,7 @@ struct MusicDiscoveryPage: View {
         switch route {
         case .daily: "陈奕迅"
         case .playlists: "华语歌手"
-        case .featuredPlaylists, .albums: ""
+        case .featuredPlaylists, .featuredPick, .albums: ""
         case .charts: "陈奕迅"
         case .chart(let name): name == "新歌榜" ? "新歌" : name == "飙升榜" ? "飙升" : "热歌"
         case .newReleases: "新歌"
@@ -133,6 +149,7 @@ struct MusicDiscoveryPage: View {
                     case .daily: dailyHeader
                     case .playlists: playlistIntro
                     case .featuredPlaylists: featuredPlaylistsIntro
+                    case .featuredPick: detailBanner("本周编辑精选", subtitle: "精选歌单")
                     case .albums: albumsIntro
                     case .charts, .chart: chartIntro
                     case .newReleases: newReleasesHeader
@@ -695,6 +712,8 @@ struct MusicDiscoveryPage: View {
                 result = try await service.toplist("新歌榜", count: 50)
             case .album(let albumTitle, let albumArtist):
                 result = await searchAlbumTracks(title: albumTitle, artist: albumArtist)
+            case .featuredPick:
+                result = []
             case .playlist(let name):
                 result = await searchEditorialTracks(name: name)
             case .playlistByID(let playlist):
