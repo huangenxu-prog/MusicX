@@ -55,6 +55,19 @@ enum MusicQuality: String, CaseIterable, Identifiable {
     }
 }
 
+/// A playlist returned by a provider. Playlist IDs are provider-specific.
+struct MusicPlaylist: Identifiable, Hashable {
+    let source: MusicSource
+    let sourceID: String
+    let name: String
+    let creator: String?
+    let description: String?
+    let artworkURL: URL?
+    let trackCount: Int?
+
+    var id: String { "\(source.rawValue):playlist:\(sourceID)" }
+}
+
 /// IDs are source-specific. Never pass a QQ mid to a NetEase resolver.
 struct MusicSong: Identifiable, Codable, Hashable {
     var id: String { "\(source.rawValue):\(sourceID)" }
