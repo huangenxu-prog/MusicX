@@ -269,7 +269,7 @@ struct ContentView: View {
                 }
             }
             .id(selectedTab)
-            .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
+            .transition(.asymmetric(insertion: .move(edge: .leading), removal: .move(edge: .trailing)))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -316,8 +316,14 @@ struct ContentView: View {
         }
         .overlay {
             if let route = discoveryRoute {
-                MusicDiscoveryPage(route: route, onClose: {
-                    withAnimation(.easeInOut(duration: 0.28)) { discoveryRoute = nil }
+                MusicDiscoveryPage(route: route, onClose: { isSwipeBack in
+                    if isSwipeBack {
+                        var transaction = Transaction()
+                        transaction.disablesAnimations = true
+                        withTransaction(transaction) { discoveryRoute = nil }
+                    } else {
+                        withAnimation(.easeInOut(duration: 0.28)) { discoveryRoute = nil }
+                    }
                 },
                     onPlay: { playDiscoverySong($0) },
                     currentSong: currentSong?.onlineSong,
