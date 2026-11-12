@@ -273,30 +273,44 @@ final class PlayerStore: ObservableObject {
         else { MPNowPlayingInfoCenter.default().nowPlayingInfo = nil }
     }
 
-    func play(url: URL, title: String, artist: String, album: String? = nil, artworkURL: URL? = nil) {
+    func play(url: URL, title: String, artist: String, album: String? = nil,
+              artworkURL: URL? = nil, artworkSong: MusicSong? = nil) {
         errorMessage = nil
         seekRequestID = UUID()
         trackTitle = title
         trackArtist = artist
         trackAlbum = album
-        artworkImage = nil
+        // Publish a visible fallback immediately; replace it with the real cover as soon as metadata resolves.
+        artworkImage = defaultNowPlayingArtwork()
         artworkTask?.cancel()
         artworkRequestID = UUID()
         let requestID = artworkRequestID
-        if let artworkURL {
+        if artworkURL != nil || artworkSong != nil {
             artworkTask = Task { [weak self] in
-                let cacheKey = "artwork-data|\(artworkURL.absoluteString)"
-                var data: Data? = await MusicCache.shared.value(for: cacheKey)
-                if data == nil,
-                   let (downloaded, response) = try? await URLSession.shared.data(from: artworkURL),
-                   (response as? HTTPURLResponse).map({ (200..<300).contains($0.statusCode) }) ?? true {
-                    data = downloaded
-                    await MusicCache.shared.insert(downloaded, for: cacheKey, ttl: 7 * 24 * 60 * 60)
+                var candidateURLs: [URL] = []
+                if let artworkURL { candidateURLs.append(artworkURL) }
+                if let artworkSong,
+                   let metadataURL = try? await GDStudioMetadataService().artworkURL(for: artworkSong),
+                   !candidateURLs.contains(metadataURL) {
+                    candidateURLs.append(metadataURL)
                 }
-                guard !Task.isCancelled, let data, let image = UIImage(data: data) else { return }
-                guard let self, self.artworkRequestID == requestID else { return }
-                self.artworkImage = image
-                self.updateNowPlayingInfo()
+                for candidateURL in candidateURLs {
+                    guard !Task.isCancelled else { return }
+                    let cacheKey = "artwork-data|\(candidateURL.absoluteString)"
+                    var data: Data? = await MusicCache.shared.value(for: cacheKey)
+                    if data == nil,
+                       let (downloaded, response) = try? await URLSession.shared.data(from: candidateURL),
+                       (response as? HTTPURLResponse).map({ (200..<300).contains($0.statusCode) }) ?? true {
+                        data = downloaded
+                        await MusicCache.shared.insert(downloaded, for: cacheKey, ttl: 7 * 24 * 60 * 60)
+                    }
+                    if let data, let image = UIImage(data: data) {
+                        guard !Task.isCancelled, let self, self.artworkRequestID == requestID else { return }
+                        self.artworkImage = image
+                        self.updateNowPlayingInfo()
+                        return
+                    }
+                }
             }
         }
         MPRemoteCommandCenter.shared().nextTrackCommand.isEnabled = true
@@ -431,6 +445,18 @@ final class PlayerStore: ObservableObject {
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
     }
 
+    private func defaultNowPlayingArtwork() -> UIImage {
+        if let bundled = UIImage(named: "player_cover") { return bundled }
+        let size = CGSize(width: 256, height: 256)
+        return UIGraphicsImageRenderer(size: size).image { context in
+            UIColor(red: 0.12, green: 0.22, blue: 0.42, alpha: 1).setFill()
+            context.fill(CGRect(origin: .zero, size: size))
+            if let note = UIImage(systemName: "music.note")?.withTintColor(.white.withAlphaComponent(0.92)) {
+                note.draw(in: CGRect(x: 88, y: 78, width: 80, height: 100))
+            }
+        }
+    }
+
     private func updateNowPlayingInfo() {
         guard publishesNowPlayingInfo else { return }
         var info: [String: Any] = [
@@ -446,9 +472,8 @@ final class PlayerStore: ObservableObject {
         if duration > 0 {
             info[MPMediaItemPropertyPlaybackDuration] = duration
         }
-        if let artworkImage {
-            info[MPMediaItemPropertyArtwork] = MPMediaItemArtwork(boundsSize: artworkImage.size) { _ in artworkImage }
-        }
+        let publishedArtwork = artworkImage ?? defaultNowPlayingArtwork()
+        info[MPMediaItemPropertyArtwork] = MPMediaItemArtwork(boundsSize: publishedArtwork.size) { _ in publishedArtwork }
         let center = MPNowPlayingInfoCenter.default()
         center.nowPlayingInfo = info
         center.playbackState = isPlaying ? .playing : .paused
