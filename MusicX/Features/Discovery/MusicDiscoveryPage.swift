@@ -26,6 +26,9 @@ struct MusicDiscoveryPage: View {
     let isPlaying: Bool
     let onTogglePlayback: () -> Void
     let onOpenPlayer: () -> Void
+    let onPrevious: () -> Void
+    let onNext: () -> Void
+    let onOpenQueue: () -> Void
     let onQueueChanged: ([MusicSong]) -> Void
     let currentTime: TimeInterval
     let duration: TimeInterval
@@ -35,7 +38,10 @@ struct MusicDiscoveryPage: View {
     @State private var songs: [MusicSong] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var selectedChartOverride: String?
+    @State private var chartSongCache: [String: [MusicSong]] = [:]
     private var selectedChart: String {
+        if let selectedChartOverride { return selectedChartOverride }
         if case .chart(let name) = route { return name }
         return "热歌榜"
     }
@@ -50,7 +56,7 @@ struct MusicDiscoveryPage: View {
     private var title: String {
         switch route {
         case .daily: "每日推荐"
-        case .playlists: "精选歌单"
+        case .playlists: "心情歌单"
         case .charts, .chart: "排行榜"
         case .newReleases: "新歌速递"
         case .playlist(let name): name
@@ -80,9 +86,9 @@ struct MusicDiscoveryPage: View {
     var body: some View {
         ZStack {
             ZStack {
-                MusicXTheme.background
-                RadialGradient(colors: [MusicXTheme.blue.opacity(0.16), .clear], center: .top, startRadius: 12, endRadius: 520)
-                RadialGradient(colors: [Color.purple.opacity(0.08), .clear], center: .bottomTrailing, startRadius: 10, endRadius: 420)
+                LinearGradient(colors: [Color(red: 0.018, green: 0.040, blue: 0.095), Color(red: 0.025, green: 0.055, blue: 0.115), Color(red: 0.014, green: 0.030, blue: 0.075)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                RadialGradient(colors: [Color(red: 0.48, green: 0.12, blue: 0.58).opacity(0.38), .clear], center: .top, startRadius: 12, endRadius: 520)
+                RadialGradient(colors: [Color(red: 1.0, green: 0.34, blue: 0.36).opacity(0.16), .clear], center: .topTrailing, startRadius: 10, endRadius: 420)
             }.ignoresSafeArea()
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
@@ -111,21 +117,27 @@ struct MusicDiscoveryPage: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             miniPlayerBar(song: currentSong)
         }
+        .simultaneousGesture(DragGesture(minimumDistance: 22, coordinateSpace: .global).onEnded { value in
+            let horizontal = value.translation.width
+            let vertical = value.translation.height
+            guard value.startLocation.x <= 28, horizontal > 88, horizontal > abs(vertical) * 1.25 else { return }
+            onClose()
+        })
         .task(id: route.id) { await loadSongs() }
     }
 
     private var topBar: some View {
         HStack {
-            Button(action: onClose) {
-                Image(systemName: "chevron.left").font(.system(size: 18, weight: .semibold))
-                    .frame(width: 42, height: 42, alignment: .leading).contentShape(Rectangle())
-            }
+            Button { onClose() } label: {
+                Image(systemName: "chevron.left").font(.system(size: 20, weight: .semibold))
+                    .frame(width: 48, height: 46, alignment: .leading).contentShape(Rectangle())
+            }.buttonStyle(.plain).zIndex(10)
             Spacer()
             Text(title).font(.system(size: 16, weight: .semibold))
             Spacer()
             Image(systemName: "ellipsis").font(.system(size: 18, weight: .semibold))
                 .frame(width: 42, alignment: .trailing).foregroundStyle(.white.opacity(0.75))
-        }.foregroundStyle(.white).padding(.bottom, 4)
+        }.foregroundStyle(.white).padding(.bottom, 4).contentShape(Rectangle())
     }
 
     private var dailyHeader: some View {
@@ -152,9 +164,9 @@ struct MusicDiscoveryPage: View {
 
     private var playlistIntro: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("按心情聆听").font(.system(size: 28, weight: .bold))
-            Text("从在线曲库中发现适合此刻的音乐").font(.system(size: 13)).foregroundStyle(MusicXTheme.muted)
-        }
+            Text("按心情聆听").font(.system(size: 30, weight: .bold, design: .rounded))
+            Text("从在线曲库中发现适合此刻的音乐").font(.system(size: 14, weight: .medium)).foregroundStyle(.white.opacity(0.66))
+        }.padding(.top, 8).padding(.bottom, 4)
     }
 
     private var chartIntro: some View {
@@ -250,43 +262,39 @@ struct MusicDiscoveryPage: View {
     }
 
     private func miniPlayerBar(song: MusicSong?) -> some View {
-        VStack(spacing: 5) {
-            HStack(spacing: 12) {
-                Button(action: onOpenPlayer) {
-                    HStack(spacing: 11) {
-                        RoundedRectangle(cornerRadius: 9)
-                            .fill(LinearGradient(colors: [MusicXTheme.blue, MusicXTheme.blue.opacity(0.42)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                            .frame(width: 40, height: 40)
-                            .overlay(Image(systemName: song == nil ? "music.note" : "waveform").foregroundStyle(.white))
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(song?.title ?? "尚未播放").font(.system(size: 13, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
-                            Text(song?.artist ?? "选择一首歌曲开始聆听").font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
-                        }
+        HStack(spacing: 9) {
+            Button(action: onOpenPlayer) {
+                HStack(spacing: 10) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 11, style: .continuous).fill(LinearGradient(colors: [MusicXTheme.blue, Color(red: 0.20, green: 0.16, blue: 0.40)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                        if let url = song?.artworkURL {
+                            AsyncImage(url: url) { phase in
+                                if let image = phase.image { image.resizable().scaledToFill() }
+                                else { Image(systemName: "music.note").foregroundStyle(.white) }
+                            }.clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+                        } else { Image(systemName: "music.note").font(.system(size: 20, weight: .semibold)).foregroundStyle(.white) }
+                    }.frame(width: 48, height: 48)
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(song?.title ?? "尚未播放").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
+                        Text(song?.artist ?? "选择一首歌曲开始聆听").font(.system(size: 11)).foregroundStyle(.white.opacity(0.72)).lineLimit(1)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                Button(action: onTogglePlayback) {
-                    Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: 18, weight: .semibold)).foregroundStyle(.white)
-                        .frame(width: 42, height: 40)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .disabled(song == nil)
-            }
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(.white.opacity(0.10))
-                    Capsule().fill(MusicXTheme.blue).frame(width: geometry.size.width * progressFraction)
-                }
-            }
-            .frame(height: 2)
+                }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
+            }.buttonStyle(.plain)
+            Button(action: onPrevious) { Image(systemName: "backward.end.fill").font(.system(size: 16, weight: .semibold)).foregroundStyle(.white.opacity(0.92)).frame(width: 28, height: 44) }.buttonStyle(.plain).disabled(song == nil)
+            Button(action: onTogglePlayback) {
+                Image(systemName: isPlaying ? "pause.fill" : "play.fill").font(.system(size: 19, weight: .bold)).foregroundStyle(.white)
+                    .frame(width: 42, height: 42).background(.white.opacity(0.22), in: Circle()).overlay(Circle().stroke(.white.opacity(0.30), lineWidth: 1))
+            }.buttonStyle(.plain).disabled(song == nil)
+            Button(action: onNext) { Image(systemName: "forward.end.fill").font(.system(size: 16, weight: .semibold)).foregroundStyle(.white.opacity(0.92)).frame(width: 28, height: 44) }.buttonStyle(.plain).disabled(song == nil)
+            Button(action: onOpenQueue) { Image(systemName: "list.bullet").font(.system(size: 19, weight: .semibold)).foregroundStyle(.white.opacity(0.92)).frame(width: 28, height: 44) }.buttonStyle(.plain)
         }
-        .padding(.horizontal, 16).padding(.top, 7).padding(.bottom, 5)
-        .background(MusicXTheme.background.opacity(0.98))
-        .overlay(alignment: .top) { Rectangle().fill(.white.opacity(0.07)).frame(height: 0.5) }
+        .padding(.horizontal, 13).frame(height: 76)
+        .background {
+            RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Color(red: 0.10, green: 0.12, blue: 0.27).opacity(0.96))
+                .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(LinearGradient(colors: [Color(red: 0.40, green: 0.31, blue: 0.66).opacity(0.34), Color(red: 0.08, green: 0.11, blue: 0.25).opacity(0.14)], startPoint: .topLeading, endPoint: .bottomTrailing)))
+        }
+        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(.white.opacity(0.28), lineWidth: 1))
+        .shadow(color: Color.black.opacity(0.28), radius: 14, y: 6).padding(.horizontal, 12)
     }
 
     private var progressFraction: CGFloat {
@@ -323,9 +331,10 @@ struct MusicDiscoveryPage: View {
                         }
                         .frame(width: geometry.size.width, height: geometry.size.height)
                         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(.white.opacity(0.14), lineWidth: 1))
+                        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(.white.opacity(0.22), lineWidth: 1))
+                        .shadow(color: Color.black.opacity(0.24), radius: 12, y: 6)
                     }
-                    .frame(height: 148)
+                    .frame(height: 158)
                 }.buttonStyle(.plain)
             }
         }
@@ -334,7 +343,7 @@ struct MusicDiscoveryPage: View {
     private var chartTabs: some View {
         HStack(spacing: 8) {
             ForEach(["热歌榜", "新歌榜", "飙升榜"], id: \.self) { name in
-                Button { onSelectChart(name) } label: {
+                Button { Task { await selectChart(name) } } label: {
                     Text(name).font(.system(size: 13, weight: .semibold)).foregroundStyle(selectedChart == name ? .white : MusicXTheme.muted)
                          .padding(.horizontal, 17).padding(.vertical, 11)
                         .background(selectedChart == name ? MusicXTheme.blue.opacity(0.92) : Color.white.opacity(0.055), in: Capsule())
@@ -421,20 +430,16 @@ struct MusicDiscoveryPage: View {
 
     @MainActor
     private func loadSongs() async {
+        if case .playlists = route { songs = []; return }
+        if isChartRoute { await loadChart(selectedChart, showInitialLoading: true); return }
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
-        if case .playlists = route {
-            songs = []
-            return
-        }
         do {
             let result: [MusicSong]
             switch route {
-            case .charts:
-                result = try await service.toplist("热歌榜", count: 50)
-            case .chart(let name):
-                result = try await service.toplist(name, count: 50)
+            case .charts, .chart:
+                result = []
             case .newReleases:
                 result = try await service.toplist("新歌榜", count: 50)
             case .album:
@@ -448,8 +453,45 @@ struct MusicDiscoveryPage: View {
             songs = result
             onQueueChanged(songs)
             if songs.isEmpty { errorMessage = "音源没有返回匹配的歌曲，请稍后重试" }
-        } catch {
-            errorMessage = error.localizedDescription
+        } catch { errorMessage = error.localizedDescription }
+    }
+
+    @MainActor
+    private func selectChart(_ name: String) async {
+        guard name != selectedChart else { return }
+        selectedChartOverride = name
+        if let cached = chartSongCache[name] {
+            songs = cached
+            errorMessage = cached.isEmpty ? "音源没有返回匹配的歌曲，请稍后重试" : nil
+            onQueueChanged(cached)
+            return
         }
+        do {
+            let result = try await service.toplist(name, count: 50)
+            chartSongCache[name] = result
+            songs = result
+            errorMessage = result.isEmpty ? "音源没有返回匹配的歌曲，请稍后重试" : nil
+            onQueueChanged(result)
+        } catch { errorMessage = error.localizedDescription }
+    }
+
+    @MainActor
+    private func loadChart(_ name: String, showInitialLoading: Bool) async {
+        if let cached = chartSongCache[name] {
+            songs = cached
+            onQueueChanged(cached)
+            return
+        }
+        if showInitialLoading { isLoading = true }
+        errorMessage = nil
+        defer { if showInitialLoading { isLoading = false } }
+        do {
+            let result = try await service.toplist(name, count: 50)
+            guard !Task.isCancelled else { return }
+            chartSongCache[name] = result
+            songs = result
+            onQueueChanged(result)
+            if result.isEmpty { errorMessage = "音源没有返回匹配的歌曲，请稍后重试" }
+        } catch { errorMessage = error.localizedDescription }
     }
 }

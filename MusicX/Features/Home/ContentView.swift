@@ -337,6 +337,9 @@ struct ContentView: View {
                 isPlaying: playerStore.isPlaying,
                 onTogglePlayback: { playerStore.togglePlayback() },
                 onOpenPlayer: { isPlayerPresented = true },
+                onPrevious: { stepSong(by: -1) },
+                onNext: { stepSong(by: 1) },
+                onOpenQueue: { playerDisplayMode = .queue; isPlayerPresented = true },
                 onQueueChanged: { playbackQueueSongs = $0.map { AppSong(id: stableSongID($0), title: $0.title, artist: $0.artist, album: $0.album ?? "", tint: MusicXTheme.blue, onlineSong: $0) }; hasCustomPlaybackQueue = true }, 
                 currentTime: playerStore.currentTime,
                 duration: playerStore.duration,
@@ -515,14 +518,14 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 10) {
             homeSectionTitle("热门专辑", action: { discoveryRoute = .album(title: "DUO", artist: "陈奕迅") }).padding(.horizontal, 14)
             GeometryReader { proxy in
-                let gap: CGFloat = 6
-                let width = max(48, (proxy.size.width - 28 - gap * 4) / 5)
-                HStack(spacing: gap) {
-                    ForEach(0..<5, id: \.self) { index in
-                        staticAlbumTile(index: index, width: width)
-                    }
-                }.padding(.horizontal, 14)
-            }.frame(height: 64)
+                let gap: CGFloat = 12
+                let width = max(112, (proxy.size.width - 28 - gap * 2) / 3)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: gap) {
+                        ForEach(0..<5, id: \.self) { index in staticAlbumTile(index: index, width: width) }
+                    }.padding(.horizontal, 14)
+                }
+            }.frame(height: 150)
         }
     }
 
@@ -530,20 +533,14 @@ struct ContentView: View {
         let titles = ["DUO", "最伟大的作品", "宇宙的有趣", "A-Lin", "幼鸟指南"]
         let artists = ["陈奕迅", "周杰伦", "告五人", "LINK", "毛不易"]
         return Button { discoveryRoute = .album(title: titles[index], artist: artists[index]) } label: {
-            ZStack(alignment: .bottomLeading) {
-                Image("album_0\(index + 1)")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: width, height: 64)
-                    .clipped()
-                LinearGradient(colors: [.clear, .black.opacity(0.76)], startPoint: .center, endPoint: .bottom)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(titles[index]).font(.system(size: 10, weight: .bold)).foregroundStyle(.white).lineLimit(1)
-                    Text(artists[index]).font(.system(size: 9, weight: .medium)).foregroundStyle(.white.opacity(0.86)).lineLimit(1)
-                }.padding(.horizontal, 5).padding(.bottom, 5)
-            }
-            .frame(width: width, height: 64)
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            VStack(alignment: .leading, spacing: 7) {
+                Image("album_0\(index + 1)").resizable().scaledToFill()
+                    .frame(width: width, height: width).clipped()
+                    .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 15, style: .continuous).stroke(.white.opacity(0.16), lineWidth: 0.8))
+                Text(titles[index]).font(.system(size: 13, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
+                Text(artists[index]).font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
+            }.frame(width: width, alignment: .leading)
          }.buttonStyle(.plain)
     }
 
@@ -566,12 +563,11 @@ struct ContentView: View {
             HStack(spacing: 0) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Capsule().fill(MusicXTheme.blue).frame(width: 4, height: 21)
-                    Text("精选歌单").font(.system(size: 20, weight: .bold)).foregroundStyle(.white)
-                    Text("· 编辑推荐").font(.system(size: 12, weight: .medium)).foregroundStyle(MusicXTheme.muted)
+                    Text("心情歌单").font(.system(size: 20, weight: .bold)).foregroundStyle(.white)
                     Spacer(minLength: 4)
                 }
                 Button { discoveryRoute = .playlists } label: {
-                    HStack(spacing: 4) { Text("查看更多").font(.system(size: 13, weight: .medium)); Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)) }
+                    HStack(spacing: 4) { Text("全部").font(.system(size: 13, weight: .medium)); Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)) }
                         .foregroundStyle(MusicXTheme.muted)
                 }.buttonStyle(.plain)
             }.padding(.horizontal, 14)
@@ -610,7 +606,7 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 13) {
             homeSectionTitle("猜你喜欢", action: { recommendationSongs = Array(songs.shuffled().prefix(6)) }, actionTitle: "换一批").padding(.horizontal, 14)
             ScrollView(.horizontal, showsIndicators: false) {
-                let cardWidth = (UIScreen.main.bounds.width - 52) / 3
+                let cardWidth = (UIScreen.main.bounds.width - 44) / 2.15
                 HStack(spacing: 12) {
                     ForEach(0..<min(recommendationSongs.count, 6), id: \.self) { index in
                         let song = recommendationSongs[index]
@@ -632,7 +628,7 @@ struct ContentView: View {
                         }.buttonStyle(.plain)
                     }
                 }.padding(.horizontal, 14)
-            }.frame(height: (UIScreen.main.bounds.width - 52) / 3 + 44)
+            }.frame(height: (UIScreen.main.bounds.width - 44) / 2.15 + 44)
         }
     }
 
@@ -1324,7 +1320,8 @@ struct ContentView: View {
                     .frame(width: geometry.size.width, height: geometry.size.height)
                     .clipped()
                     .blur(radius: 65)
-                    .overlay(MusicXTheme.background.opacity(0.78))
+                    .overlay(MusicXTheme.background.opacity(0.68))
+                    .ignoresSafeArea()
             }
             .clipped()
         }
