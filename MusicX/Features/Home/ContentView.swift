@@ -858,7 +858,7 @@ struct ContentView: View {
     }
 
     private func homeSongRow(_ song: AppSong, artworkName: String? = nil) -> some View {
-        Button { select(song) } label: {
+        Button { selectManually(song) } label: {
             HStack(spacing: 12) {
                 Group {
                     if let artworkName {
@@ -897,7 +897,7 @@ struct ContentView: View {
         HStack(spacing: 13) {
             songArtwork(song.onlineSong, tint: song.tint, size: 54)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            Button { startsSearchQueue ? playSearchResult(song) : select(song) } label: {
+            Button { startsSearchQueue ? playSearchResult(song) : selectManually(song) } label: {
                 VStack(alignment: .leading, spacing: 5) {
                     Text(song.title).font(.system(size: 16, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
                     HStack(spacing: 6) {
@@ -914,7 +914,7 @@ struct ContentView: View {
                 Image(systemName: favorites.contains(song.id) ? "heart.fill" : "heart")
                     .font(.system(size: 17)).foregroundStyle(favorites.contains(song.id) ? MusicXTheme.blue : MusicXTheme.muted)
             }
-            Button { startsSearchQueue ? playSearchResult(song) : select(song) } label: {
+            Button { startsSearchQueue ? playSearchResult(song) : selectManually(song) } label: {
                 Image(systemName: currentSong?.id == song.id && playerStore.isPlaying ? "pause.circle.fill" : "play.circle")
                     .font(.system(size: 25)).foregroundStyle(.white.opacity(0.85))
             }
@@ -1302,7 +1302,7 @@ struct ContentView: View {
                         ForEach(playbackQueue) { song in
                             let active = song.id == currentSong?.id
                             HStack(spacing: 8) {
-                                Button { select(song) } label: {
+                                Button { selectManually(song) } label: {
                                     HStack(spacing: 12) {
                                         songArtwork(song.onlineSong, tint: song.tint, size: 42)
                                         VStack(alignment: .leading, spacing: 4) {
@@ -1652,7 +1652,12 @@ struct ContentView: View {
         // Keep the discovery route mounted while playback starts.
         let appSong = AppSong(id: stableSongID(song), title: song.title, artist: song.artist,
                               album: song.album ?? "", tint: MusicXTheme.blue, onlineSong: song)
-        select(appSong)
+        selectManually(appSong)
+    }
+
+    private func selectManually(_ song: AppSong) {
+        resetShuffleHistory()
+        select(song)
     }
 
     private func select(_ song: AppSong, isFailureFallback: Bool = false) {
