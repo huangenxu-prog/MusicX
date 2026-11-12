@@ -1203,18 +1203,23 @@ struct ContentView: View {
                                 .foregroundStyle(isShuffleEnabled ? MusicXTheme.blue : .white.opacity(0.65))
                         }
                         Spacer()
-                        HStack(spacing: 10) {
+                        HStack(spacing: 30) {
                             ForEach(PlayerDisplayMode.allCases, id: \.self) { mode in
                                 Button {
                                     withAnimation(.easeInOut(duration: 0.22)) {
                                         playerDisplayMode = mode
                                     }
                                 } label: {
-                                    Capsule()
-                                        .fill(playerDisplayMode == mode ? MusicXTheme.blue : .white.opacity(0.30))
-                                        .frame(width: playerDisplayMode == mode ? 16 : 5, height: 5)
-                                        .frame(width: 20, height: 30)
-                                        .contentShape(Rectangle())
+                                    VStack(spacing: 11) {
+                                        Text(mode.title)
+                                            .font(.system(size: 15, weight: playerDisplayMode == mode ? .semibold : .medium))
+                                            .foregroundStyle(playerDisplayMode == mode ? .white : MusicXTheme.muted)
+                                        Rectangle()
+                                            .fill(playerDisplayMode == mode ? MusicXTheme.blue : .clear)
+                                            .frame(width: 60, height: 2.5)
+                                    }
+                                    .frame(minWidth: 48)
+                                    .contentShape(Rectangle())
                                 }
                                 .buttonStyle(.plain)
                                 .accessibilityLabel(mode.title)
