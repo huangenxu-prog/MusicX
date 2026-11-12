@@ -73,8 +73,12 @@ struct LXMusicURLResolver: MusicURLResolving {
     }
 
     func resolve(song: MusicSong, quality: MusicQuality = .high) async throws -> URL {
+        try await resolve(song: song, quality: quality, useCache: true)
+    }
+
+    private func resolve(song: MusicSong, quality: MusicQuality, useCache: Bool) async throws -> URL {
         let cacheKey = "playback-url|\(song.source.rawValue)|\(song.sourceID)|\(quality.rawValue)"
-        if let cached: URL = await MusicCache.shared.value(for: cacheKey) {
+        if useCache, let cached: URL = await MusicCache.shared.value(for: cacheKey) {
             MusicSourceDiagnostics.shared.record(event: "resolve", source: song.source.rawValue,
                                                   provider: "disk-cache", duration: 0, result: "cache_hit")
             return cached
@@ -246,9 +250,9 @@ struct LXMusicURLResolver: MusicURLResolving {
 
     /// Force a fresh provider lookup after AVPlayer rejects a previously resolved URL.
     func resolveFresh(song: MusicSong, quality: MusicQuality = .high) async throws -> URL {
-        let cacheKey = "playback-url|\(song.source.rawValue)|\(song.sourceID)|\(quality.rawValue)"
-        await MusicCache.shared.removeValue(for: cacheKey)
-        return try await resolve(song: song, quality: quality)
+        // Bypass cache reads entirely: another in-flight lookup may repopulate
+        // the key after removal but before a normal resolve checks it.
+        return try await resolve(song: song, quality: quality, useCache: false)
     }
 
     /// Retry one time only for transient transport failures. Provider-side errors and
