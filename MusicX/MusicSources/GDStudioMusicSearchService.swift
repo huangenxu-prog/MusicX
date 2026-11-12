@@ -76,6 +76,55 @@ struct GDStudioMusicSearchService {
     }
 
     
+    /// Searches QQ Music's real playlist index and returns provider-native playlist metadata.
+    func searchPlaylists(keyword: String, count: Int = 10) async throws -> [MusicPlaylist] {
+        let query = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return [] }
+        let data = try await requestQQMusicU(
+            module: "music.search.SearchCgiService",
+            method: "DoSearchForQQMusicDesktop",
+            parameters: [
+                "query": query,
+                "num_per_page": min(max(count, 1), 30),
+                "page_num": 1,
+                "search_type": 3
+            ]
+        )
+        let body = data["body"] as? [String: Any]
+        let container = body?["songlist"] as? [String: Any]
+        let rows = container?["list"] as? [[String: Any]] ?? []
+        return rows.compactMap { row in
+            guard let rawID = row["dissid"] ?? row["id"] ?? row["tid"] ?? row["dirid"] else {
+                return nil
+            }
+            let name = (row["dissname"] as? String)
+                ?? (row["name"] as? String)
+                ?? (row["title"] as? String)
+                ?? ""
+            guard !name.isEmpty else { return nil }
+            let rawArtwork = (row["imgurl"] as? String)
+                ?? (row["picurl"] as? String)
+                ?? (row["cover"] as? String)
+                ?? (row["cover_url"] as? String)
+            let creatorValue = row["creator"]
+            let creator = (creatorValue as? String)
+                ?? ((creatorValue as? [String: Any])?["name"] as? String)
+            let description = (row["introduction"] as? String)
+                ?? (row["desc"] as? String)
+            let trackCount = (row["songnum"] as? Int)
+                ?? (row["song_count"] as? Int)
+            return MusicPlaylist(
+                source: .qq,
+                sourceID: String(describing: rawID),
+                name: name,
+                creator: creator,
+                description: description,
+                artworkURL: rawArtwork.flatMap(URL.init(string:)),
+                trackCount: trackCount
+            )
+        }
+    }
+
     /// Searches QQ Music's real playlist index, then loads the selected playlist's tracks.
     /// Playlist IDs and song MIDs remain QQ Music identifiers throughout this path.
     func playlistTracks(keyword: String, count: Int = 50) async throws -> [MusicSong] {
@@ -86,48 +135,18 @@ struct GDStudioMusicSearchService {
             return cached
         }
 
-        let searchData = try await requestQQMusicU(
-            module: "music.search.SearchCgiService",
-            method: "DoSearchForQQMusicDesktop",
-            parameters: [
-                "query": normalizedKeyword,
-                "num_per_page": 10,
-                "page_num": 1,
-                "search_type": 3
-            ]
-        )
-        let body = searchData["body"] as? [String: Any]
-        let playlistContainer = body?["songlist"] as? [String: Any]
-        let playlists = playlistContainer?["list"] as? [[String: Any]] ?? []
+        let playlists = try await searchPlaylists(keyword: normalizedKeyword, count: 10)
 
         let normalizedQuery = normalizedKeyword.lowercased()
-        let matchedPlaylist = playlists
-            .compactMap { row -> (row: [String: Any], score: Int)? in
-                let name = (row["dissname"] as? String)
-                    ?? (row["name"] as? String)
-                    ?? (row["title"] as? String)
-                    ?? ""
-                guard !name.isEmpty else { return nil }
-                let normalizedName = name.lowercased()
-                let score: Int
-                if normalizedName == normalizedQuery { score = 100 }
-                else if normalizedName.contains(normalizedQuery) { score = 80 }
-                else if normalizedQuery.contains(normalizedName) { score = 60 }
-                else { score = 0 }
-                return score > 0 ? (row, score) : nil
-            }
-            .sorted { $0.score > $1.score }
-            .first?.row
-
-        guard let matchedPlaylist,
-              let rawPlaylistID = matchedPlaylist["dissid"]
-                ?? matchedPlaylist["id"]
-                ?? matchedPlaylist["tid"]
-                ?? matchedPlaylist["dirid"] else {
+        guard let matchedPlaylist = playlists.first(where: {
+            $0.name.localizedCaseInsensitiveCompare(normalizedKeyword) == .orderedSame
+                || $0.name.localizedCaseInsensitiveContains(normalizedQuery)
+                || normalizedQuery.localizedCaseInsensitiveContains($0.name)
+        }) else {
             throw MusicSourceError.invalidResponse("QQ音乐没有找到与“\(normalizedKeyword)”相关的真实歌单")
         }
 
-        let playlistID = String(describing: rawPlaylistID)
+        let playlistID = matchedPlaylist.sourceID
         guard let numericPlaylistID = Int(playlistID), numericPlaylistID > 0 else {
             throw MusicSourceError.invalidResponse("QQ音乐返回了无效歌单 ID")
         }
