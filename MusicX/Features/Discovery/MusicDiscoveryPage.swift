@@ -60,7 +60,7 @@ struct MusicDiscoveryPage: View {
     private var query: String {
         switch route {
         case .daily: "陈奕迅"
-        case .playlists: "周杰伦"
+        case .playlists: "华语歌手"
         case .charts: "陈奕迅"
         case .chart(let name): name == "新歌榜" ? "新歌" : name == "飙升榜" ? "飙升" : "热歌"
         case .newReleases: "新歌"
@@ -301,7 +301,7 @@ struct MusicDiscoveryPage: View {
             ("经典老歌", "熟悉的旋律", [Color(red: 0.48, green: 0.28, blue: 0.25), Color(red: 0.20, green: 0.14, blue: 0.17)], "category_classic"),
             ("纯音乐", "安静聆听", [Color(red: 0.16, green: 0.39, blue: 0.38), Color(red: 0.08, green: 0.20, blue: 0.23)], "category_instrumental"),
             ("摇滚", "节奏与力量", [Color(red: 0.43, green: 0.22, blue: 0.27), Color(red: 0.19, green: 0.13, blue: 0.22)], "category_rock"),
-            ("周杰伦", "歌手精选", [Color(red: 0.27, green: 0.32, blue: 0.53), Color(red: 0.15, green: 0.17, blue: 0.30)], "category_singers")
+            ("歌手精选", "探索喜爱的歌手", [Color(red: 0.27, green: 0.32, blue: 0.53), Color(red: 0.15, green: 0.17, blue: 0.30)], "category_singers")
         ]
         return LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
             ForEach(items, id: \.0) { item in
