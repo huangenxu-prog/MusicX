@@ -388,12 +388,15 @@ struct MusicDiscoveryPage: View {
             .frame(maxWidth: .infinity)
     }
 
-    private func moodPlaylistRows(width: CGFloat) -> some View {
-        VStack(alignment: .leading, spacing: 20) {
-            moodPlaylistRowOne(width: width)
-            moodPlaylistRowTwo(width: width)
-            moodPlaylistRowThree(width: width)
-        }
+    private func moodPlaylistRows(width: CGFloat) -> AnyView {
+        let firstRow = AnyView(moodPlaylistRowOne(width: width))
+        let secondRow = AnyView(moodPlaylistRowTwo(width: width))
+        let thirdRow = AnyView(moodPlaylistRowThree(width: width))
+        return AnyView(VStack(alignment: .leading, spacing: 20) {
+            firstRow
+            secondRow
+            thirdRow
+        })
     }
 
     private func moodPlaylistRowOne(width: CGFloat) -> some View {
@@ -429,12 +432,15 @@ struct MusicDiscoveryPage: View {
             .frame(maxWidth: .infinity)
     }
 
-    private func featuredPlaylistRows(width: CGFloat) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            featuredPlaylistRowOne(width: width)
-            featuredPlaylistRowTwo(width: width)
-            featuredPlaylistRowThree(width: width)
-        }
+    private func featuredPlaylistRows(width: CGFloat) -> AnyView {
+        let firstRow = AnyView(featuredPlaylistRowOne(width: width))
+        let secondRow = AnyView(featuredPlaylistRowTwo(width: width))
+        let thirdRow = AnyView(featuredPlaylistRowThree(width: width))
+        return AnyView(VStack(alignment: .leading, spacing: 14) {
+            firstRow
+            secondRow
+            thirdRow
+        })
     }
 
     private func featuredPlaylistRowOne(width: CGFloat) -> some View {
