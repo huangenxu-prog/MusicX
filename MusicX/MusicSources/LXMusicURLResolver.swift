@@ -1,5 +1,67 @@
 import Foundation
 
+private final class MusicSourcePerformance {
+    static let shared = MusicSourcePerformance()
+
+    private struct Attempt: Codable {
+        let succeeded: Bool
+        let durationMilliseconds: Int
+        let timestamp: Date
+    }
+
+    private let lock = NSLock()
+    private let storageKey = "musicx.source-performance.v1"
+    private var attempts: [String: [Attempt]]
+
+    private init() {
+        if let data = UserDefaults.standard.data(forKey: storageKey),
+           let saved = try? JSONDecoder().decode([String: [Attempt]].self, from: data) {
+            attempts = saved
+        } else {
+            attempts = [:]
+        }
+    }
+
+    func record(source: MusicSource, succeeded: Bool, duration: TimeInterval) {
+        lock.lock()
+        defer { lock.unlock() }
+        let key = source.rawValue
+        var recent = (attempts[key] ?? []).filter {
+            $0.timestamp > Date().addingTimeInterval(-30 * 24 * 60 * 60)
+        }
+        recent.append(Attempt(
+            succeeded: succeeded,
+            durationMilliseconds: max(0, Int(duration * 1000)),
+            timestamp: Date()
+        ))
+        attempts[key] = Array(recent.suffix(30))
+        if let data = try? JSONEncoder().encode(attempts) {
+            UserDefaults.standard.set(data, forKey: storageKey)
+        }
+    }
+
+    func score(for source: MusicSource) -> Int {
+        lock.lock()
+        defer { lock.unlock() }
+        let recent = (attempts[source.rawValue] ?? []).filter {
+            $0.timestamp > Date().addingTimeInterval(-30 * 24 * 60 * 60)
+        }
+        let baseline: Int
+        switch source {
+        case .qq: baseline = 10
+        case .netease: baseline = 8
+        case .kuwo: baseline = 6
+        case .kugou: baseline = 4
+        case .migu: baseline = 2
+        case .qishui, .youtubeMusic, .youtube, .spotify: baseline = 0
+        }
+        guard !recent.isEmpty else { return baseline }
+        let successRate = Double(recent.filter(\.succeeded).count) / Double(recent.count)
+        let averageLatency = Double(recent.map(\.durationMilliseconds).reduce(0, +)) / Double(recent.count)
+        return Int(successRate * 100 - min(averageLatency / 150, 30) + Double(baseline))
+    }
+}
+
 /// Native Swift implementation of the URL-resolution paths found in the supplied
 /// 洛雪音源3.js. Search is intentionally separate: the LX plugin contract receives
 /// an already identified song and only resolves its playable URL.
@@ -17,122 +79,53 @@ struct LXMusicURLResolver: MusicURLResolving {
                                                   provider: "disk-cache", duration: 0, result: "cache_hit")
             return cached
         }
-        var failures: [String] = []
 
+        if let nativeURL = try await resolveNative(song: song, quality: quality) {
+            await MusicCache.shared.insert(nativeURL, for: cacheKey, ttl: 5 * 60)
+            return nativeURL
+        }
+        if let alternateURL = try await resolveAlternativeSource(song: song, quality: quality) {
+            await MusicCache.shared.insert(alternateURL, for: cacheKey, ttl: 5 * 60)
+            return alternateURL
+        }
+        throw MusicSourceError.noPlayableURL(
+            source: song.source,
+            details: "原平台及其他平台均未找到可用播放地址"
+        )
+    }
+
+    /// Resolve only the source-native ID. IDs are never passed between providers.
+    private func resolveNative(song: MusicSong, quality: MusicQuality) async throws -> URL? {
         for backend in backends(for: song.source) {
             try Task.checkCancellation()
             let startedAt = Date()
             do {
-                if let url = try await resolveWithRetry(backend, song: song, quality: quality), isPlayableURL(url) {
-                    try Task.checkCancellation()
-                    MusicSourceDiagnostics.shared.record(
-                        event: "resolve", source: song.source.rawValue,
-                        provider: backend.name, duration: Date().timeIntervalSince(startedAt),
-                        result: "url_returned"
-                    )
-                    await MusicCache.shared.insert(url, for: cacheKey, ttl: 5 * 60)
-                    return url
-                }
-                failures.append("接口未返回有效播放地址")
-                MusicSourceDiagnostics.shared.record(
-                    event: "resolve", source: song.source.rawValue,
-                    provider: backend.name, duration: Date().timeIntervalSince(startedAt),
-                    result: "empty_url"
-                )
-            } catch {
-                if Task.isCancelled || error is CancellationError || (error as? URLError)?.code == .cancelled {
-                    MusicSourceDiagnostics.shared.record(
-                        event: "resolve", source: song.source.rawValue,
-                        provider: backend.name, duration: Date().timeIntervalSince(startedAt),
-                        result: "cancelled"
-                    )
-                    throw CancellationError()
-                }
-                failures.append(error.localizedDescription)
-                MusicSourceDiagnostics.shared.record(
-                    event: "resolve", source: song.source.rawValue,
-                    provider: backend.name, duration: Date().timeIntervalSince(startedAt),
-                    result: "failed", detail: error.localizedDescription
-                )
-            }
-        }
-
-        if song.source == .qq {
-            if let fallbackURL = try await resolveQQSongThroughNetEase(song, quality: quality) {
-                return fallbackURL
-            }
-        }
-
-        throw MusicSourceError.noPlayableURL(
-            source: song.source,
-            details: failures.suffix(3).joined(separator: "；")
-        )
-    }
-
-    /// QQ playlist metadata stays QQ-native. Only when QQ playback URL providers fail,
-    /// search NetEase by title and artist and use a strictly matched NetEase track ID.
-    private func resolveQQSongThroughNetEase(_ song: MusicSong, quality: MusicQuality) async throws -> URL? {
-        let searchService = GDStudioMusicSearchService(session: session)
-        let candidates: [MusicSong]
-        do {
-            candidates = try await searchService.search(
-                keyword: song.title,
-                source: .netease,
-                page: 1,
-                count: 12
-            )
-        } catch {
-            MusicSourceDiagnostics.shared.record(
-                event: "resolve-fallback", source: song.source.rawValue,
-                provider: "netease-search", duration: 0, result: "search_failed",
-                detail: error.localizedDescription
-            )
-            return nil
-        }
-        let wantedTitle = normalizedMatchText(song.title)
-        let wantedArtists = Set(song.artist.split(separator: "/").map {
-            normalizedMatchText(String($0))
-        }.filter { !$0.isEmpty })
-
-        guard let matchedSong = candidates.first(where: { candidate in
-            guard normalizedMatchText(candidate.title) == wantedTitle else { return false }
-            let candidateArtists = candidate.artist.split(separator: "/").map {
-                normalizedMatchText(String($0))
-            }.filter { !$0.isEmpty }
-            return candidateArtists.contains { candidateArtist in
-                wantedArtists.contains { wantedArtist in
-                    candidateArtist == wantedArtist
-                }
-            }
-        }) else {
-            MusicSourceDiagnostics.shared.record(
-                event: "resolve-fallback", source: song.source.rawValue,
-                provider: "netease-search", duration: 0, result: "no_exact_match",
-                detail: "title=\(song.title)"
-            )
-            return nil
-        }
-
-        for backend in backends(for: .netease) {
-            try Task.checkCancellation()
-            let startedAt = Date()
-            do {
-                if let url = try await resolveWithRetry(backend, song: matchedSong, quality: quality),
+                if let url = try await resolveWithRetry(backend, song: song, quality: quality),
                    isPlayableURL(url) {
+                    try Task.checkCancellation()
+                    let elapsed = Date().timeIntervalSince(startedAt)
+                    MusicSourcePerformance.shared.record(source: song.source, succeeded: true, duration: elapsed)
                     MusicSourceDiagnostics.shared.record(
-                        event: "resolve-fallback", source: song.source.rawValue,
-                        provider: backend.name, duration: Date().timeIntervalSince(startedAt),
-                        result: "url_returned", detail: "matched=\(matchedSong.title) · \(matchedSong.artist)"
+                        event: "resolve", source: song.source.rawValue,
+                        provider: backend.name, duration: elapsed, result: "url_returned"
                     )
                     return url
                 }
+                let elapsed = Date().timeIntervalSince(startedAt)
+                MusicSourcePerformance.shared.record(source: song.source, succeeded: false, duration: elapsed)
+                MusicSourceDiagnostics.shared.record(
+                    event: "resolve", source: song.source.rawValue,
+                    provider: backend.name, duration: elapsed, result: "empty_url"
+                )
             } catch {
                 if Task.isCancelled || error is CancellationError || (error as? URLError)?.code == .cancelled {
                     throw CancellationError()
                 }
+                let elapsed = Date().timeIntervalSince(startedAt)
+                MusicSourcePerformance.shared.record(source: song.source, succeeded: false, duration: elapsed)
                 MusicSourceDiagnostics.shared.record(
-                    event: "resolve-fallback", source: song.source.rawValue,
-                    provider: backend.name, duration: Date().timeIntervalSince(startedAt),
+                    event: "resolve", source: song.source.rawValue,
+                    provider: backend.name, duration: elapsed,
                     result: "failed", detail: error.localizedDescription
                 )
             }
@@ -140,8 +133,85 @@ struct LXMusicURLResolver: MusicURLResolving {
         return nil
     }
 
+    /// Search other platforms after native resolution fails. Only exact normalized
+    /// title + artist matches are eligible; duration mismatches are rejected.
+    private func resolveAlternativeSource(song: MusicSong, quality: MusicQuality) async throws -> URL? {
+        let service = GDStudioMusicSearchService(session: session)
+        async let netease = try? service.search(keyword: song.title, source: .netease, count: 12)
+        async let qq = try? service.search(keyword: song.title, source: .qq, count: 12)
+        async let kuwo = try? service.search(keyword: song.title, source: .kuwo, count: 12)
+        async let kugou = try? service.search(keyword: song.title, source: .kugou, count: 12)
+        async let migu = try? service.search(keyword: song.title, source: .migu, count: 12)
+        let groups = [
+            await netease ?? [],
+            await qq ?? [],
+            await kuwo ?? [],
+            await kugou ?? [],
+            await migu ?? []
+        ]
+
+        var seen = Set<String>()
+        let candidates = groups.flatMap { $0 }
+            .filter { $0.source != song.source }
+            .compactMap { candidate -> (MusicSong, Int)? in
+                let score = matchScore(original: song, candidate: candidate)
+                guard score > 0, seen.insert(candidate.id).inserted else { return nil }
+                return (candidate, score)
+            }
+            .sorted { lhs, rhs in
+                if lhs.1 != rhs.1 { return lhs.1 > rhs.1 }
+                return sourceFallbackPriority(lhs.0.source) > sourceFallbackPriority(rhs.0.source)
+            }
+
+        for (candidate, score) in candidates {
+            try Task.checkCancellation()
+            if let url = try await resolveNative(song: candidate, quality: quality) {
+                MusicSourceDiagnostics.shared.record(
+                    event: "resolve-fallback", source: song.source.rawValue,
+                    provider: candidate.source.rawValue, duration: 0,
+                    result: "url_returned",
+                    detail: "matched=\(candidate.title) · \(candidate.artist) · score=\(score)"
+                )
+                return url
+            }
+            MusicSourceDiagnostics.shared.record(
+                event: "resolve-fallback", source: song.source.rawValue,
+                provider: candidate.source.rawValue, duration: 0,
+                result: "candidate_unavailable",
+                detail: "matched=\(candidate.title) · score=\(score)"
+            )
+        }
+        return nil
+    }
+
+    private func matchScore(original: MusicSong, candidate: MusicSong) -> Int {
+        guard normalizedMatchText(original.title) == normalizedMatchText(candidate.title),
+              !normalizedMatchText(original.title).isEmpty else { return 0 }
+        let originalArtists = original.artist.split(separator: "/").map { normalizedMatchText(String($0)) }.filter { !$0.isEmpty }
+        let candidateArtists = candidate.artist.split(separator: "/").map { normalizedMatchText(String($0)) }.filter { !$0.isEmpty }
+        guard !originalArtists.isEmpty, !candidateArtists.isEmpty,
+              originalArtists.contains(where: { candidateArtists.contains($0) }) else { return 0 }
+        if let lhs = original.duration, let rhs = candidate.duration, abs(lhs - rhs) > 5 { return 0 }
+
+        var score = 100
+        if let lhs = original.duration, let rhs = candidate.duration {
+            score += max(0, 20 - Int(abs(lhs - rhs) * 4))
+        }
+        if let lhs = original.album, let rhs = candidate.album,
+           normalizedMatchText(lhs) == normalizedMatchText(rhs) {
+            score += 10
+        }
+        return score
+    }
+
+    private func sourceFallbackPriority(_ source: MusicSource) -> Int {
+        MusicSourcePerformance.shared.score(for: source)
+    }
+
     private func normalizedMatchText(_ value: String) -> String {
-        String(value.lowercased().filter { $0.isLetter || $0.isNumber })
+        value.lowercased()
+            .folding(options: [.diacriticInsensitive, .widthInsensitive], locale: .current)
+            .filter { $0.isLetter || $0.isNumber }
     }
 
     /// Force a fresh provider lookup after AVPlayer rejects a previously resolved URL.

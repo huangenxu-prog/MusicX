@@ -1731,8 +1731,16 @@ struct ContentView: View {
         async let netease = try? service.search(keyword: keyword, source: .netease, count: 50)
         async let qq = try? service.search(keyword: keyword, source: .qq, count: 50)
         async let kuwo = try? service.search(keyword: keyword, source: .kuwo, count: 50)
-        let sourceResults = [await netease ?? [], await qq ?? [], await kuwo ?? []]
-        // Interleave only providers with an implemented playback resolver.
+        async let kugou = try? service.search(keyword: keyword, source: .kugou, count: 50)
+        async let migu = try? service.search(keyword: keyword, source: .migu, count: 50)
+        let sourceResults = [
+            await netease ?? [],
+            await qq ?? [],
+            await kuwo ?? [],
+            await kugou ?? [],
+            await migu ?? []
+        ]
+        // Interleave all providers with an implemented native playback resolver.
         var merged: [MusicSong] = []
         let maxCount = sourceResults.map(\.count).max() ?? 0
         for index in 0..<maxCount {
@@ -1746,14 +1754,14 @@ struct ContentView: View {
         // Collapse cross-provider duplicates, preserving the first playable source.
         var seen = Set<String>()
         let uniqueResults = merged.filter { item in
-            let key = "\(normalizedSearchKey(item.title))|\(normalizedSearchKey(item.artist))"
+            let key = "\(normalizedSearchKey(item.title))|\(normalizedSearchKey(item.artist))|\(normalizedSearchKey(item.album ?? ""))"
             return !key.isEmpty && seen.insert(key).inserted
         }
         let results = Array(uniqueResults.prefix(50))
         onlineResults = results.map { item in
             AppSong(id: stableSongID(item), title: item.title, artist: item.artist,
                      album: item.album ?? "",
-                     tint: item.source == .netease ? MusicXTheme.blue : item.source == .qq ? .purple : .teal,
+                     tint: searchTint(for: item.source),
                      onlineSong: item)
         }
         if results.isEmpty { searchError = "当前音源暂未返回结果" }
@@ -1808,6 +1816,17 @@ struct ContentView: View {
                 .accessibilityLabel("YouTube Music")
         default:
             EmptyView()
+        }
+    }
+
+    private func searchTint(for source: MusicSource) -> Color {
+        switch source {
+        case .netease: MusicXTheme.blue
+        case .qq: .purple
+        case .kuwo: .teal
+        case .kugou: .orange
+        case .migu: .pink
+        case .qishui, .youtubeMusic, .youtube, .spotify: MusicXTheme.muted
         }
     }
 
