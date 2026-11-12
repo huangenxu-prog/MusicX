@@ -335,39 +335,63 @@ struct MusicDiscoveryPage: View {
     }
 
     private func miniPlayerBar(song: MusicSong?) -> some View {
-        HStack(spacing: 9) {
+        HStack(spacing: 10) {
             Button(action: onOpenPlayer) {
                 HStack(spacing: 10) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 11, style: .continuous).fill(LinearGradient(colors: [MusicXTheme.blue, Color(red: 0.20, green: 0.16, blue: 0.40)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                        if let url = song?.artworkURL {
-                            AsyncImage(url: url) { phase in
-                                if let image = phase.image { image.resizable().scaledToFill() }
-                                else { Image("player_cover").resizable().scaledToFill() }
-                            }.clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
-                        } else { Image("player_cover").resizable().scaledToFill() }
-                    }.frame(width: 48, height: 48)
+                    Group {
+                        if let song {
+                            songArtwork(song, index: abs(song.id.hashValue), isCurrent: true)
+                        } else {
+                            Image("player_cover")
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 48, height: 48)
+                                .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+                        }
+                    }
+                    .frame(width: 48, height: 48)
                     VStack(alignment: .leading, spacing: 5) {
-                        Text(song?.title ?? "尚未播放").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
-                        Text(song?.artist ?? "选择一首歌曲开始聆听").font(.system(size: 11)).foregroundStyle(.white.opacity(0.72)).lineLimit(1)
+                        Text(song?.title ?? "尚未播放")
+                            .font(.system(size: 14, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
+                        Text(song?.artist ?? "选择一首歌曲开始聆听")
+                            .font(.system(size: 11)).foregroundStyle(.white.opacity(0.72)).lineLimit(1)
                     }
                 }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
             }.buttonStyle(.plain)
-            Button(action: onPrevious) { Image(systemName: "backward.end.fill").font(.system(size: 17, weight: .semibold)).foregroundStyle(.white.opacity(0.92)).frame(width: 30, height: 46) }.buttonStyle(.plain).disabled(song == nil)
+            Button(action: onPrevious) {
+                Image(systemName: "backward.end.fill").font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.92)).frame(width: 30, height: 46)
+            }.buttonStyle(.plain).disabled(song == nil)
             Button(action: onTogglePlayback) {
                 Image(systemName: isPlaying ? "pause.fill" : "play.fill").font(.system(size: 19, weight: .bold)).foregroundStyle(.white)
-                    .frame(width: 44, height: 44).background(.white.opacity(0.22), in: Circle()).overlay(Circle().stroke(.white.opacity(0.30), lineWidth: 1))
+                    .frame(width: 44, height: 44).background(.white.opacity(0.22), in: Circle())
+                    .overlay(Circle().stroke(.white.opacity(0.30), lineWidth: 1))
             }.buttonStyle(.plain).disabled(song == nil)
-            Button(action: onNext) { Image(systemName: "forward.end.fill").font(.system(size: 17, weight: .semibold)).foregroundStyle(.white.opacity(0.92)).frame(width: 30, height: 46) }.buttonStyle(.plain).disabled(song == nil)
-            Button(action: onOpenQueue) { Image(systemName: "list.bullet").font(.system(size: 20, weight: .semibold)).foregroundStyle(.white.opacity(0.92)).frame(width: 30, height: 46) }.buttonStyle(.plain)
+            Button(action: onNext) {
+                Image(systemName: "forward.end.fill").font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.92)).frame(width: 30, height: 46)
+            }.buttonStyle(.plain).disabled(song == nil)
+            Button(action: onOpenQueue) {
+                Image(systemName: "list.bullet").font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.92)).frame(width: 30, height: 46)
+            }.buttonStyle(.plain)
         }
-        .padding(.horizontal, 14).frame(height: 76)
+        .padding(.horizontal, 14)
+        .frame(height: 76)
         .background {
-            RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Color(red: 0.10, green: 0.12, blue: 0.27).opacity(0.72))
-                .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(LinearGradient(colors: [Color(red: 0.40, green: 0.31, blue: 0.66).opacity(0.34), Color(red: 0.08, green: 0.11, blue: 0.25).opacity(0.14)], startPoint: .topLeading, endPoint: .bottomTrailing)))
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Color(red: 0.10, green: 0.12, blue: 0.27).opacity(0.72))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(LinearGradient(colors: [
+                            Color(red: 0.40, green: 0.31, blue: 0.66).opacity(0.34),
+                            Color(red: 0.08, green: 0.11, blue: 0.25).opacity(0.12)
+                        ], startPoint: .topLeading, endPoint: .bottomTrailing))
+                }
         }
         .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(.white.opacity(0.30), lineWidth: 1))
-        .shadow(color: Color.black.opacity(0.30), radius: 16, y: 7).padding(.horizontal, 12)
+        .shadow(color: Color.black.opacity(0.30), radius: 16, y: 7)
+        .padding(.horizontal, 12)
     }
 
     private var progressFraction: CGFloat {
@@ -508,28 +532,37 @@ struct MusicDiscoveryPage: View {
     }
 
     private func songArtwork(_ song: MusicSong, index: Int, isCurrent: Bool) -> some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 13, style: .continuous)
-                .fill(LinearGradient(colors: index.isMultiple(of: 2)
-                    ? [Color(red: 0.20, green: 0.42, blue: 0.68), Color(red: 0.10, green: 0.16, blue: 0.30)]
-                    : [Color(red: 0.40, green: 0.25, blue: 0.49), Color(red: 0.17, green: 0.14, blue: 0.30)],
-                    startPoint: .topLeading, endPoint: .bottomTrailing))
-            if let url = song.artworkURL {
-                AsyncImage(url: url) { phase in
-                    if let image = phase.image { image.resizable().scaledToFill() }
-                    else { Image(systemName: isCurrent ? "waveform" : "music.note").font(.system(size: 20, weight: .medium)).foregroundStyle(.white.opacity(0.78)) }
-                }
-            } else {
-                Image(systemName: isCurrent ? "waveform" : "music.note").font(.system(size: 20, weight: .medium)).foregroundStyle(.white.opacity(0.78))
-            }
-        }
-        .overlay(alignment: .bottomTrailing) {
+        let palettes: [[Color]] = [
+            [Color(red: 0.28, green: 0.52, blue: 0.91), Color(red: 0.10, green: 0.20, blue: 0.43)],
+            [Color(red: 0.55, green: 0.36, blue: 0.84), Color(red: 0.22, green: 0.16, blue: 0.48)],
+            [Color(red: 0.12, green: 0.62, blue: 0.67), Color(red: 0.06, green: 0.25, blue: 0.42)],
+            [Color(red: 0.78, green: 0.43, blue: 0.30), Color(red: 0.35, green: 0.16, blue: 0.22)],
+            [Color(red: 0.72, green: 0.58, blue: 0.28), Color(red: 0.34, green: 0.24, blue: 0.13)],
+            [Color(red: 0.36, green: 0.60, blue: 0.57), Color(red: 0.13, green: 0.28, blue: 0.32)]
+        ]
+        let colors = palettes[index % palettes.count]
+        return ZStack {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing))
+            Circle()
+                .stroke(.white.opacity(0.18), lineWidth: 1)
+                .frame(width: 39, height: 39)
+            Circle()
+                .stroke(.white.opacity(0.12), lineWidth: 1)
+                .frame(width: 25, height: 25)
+            Image(systemName: isCurrent && isPlaying ? "waveform" : "music.note")
+                .font(.system(size: 17, weight: .medium))
+                .foregroundStyle(.white.opacity(0.92))
             if isCurrent && isPlaying {
-                Image(systemName: "waveform").font(.system(size: 10, weight: .bold)).foregroundStyle(.white)
-                    .padding(5).background(MusicXTheme.blue, in: Circle()).padding(4)
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(.white.opacity(0.9))
+                    .frame(width: 3, height: 8)
+                    .offset(x: 18, y: 18)
             }
         }
-        .clipped()
+        .frame(width: 54, height: 54)
+        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(.white.opacity(0.16), lineWidth: 0.8))
+        .accessibilityLabel("\(song.title) 封面占位图")
     }
 
     private var trackList: some View {
