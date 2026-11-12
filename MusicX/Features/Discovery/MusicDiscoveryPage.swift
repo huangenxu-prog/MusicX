@@ -645,12 +645,14 @@ struct MusicDiscoveryPage: View {
                         .map { playlist -> (MusicPlaylist, Int) in
                             let name = normalized(playlist.name)
                             let score = name == token ? 100
-                                : (name.contains(token) ? 80
-                                : (token.count >= 2 && token.contains(name) && !name.isEmpty ? 45 : 0))
+                                : (name.contains(token) ? 80 : 0)
                             return (playlist, score)
                         }
-                        .filter { $0.1 >= 45 }
-                        .sorted { $0.1 > $1.1 }
+                        .filter { $0.1 >= 80 }
+                        .sorted {
+                            if $0.1 != $1.1 { return $0.1 > $1.1 }
+                            return $0.0.name.localizedCaseInsensitiveCompare($1.0.name) == .orderedAscending
+                        }
                         .first?.0
                     if let match {
                         selected = match
