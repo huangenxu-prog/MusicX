@@ -133,7 +133,7 @@ struct MusicDiscoveryPage: View {
             ZStack(alignment: .bottomLeading) {
                 Image("daily_recommend").resizable().scaledToFill()
                 LinearGradient(colors: [.black.opacity(0.04), .black.opacity(0.72)], startPoint: .top, endPoint: .bottom)
-                Image(systemName: "sun.horizon.fill").font(.system(size: 88, weight: .ultraLight)).foregroundStyle(.white.opacity(0.20)).frame(maxWidth: .infinity, alignment: .topTrailing).padding(20)
+                Image(systemName: "sun.horizon.fill").font(.system(size: 72, weight: .ultraLight)).foregroundStyle(.white.opacity(0.13)).frame(maxWidth: .infinity, alignment: .topTrailing).padding(22)
                 VStack(alignment: .leading, spacing: 7) {
                     Text("为你精选").font(.system(size: 27, weight: .bold))
                     Text("根据在线曲库整理 · 每日更新").font(.system(size: 13)).foregroundStyle(.white.opacity(0.72))
@@ -166,7 +166,7 @@ struct MusicDiscoveryPage: View {
                 Text("网易云音乐官方榜单 · 每日更新").font(.system(size: 13, weight: .medium)).foregroundStyle(.white.opacity(0.78))
             }.padding(22)
         }
-        .frame(height: 174).clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .frame(height: 194).clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(.white.opacity(0.13), lineWidth: 1))
     }
 
@@ -303,18 +303,26 @@ struct MusicDiscoveryPage: View {
         return LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
             ForEach(items, id: \.0) { item in
                 Button { onOpenPlaylist(item.0) } label: {
-                    ZStack(alignment: .bottomLeading) {
-                        Image(item.3).resizable().scaledToFill()
-                        LinearGradient(colors: [.black.opacity(0.02), .black.opacity(0.70)], startPoint: .top, endPoint: .bottom)
-                        VStack(alignment: .leading, spacing: 7) {
-                            Spacer()
-                            Text(item.0).font(.system(size: 17, weight: .bold))
-                            Text(item.1).font(.system(size: 12)).foregroundStyle(.white.opacity(0.78))
-                        }.foregroundStyle(.white).padding(16)
+                    GeometryReader { geometry in
+                        ZStack(alignment: .bottomLeading) {
+                            Image(item.3)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: geometry.size.width, height: geometry.size.height)
+                                .clipped()
+                            LinearGradient(colors: [.clear, .black.opacity(0.76)], startPoint: .center, endPoint: .bottom)
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(item.0).font(.system(size: 17, weight: .bold))
+                                Text(item.1).font(.system(size: 12, weight: .medium)).foregroundStyle(.white.opacity(0.82))
+                            }
+                            .foregroundStyle(.white)
+                            .padding(14)
+                        }
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(.white.opacity(0.14), lineWidth: 1))
                     }
-                    .frame(maxWidth: .infinity).frame(height: 148).clipped()
-                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(.white.opacity(0.13), lineWidth: 1))
+                    .frame(height: 148)
                 }.buttonStyle(.plain)
             }
         }
