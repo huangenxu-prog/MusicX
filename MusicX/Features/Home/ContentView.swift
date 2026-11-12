@@ -40,6 +40,14 @@ private struct LibraryArtist: Identifiable {
     var id: String { artist }
 }
 
+private struct LibraryAlbum: Identifiable {
+    let title: String
+    let artist: String
+    let song: AppSong
+    let count: Int
+    var id: String { "\(title)-\(artist)" }
+}
+
 private enum LibraryFilter: String, CaseIterable {
     case recent = "最近播放"
     case favorites = "收藏歌曲"
@@ -47,6 +55,8 @@ private enum LibraryFilter: String, CaseIterable {
 
 private enum LibraryContentType: String, CaseIterable {
     case songs = "歌曲"
+    case playlists = "歌单"
+    case albums = "专辑"
     case artists = "歌手"
 }
 
@@ -128,6 +138,7 @@ struct ContentView: View {
     @FocusState private var searchFieldFocused: Bool
     @State private var libraryFilter: LibraryFilter = .recent
     @State private var libraryContentType: LibraryContentType = .songs
+    @State private var isLocalMusicAlertPresented = false
     @State private var currentSong: AppSong?
     @State private var isSeekingProgress = false
     @State private var seekPreviewTime: TimeInterval = 0
@@ -233,6 +244,17 @@ struct ContentView: View {
         switch libraryFilter {
         case .favorites: favoriteSongs
         case .recent: recentSongs
+        }
+    }
+
+    private var libraryAlbums: [LibraryAlbum] {
+        let grouped = Dictionary(grouping: librarySongs) { song in
+            let album = song.album.trimmingCharacters(in: .whitespacesAndNewlines)
+            return album.isEmpty ? song.title : album
+        }
+        return grouped.keys.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }.compactMap { title in
+            guard let tracks = grouped[title], let first = tracks.first else { return nil }
+            return LibraryAlbum(title: title, artist: first.artist, song: first, count: tracks.count)
         }
     }
 
@@ -719,94 +741,153 @@ struct ContentView: View {
     }
 
     private var libraryPage: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            HStack(alignment: .center) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("音乐库")
-                        .font(.system(size: 34, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    Text("最近听过的音乐与喜欢的歌曲")
-                        .font(.system(size: 13, weight: .medium))
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 18) {
+                HStack(alignment: .center) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("音乐库")
+                            .font(.system(size: 34, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
+                        Text("属于你的音乐空间")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(MusicXTheme.muted)
+                    }
+                    Spacer()
+                    Button {
+                        selectedTab = .search
+                        searchFieldFocused = true
+                    } label: {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 21, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.92))
+                            .frame(width: 42, height: 42)
+                            .background(.white.opacity(0.07), in: Circle())
+                            .overlay(Circle().stroke(.white.opacity(0.14), lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("搜索音乐")
+                }
+
+                HStack(spacing: 8) {
+                    libraryShortcutCard(title: "我喜欢", count: "\(favoriteSongs.count) 首", symbol: "heart.fill",
+                        colors: [Color(red: 0.88, green: 0.27, blue: 0.48), Color(red: 0.40, green: 0.12, blue: 0.34)]) {
+                        libraryFilter = .favorites
+                        libraryContentType = .songs
+                    }
+                    libraryShortcutCard(title: "本地音乐", count: "未接入", symbol: "arrow.down.to.line",
+                        colors: [Color(red: 0.20, green: 0.62, blue: 0.86), Color(red: 0.10, green: 0.27, blue: 0.58)]) {
+                        isLocalMusicAlertPresented = true
+                    }
+                    libraryShortcutCard(title: "最近播放", count: "\(recentSongs.count) 首", symbol: "clock.fill",
+                        colors: [Color(red: 0.55, green: 0.36, blue: 0.86), Color(red: 0.25, green: 0.16, blue: 0.52)]) {
+                        libraryFilter = .recent
+                        libraryContentType = .songs
+                    }
+                    libraryShortcutCard(title: "我的歌单", count: "0 个", symbol: "list.bullet",
+                        colors: [Color(red: 0.87, green: 0.48, blue: 0.27), Color(red: 0.42, green: 0.20, blue: 0.17)]) {
+                        libraryContentType = .playlists
+                    }
+                }
+
+                HStack(spacing: 5) {
+                    ForEach(LibraryContentType.allCases, id: \.self) { type in
+                        Button { libraryContentType = type } label: {
+                            Text(type.rawValue)
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(libraryContentType == type ? .white : MusicXTheme.muted)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 11)
+                                .background {
+                                    if libraryContentType == type {
+                                        Capsule().fill(LinearGradient(
+                                            colors: [Color(red: 0.31, green: 0.48, blue: 0.98), Color(red: 0.24, green: 0.30, blue: 0.78)],
+                                            startPoint: .topLeading, endPoint: .bottomTrailing
+                                        ))
+                                    }
+                                }
+                                .overlay(Capsule().stroke(libraryContentType == type ? .white.opacity(0.26) : .white.opacity(0.07), lineWidth: 1))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(4)
+                .background(Color.white.opacity(0.055), in: Capsule())
+                .overlay(Capsule().stroke(.white.opacity(0.11), lineWidth: 1))
+
+                HStack(spacing: 12) {
+                    if libraryContentType == .songs {
+                        Button {
+                            guard let first = librarySongs.first else { return }
+                            playbackQueueSongs = librarySongs
+                            hasCustomPlaybackQueue = true
+                            resetShuffleHistory()
+                            selectManually(first)
+                        } label: {
+                            Label("播放全部", systemImage: "play.fill")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(.white)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(librarySongs.isEmpty)
+                    } else {
+                        Text(libraryContentType == .playlists ? "我的歌单" : libraryContentType == .albums ? "专辑整理" : "歌手整理")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(.white)
+                    }
+                    Spacer()
+                    Text("\(libraryContentType == .songs ? librarySongs.count : libraryContentType == .albums ? libraryAlbums.count : libraryContentType == .artists ? libraryArtists.count : 0)")
+                        .font(.system(size: 12, weight: .medium, design: .rounded))
                         .foregroundStyle(MusicXTheme.muted)
                 }
-                Spacer()
-                Button {
-                    selectedTab = .search
-                    searchFieldFocused = true
-                } label: {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 22, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.9))
-                        .frame(width: 44, height: 44)
-                        .background(.white.opacity(0.07), in: Circle())
-                        .overlay(Circle().stroke(.white.opacity(0.12), lineWidth: 1))
-                        .contentShape(Circle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("搜索音乐")
-            }
+                .padding(.top, 2)
 
-            HStack(spacing: 8) {
-                ForEach(LibraryContentType.allCases, id: \.self) { type in
-                    Button { libraryContentType = type } label: {
-                        Text(type.rawValue)
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(libraryContentType == type ? .white : MusicXTheme.muted)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                            .background(libraryContentType == type
-                                ? LinearGradient(colors: [Color(red: 0.25, green: 0.48, blue: 0.96).opacity(0.52), Color(red: 0.20, green: 0.25, blue: 0.62).opacity(0.30)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                                : LinearGradient(colors: [Color.white.opacity(0.075), Color.white.opacity(0.025)], startPoint: .topLeading, endPoint: .bottomTrailing), in: Capsule())
-                            .overlay(Capsule().stroke(libraryContentType == type ? Color(red: 0.48, green: 0.66, blue: 1).opacity(0.78) : .white.opacity(0.10), lineWidth: 1))
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-
-            HStack(spacing: 10) {
-                Image(systemName: "arrow.up.arrow.down")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(MusicXTheme.muted)
-                ForEach(LibraryFilter.allCases, id: \.self) { filter in
-                    Button { libraryFilter = filter } label: {
-                        Text(filter.rawValue)
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(libraryFilter == filter ? .white : MusicXTheme.muted)
-                            .padding(.horizontal, 15).padding(.vertical, 8)
-                            .background(libraryFilter == filter ? MusicXTheme.blue.opacity(0.28) : .white.opacity(0.045), in: Capsule())
-                            .overlay(Capsule().stroke(libraryFilter == filter ? MusicXTheme.blue.opacity(0.48) : .white.opacity(0.08), lineWidth: 0.8))
-                    }
-                    .buttonStyle(.plain)
-                }
-                Spacer()
-                Text("\(libraryContentType == .songs ? librarySongs.count : libraryArtists.count)")
-                    .font(.system(size: 12, weight: .medium, design: .rounded))
-                    .foregroundStyle(MusicXTheme.muted)
-            }
-
-            if libraryContentType == .songs {
-                if librarySongs.isEmpty {
-                    Spacer()
-                    emptyState(icon: libraryFilter == .favorites ? "heart" : "clock.arrow.circlepath",
-                               title: libraryFilter == .favorites ? "还没有收藏歌曲" : "暂无最近播放",
-                               detail: libraryFilter == .favorites ? "在播放列表中点亮爱心，收藏的歌曲会显示在这里" : "播放过的歌曲会自动保存在这里")
-                    Spacer()
-                } else {
-                    ScrollView(showsIndicators: false) {
+                switch libraryContentType {
+                case .songs:
+                    if librarySongs.isEmpty {
+                        emptyState(icon: libraryFilter == .favorites ? "heart" : "clock.arrow.circlepath",
+                            title: libraryFilter == .favorites ? "还没有收藏歌曲" : "暂无最近播放",
+                            detail: libraryFilter == .favorites ? "在歌曲列表中点亮爱心，收藏的歌曲会显示在这里" : "播放过的歌曲会自动保存在这里")
+                            .frame(maxWidth: .infinity, minHeight: 220)
+                    } else {
                         VStack(spacing: 12) {
                             ForEach(librarySongs) { song in songRow(song) }
                         }
-                        .padding(.top, 4)
+                        .padding(.top, 2)
                         .padding(.bottom, 24)
                     }
-                }
-            } else {
-                if libraryArtists.isEmpty {
-                    Spacer()
-                    emptyState(icon: "person.2", title: "暂无歌手", detail: "最近播放或收藏歌曲后，歌手会自动整理在这里")
-                    Spacer()
-                } else {
-                    ScrollView(showsIndicators: false) {
+                case .playlists:
+                    emptyState(icon: "music.note.list", title: "暂无个人歌单", detail: "个人歌单管理尚未接入；发现页的精选歌单与心情歌单仍可正常使用")
+                        .frame(maxWidth: .infinity, minHeight: 220)
+                case .albums:
+                    if libraryAlbums.isEmpty {
+                        emptyState(icon: "square.stack", title: "暂无专辑", detail: "最近播放或收藏歌曲后，可按歌曲专辑信息自动整理")
+                            .frame(maxWidth: .infinity, minHeight: 220)
+                    } else {
+                        VStack(spacing: 14) {
+                            ForEach(libraryAlbums) { item in
+                                Button { discoveryRoute = .album(title: item.title, artist: item.artist) } label: {
+                                    HStack(spacing: 13) {
+                                        songArtwork(item.song.onlineSong, tint: item.song.tint, size: 58)
+                                            .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+                                        VStack(alignment: .leading, spacing: 5) {
+                                            Text(item.title).font(.system(size: 15, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
+                                            Text("\(item.artist) · \(item.count) 首").font(.system(size: 12)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
+                                        }
+                                        Spacer()
+                                        Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)).foregroundStyle(MusicXTheme.muted)
+                                    }
+                                    .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.bottom, 24)
+                    }
+                case .artists:
+                    if libraryArtists.isEmpty {
+                        emptyState(icon: "person.2", title: "暂无歌手", detail: "最近播放或收藏歌曲后，歌手会自动整理在这里")
+                            .frame(maxWidth: .infinity, minHeight: 220)
+                    } else {
                         VStack(spacing: 14) {
                             ForEach(libraryArtists) { item in
                                 Button {
@@ -814,8 +895,7 @@ struct ContentView: View {
                                     selectedTab = .search
                                 } label: {
                                     HStack(spacing: 14) {
-                                        songArtwork(item.song.onlineSong, tint: item.song.tint, size: 58)
-                                            .clipShape(Circle())
+                                        songArtwork(item.song.onlineSong, tint: item.song.tint, size: 58).clipShape(Circle())
                                         VStack(alignment: .leading, spacing: 5) {
                                             Text(item.artist).font(.system(size: 16, weight: .semibold)).foregroundStyle(.white)
                                             Text("\(item.count) 首歌曲").font(.system(size: 12)).foregroundStyle(MusicXTheme.muted)
@@ -828,14 +908,49 @@ struct ContentView: View {
                                 .buttonStyle(.plain)
                             }
                         }
-                        .padding(.top, 4)
                         .padding(.bottom, 24)
                     }
                 }
             }
-            Spacer(minLength: 0)
+            .padding(.horizontal, 16)
+            .padding(.top, 24)
+            .padding(.bottom, 20)
         }
-        .padding(.horizontal, 22).padding(.top, 28)
+        .alert("本地音乐暂未接入", isPresented: $isLocalMusicAlertPresented) {
+            Button("知道了", role: .cancel) { }
+        } message: {
+            Text("当前版本只整理在线音源的播放记录与收藏，不会显示未经扫描的本地歌曲。")
+        }
+    }
+
+    private func libraryShortcutCard(
+        title: String,
+        count: String,
+        symbol: String,
+        colors: [Color],
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 9) {
+                Image(systemName: symbol)
+                    .font(.system(size: 21, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title).font(.system(size: 12, weight: .bold)).foregroundStyle(.white)
+                        .lineLimit(1).minimumScaleFactor(0.8)
+                    Text(count).font(.system(size: 10, weight: .medium)).foregroundStyle(.white.opacity(0.82))
+                        .lineLimit(1).minimumScaleFactor(0.75)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 94)
+            .padding(.horizontal, 6)
+            .background(LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing),
+                in: RoundedRectangle(cornerRadius: 17, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 17, style: .continuous).stroke(.white.opacity(0.25), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
     }
 
     private func pageHeader(_ title: String, subtitle: String) -> some View {
