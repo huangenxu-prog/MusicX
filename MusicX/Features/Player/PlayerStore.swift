@@ -125,10 +125,14 @@ final class PlayerStore: ObservableObject {
 
         let interval = CMTime(seconds: 0.5, preferredTimescale: 600)
         timeObserver = player.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
-            Task { @MainActor [weak self] in
-                guard let self else { return }
+            // Bind this tick to the item that produced it. The MainActor task may run
+            // after a track change, in which case the old timestamp must be discarded.
+            guard let observedItem = self?.player.currentItem else { return }
+            Task { @MainActor [weak self, weak observedItem] in
+                guard let self, let observedItem,
+                      self.player.currentItem === observedItem else { return }
                 self.currentTime = max(0, time.seconds.isFinite ? time.seconds : 0)
-                let seconds = self.player.currentItem?.duration.seconds ?? 0
+                let seconds = observedItem.duration.seconds
                 self.duration = seconds.isFinite ? max(0, seconds) : 0
 
                 // Publish duration once it becomes available. Do not continuously
