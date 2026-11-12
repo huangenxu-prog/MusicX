@@ -551,7 +551,7 @@ struct MusicDiscoveryPage: View {
                             }
                             songArtwork(song, index: index, isCurrent: isCurrent)
                                 .frame(width: 54, height: 54)
-                                .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                             VStack(alignment: .leading, spacing: 5) {
                                 Text(song.title).font(.system(size: 15, weight: .semibold)).foregroundStyle(isCurrent ? MusicXTheme.blue : .white).lineLimit(1)
                                 Text(song.artist).font(.system(size: 12)).foregroundStyle(isCurrent ? .white.opacity(0.78) : MusicXTheme.muted).lineLimit(1)
