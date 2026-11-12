@@ -567,6 +567,8 @@ struct ContentView: View {
                 }.padding(.horizontal, 14)
             }.frame(height: 104)
         }
+        // The reference design leaves a distinct breathing space before New Releases.
+        .padding(.bottom, 18)
     }
 
     private var editorialPlaylistSection: some View {
@@ -1004,6 +1006,8 @@ struct ContentView: View {
     private func homeSongRow(_ song: AppSong, artworkName: String? = nil) -> some View {
         Button { selectManually(song) } label: {
             HStack(spacing: 12) {
+                songArtwork(song.onlineSong, tint: song.tint, size: 44)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 VStack(alignment: .leading, spacing: 3) {
                     Text(song.title).font(.system(size: 16, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
                     Text(song.artist).font(.system(size: 12)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
@@ -1011,7 +1015,7 @@ struct ContentView: View {
                 if let duration = song.onlineSong?.duration, duration > 0 {
                     Text(playerTime(duration)).font(.system(size: 12, weight: .medium, design: .rounded)).monospacedDigit().foregroundStyle(MusicXTheme.muted)
                 }
-            }.contentShape(Rectangle()).padding(.vertical, 5)
+            }.contentShape(Rectangle()).padding(.vertical, 7)
         }.buttonStyle(.plain)
     }
 
