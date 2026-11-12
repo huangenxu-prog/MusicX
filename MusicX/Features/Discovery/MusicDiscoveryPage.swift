@@ -947,6 +947,8 @@ struct MusicDiscoveryPage: View {
 
     @MainActor
     private func loadChart(_ name: String, showInitialLoading: Bool) async {
+        let requestToken = UUID()
+        chartLoadToken = requestToken
         if let cached = chartSongCache[name] {
             songs = cached
             if !cached.isEmpty { onQueueChanged(cached) }
@@ -957,13 +959,13 @@ struct MusicDiscoveryPage: View {
         defer { if showInitialLoading { isLoading = false } }
         do {
             let result = try await service.toplist(name, count: 50)
-            guard !Task.isCancelled else { return }
-            chartSongCache[name] = result
+            guard !Task.isCancelled, chartLoadToken == requestToken else { return }
+            if !result.isEmpty { chartSongCache[name] = result }
             songs = result
             if !result.isEmpty { onQueueChanged(result) }
             if result.isEmpty { errorMessage = "音源没有返回匹配的歌曲，请稍后重试" }
         } catch {
-            if Task.isCancelled { return }
+            guard !Task.isCancelled, chartLoadToken == requestToken else { return }
             errorMessage = error.localizedDescription
         }
     }
