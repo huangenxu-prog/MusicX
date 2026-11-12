@@ -21,23 +21,15 @@ private struct AppSong: Identifiable, Equatable {
     let album: String
     let tint: Color
     let onlineSong: MusicSong?
-    let localFileURL: URL?
 
-    init(id: Int, title: String, artist: String, album: String, tint: Color, onlineSong: MusicSong? = nil, localFileURL: URL? = nil) {
+    init(id: Int, title: String, artist: String, album: String, tint: Color, onlineSong: MusicSong? = nil) {
         self.id = id
         self.title = title
         self.artist = artist
         self.album = album
         self.tint = tint
         self.onlineSong = onlineSong
-        self.localFileURL = localFileURL
     }
-}
-
-private struct DownloadedTrack: Codable, Identifiable {
-    let id: Int
-    let song: MusicSong
-    let fileName: String
 }
 
 private struct LibraryArtist: Identifiable {
@@ -155,15 +147,11 @@ struct ContentView: View {
     @AppStorage("musicx.recentIDs") private var recentIDs = ""
     @AppStorage("musicx.recentSongs") private var recentSongsJSON = "[]"
     @AppStorage("musicx.favoriteSongs") private var favoriteSongsJSON = "[]"
-    @AppStorage("musicx.downloadedTracks") private var downloadedTracksJSON = "[]"
     @AppStorage("musicx.playbackQuality") private var playbackQualityRaw = MusicQuality.high.rawValue
 
     private var selectedMusicQuality: MusicQuality {
         MusicQuality(rawValue: playbackQualityRaw) ?? .high
     }
-    @State private var isDownloading = false
-    @State private var downloadMessage: String?
-    @State private var isDownloadAlertPresented = false
 
     private var favorites: Set<Int> {
         Set(favoriteIDs.split(separator: ",").compactMap { Int($0) })
@@ -215,33 +203,6 @@ struct ContentView: View {
         guard let data = try? JSONEncoder().encode(items),
               let value = String(data: data, encoding: .utf8) else { return "[]" }
         return value
-    }
-
-    private var downloadedTracks: [DownloadedTrack] {
-        guard let data = downloadedTracksJSON.data(using: .utf8),
-              let tracks = try? JSONDecoder().decode([DownloadedTrack].self, from: data) else { return [] }
-        return tracks
-    }
-
-    private var downloadedSongs: [AppSong] {
-        let folder = downloadsDirectory
-        return downloadedTracks.compactMap { track in
-            let url = folder.appendingPathComponent(track.fileName)
-            guard FileManager.default.fileExists(atPath: url.path) else { return nil }
-            return AppSong(id: track.id, title: track.song.title, artist: track.song.artist,
-                           album: track.song.album ?? "", tint: MusicXTheme.blue,
-                           onlineSong: track.song, localFileURL: url)
-        }
-    }
-
-    private var isCurrentSongDownloaded: Bool {
-        guard let currentSong else { return false }
-        return downloadedSongs.contains { downloaded in downloaded.id == currentSong.id }
-    }
-
-    private var downloadsDirectory: URL {
-        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("MusicXDownloads", isDirectory: true)
     }
 
     @State private var songs: [AppSong] = []
@@ -312,11 +273,6 @@ struct ContentView: View {
             Button("取消", role: .cancel) { }
         } message: {
             Text("当前音质：\(qualityDisplayName(selectedMusicQuality))。不同音源实际支持的最高音质可能不同。")
-        }
-        .alert("下载歌曲", isPresented: $isDownloadAlertPresented) {
-            Button("确定", role: .cancel) { }
-        } message: {
-            Text(downloadMessage ?? "操作完成")
         }
         .onReceive(NotificationCenter.default.publisher(for: .musicXRemoteNextTrack)) { _ in
             stepSong(by: 1)
@@ -1649,13 +1605,7 @@ struct ContentView: View {
             failedPlaybackSongIDs.removeAll()
             refreshedPlaybackSongIDs.removeAll()
         }
-        if let localURL = song.localFileURL {
-            playbackTask?.cancel()
-            playbackRequestID = UUID()
-            playerStore.play(url: localURL, title: song.title, artist: song.artist,
-                             album: song.album, artworkURL: song.onlineSong?.artworkURL)
-            currentSong = song
-        } else if currentSong?.id == song.id {
+        if currentSong?.id == song.id {
             if playerStore.isPlaying { playerStore.pause() }
             else if isResolvingSong { return }
             else { playerStore.resume() }
@@ -1871,39 +1821,6 @@ struct ContentView: View {
         favoriteSongsJSON = encodedLibrarySongs(stored)
     }
 
-    private func downloadCurrentSong() {
-        guard let appSong = currentSong, let song = appSong.onlineSong else { return }
-        if downloadedSongs.contains(where: { $0.id == appSong.id }) {
-            downloadMessage = "这首歌曲已经下载，可在「我的 → 下载」中收听。"
-            isDownloadAlertPresented = true
-            return
-        }
-        isDownloading = true
-        Task {
-            do {
-                let sourceURL = try await LXMusicURLResolver().resolve(song: song, quality: selectedMusicQuality)
-                let (temporaryURL, response) = try await URLSession.shared.download(from: sourceURL)
-                if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
-                    throw URLError(.badServerResponse)
-                }
-                try FileManager.default.createDirectory(at: downloadsDirectory, withIntermediateDirectories: true)
-                let ext = sourceURL.pathExtension.isEmpty ? "audio" : sourceURL.pathExtension
-                let fileName = "\(appSong.id)-\(UUID().uuidString).\(ext)"
-                let destination = downloadsDirectory.appendingPathComponent(fileName)
-                try FileManager.default.moveItem(at: temporaryURL, to: destination)
-                var tracks = downloadedTracks
-                tracks.removeAll { $0.id == appSong.id }
-                tracks.append(DownloadedTrack(id: appSong.id, song: song, fileName: fileName))
-                let data = try JSONEncoder().encode(tracks)
-                downloadedTracksJSON = String(decoding: data, as: UTF8.self)
-                downloadMessage = "下载完成，已保存到「我的 → 下载」。"
-            } catch {
-                downloadMessage = "下载失败：\(error.localizedDescription)"
-            }
-            isDownloading = false
-            isDownloadAlertPresented = true
-        }
-    }
 }
 
 private struct SongArtworkView: View {
