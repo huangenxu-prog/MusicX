@@ -52,6 +52,18 @@ jobs:
           done
           echo "Installed 10 standalone artwork image sets."
 
+      - name: Remove stray image strips from chart artwork
+        run: |
+          ASSET_CATALOG="$(find . -type d -name Assets.xcassets -print -quit)"
+          NEW="$ASSET_CATALOG/chart_new.imageset/chart_new.jpg"
+          RISING="$ASSET_CATALOG/chart_rising.imageset/chart_rising.jpg"
+          # Keep the intended artwork area; remove the unrelated image strips.
+          sips -c 818 1600 --cropOffset 0 0 "$NEW" --out "$RUNNER_TEMP/chart_new-cropped.jpg" >/dev/null
+          sips -c 814 1600 --cropOffset 86 0 "$RISING" --out "$RUNNER_TEMP/chart_rising-cropped.jpg" >/dev/null
+          mv "$RUNNER_TEMP/chart_new-cropped.jpg" "$NEW"
+          mv "$RUNNER_TEMP/chart_rising-cropped.jpg" "$RISING"
+          echo "Removed the bottom strip from chart_new and the top strip from chart_rising."
+
       - name: Render app icon asset
         run: swift scripts/render-app-icon.swift
 
