@@ -353,26 +353,22 @@ struct MusicDiscoveryPage: View {
         return CGFloat(min(max(currentTime / duration, 0), 1))
     }
 
-    private func playlistCardArtwork(for key: String, fallback: String, height: CGFloat, cornerRadius: CGFloat) -> some View {
-        GeometryReader { geometry in
-            ZStack {
-                if let url = playlistCardResults[key]?.artworkURL {
-                    AsyncImage(url: url) { phase in
-                        if let image = phase.image {
-                            image.resizable().scaledToFill()
-                        } else {
-                            Image(fallback).resizable().scaledToFill()
-                        }
+    private func playlistCardArtwork(for key: String, fallback: String, width: CGFloat, height: CGFloat, cornerRadius: CGFloat) -> some View {
+        ZStack {
+            if let url = playlistCardResults[key]?.artworkURL {
+                AsyncImage(url: url) { phase in
+                    if let image = phase.image {
+                        image.resizable().scaledToFill()
+                    } else {
+                        Image(fallback).resizable().scaledToFill()
                     }
-                } else {
-                    Image(fallback).resizable().scaledToFill()
                 }
+            } else {
+                Image(fallback).resizable().scaledToFill()
             }
-            .frame(width: geometry.size.width, height: height)
-            .clipped()
         }
-        .frame(height: height)
-        .frame(maxWidth: .infinity)
+        .frame(width: width, height: height)
+        .clipped()
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous).stroke(.white.opacity(0.16), lineWidth: 0.8))
     }
@@ -386,19 +382,47 @@ struct MusicDiscoveryPage: View {
             ("释放情绪", "用更有力量的节奏释放压力", "category_rock"),
             ("夜晚助眠", "安静氛围，适合睡前聆听", "playlist_night")
         ]
-        return LazyVGrid(columns: [GridItem(.flexible(minimum: 0), spacing: 14), GridItem(.flexible(minimum: 0), spacing: 14)], spacing: 20) {
-            ForEach(items, id: \.0) { item in
-                Button { onOpenPlaylist(playlistCardResults[item.0]?.name ?? item.0) } label: {
-                    VStack(alignment: .leading, spacing: 8) {
-                        playlistCardArtwork(for: item.0, fallback: item.2, height: 126, cornerRadius: 17)
-                        Text(item.0).font(.system(size: 15, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
-                        Text(playlistCardResults[item.0]?.name ?? item.1).font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(2).fixedSize(horizontal: false, vertical: true)
+        return GeometryReader { geometry in
+            let cardWidth = max(0, (geometry.size.width - 14) / 2)
+            VStack(alignment: .leading, spacing: 20) {
+                ForEach(0..<3, id: \.self) { row in
+                    HStack(alignment: .top, spacing: 14) {
+                        ForEach(0..<2, id: \.self) { column in
+                            let item = items[row * 2 + column]
+                            Button {
+                                onOpenPlaylist(playlistCardResults[item.0]?.name ?? item.0)
+                            } label: {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    playlistCardArtwork(
+                                        for: item.0,
+                                        fallback: item.2,
+                                        width: cardWidth,
+                                        height: 126,
+                                        cornerRadius: 17
+                                    )
+                                    Text(item.0)
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .foregroundStyle(.white)
+                                        .lineLimit(1)
+                                    Text(playlistCardResults[item.0]?.name ?? item.1)
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(MusicXTheme.muted)
+                                        .lineLimit(2)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                .frame(width: cardWidth, alignment: .leading)
+                                .clipped()
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .clipped()
-                }.buttonStyle(.plain)
+                    .frame(width: geometry.size.width, alignment: .leading)
+                }
             }
+            .frame(width: geometry.size.width, alignment: .topLeading)
         }
+        .frame(height: 3 * 126 + 3 * 8 + 2 * 20 + 3 * 40)
         .frame(maxWidth: .infinity)
     }
 
@@ -411,19 +435,47 @@ struct MusicDiscoveryPage: View {
             ("影视原声精选", "从电影与剧集中寻找旋律", "category_instrumental"),
             ("通勤驾驶精选", "陪伴每一段路程", "playlist_drive")
         ]
-        return LazyVGrid(columns: [GridItem(.flexible(minimum: 0)), GridItem(.flexible(minimum: 0))], spacing: 14) {
-            ForEach(items, id: \.0) { item in
-                Button { onOpenPlaylist(playlistCardResults[item.0]?.name ?? item.0) } label: {
-                    VStack(alignment: .leading, spacing: 8) {
-                        playlistCardArtwork(for: item.0, fallback: item.2, height: 118, cornerRadius: 16)
-                        Text(item.0).font(.system(size: 15, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
-                        Text(playlistCardResults[item.0]?.name ?? item.1).font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
+        return GeometryReader { geometry in
+            let cardWidth = max(0, (geometry.size.width - 14) / 2)
+            VStack(alignment: .leading, spacing: 14) {
+                ForEach(0..<3, id: \.self) { row in
+                    HStack(alignment: .top, spacing: 14) {
+                        ForEach(0..<2, id: \.self) { column in
+                            let item = items[row * 2 + column]
+                            Button {
+                                onOpenPlaylist(playlistCardResults[item.0]?.name ?? item.0)
+                            } label: {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    playlistCardArtwork(
+                                        for: item.0,
+                                        fallback: item.2,
+                                        width: cardWidth,
+                                        height: 118,
+                                        cornerRadius: 16
+                                    )
+                                    Text(item.0)
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .foregroundStyle(.white)
+                                        .lineLimit(1)
+                                    Text(playlistCardResults[item.0]?.name ?? item.1)
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(MusicXTheme.muted)
+                                        .lineLimit(2)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                .frame(width: cardWidth, alignment: .leading)
+                                .clipped()
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .clipped()
-                }.buttonStyle(.plain)
+                    .frame(width: geometry.size.width, alignment: .leading)
+                }
             }
+            .frame(width: geometry.size.width, alignment: .topLeading)
         }
+        .frame(height: 3 * 118 + 3 * 8 + 2 * 14 + 3 * 40)
         .frame(maxWidth: .infinity)
     }
 
