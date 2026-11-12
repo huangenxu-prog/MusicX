@@ -343,7 +343,7 @@ struct MusicDiscoveryPage: View {
 
     private var chartIntro: some View {
         ZStack(alignment: .bottomLeading) {
-            Image("chart_hot").resizable().scaledToFill()
+            Image(chartArtworkName).resizable().scaledToFill()
             LinearGradient(colors: [.clear, Color(red: 0.035, green: 0.045, blue: 0.11).opacity(0.92)], startPoint: .center, endPoint: .bottom)
             VStack(alignment: .leading, spacing: 8) {
                 Text(selectedChart).font(.system(size: 29, weight: .bold, design: .rounded))
@@ -377,7 +377,24 @@ struct MusicDiscoveryPage: View {
         }
     }
 
-    private var chartArtworkName: String { "chart_hot" }
+    private var chartArtworkName: String {
+        switch selectedChart {
+        case "飙升榜": "chart_rising"
+        case "新歌榜": "chart_new"
+        default: "chart_hot"
+        }
+    }
+
+    private func albumArtworkName(title: String, artist: String) -> String {
+        switch title {
+        case "DUO": "album_01"
+        case "最伟大的作品": "album_02"
+        case "宇宙的有趣": "album_03"
+        case "LINK": "album_04"
+        case "幼鸟指南": "album_05"
+        default: artist == "陈奕迅" ? "album_01" : "album_02"
+        }
+    }
 
     // These names map to the six imported high-resolution catalog image sets.
     private func categoryArtworkName(for name: String) -> String {
@@ -418,7 +435,12 @@ struct MusicDiscoveryPage: View {
 
     private func albumBanner(title: String, artist: String) -> some View {
         HStack(spacing: 18) {
-            artwork(title: title, subtitle: artist, colors: [Color(red: 0.20, green: 0.42, blue: 0.68), Color(red: 0.10, green: 0.16, blue: 0.30)], height: 176).frame(width: 176)
+            Image(albumArtworkName(title: title, artist: artist))
+                .resizable()
+                .scaledToFill()
+                .frame(width: 156, height: 176)
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(.white.opacity(0.16), lineWidth: 1))
             VStack(alignment: .leading, spacing: 8) {
                 Text(title).font(.system(size: 22, weight: .bold))
                 Text(artist).font(.system(size: 14)).foregroundStyle(MusicXTheme.muted)
@@ -608,12 +630,19 @@ struct MusicDiscoveryPage: View {
             ("LINK", "A-Lin"),
             ("幼鸟指南", "毛不易")
         ]
+        let cardWidth = max((UIScreen.main.bounds.width - 32 - 12) / 2, 0)
         return LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 20) {
             ForEach(items.indices, id: \.self) { index in
                 let item = items[index]
                 Button { onOpenAlbum(item.0, item.1) } label: {
                     VStack(alignment: .leading, spacing: 8) {
-                        gradientCollectionCard(index: index, title: item.0)
+                        Image(albumArtworkName(title: item.0, artist: item.1))
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: cardWidth, height: cardWidth)
+                            .clipped()
+                            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(.white.opacity(0.16), lineWidth: 1))
                         Text(item.0).font(.system(size: 16, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
                         Text(item.1).font(.system(size: 13)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
                     }
