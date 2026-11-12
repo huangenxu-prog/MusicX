@@ -34,6 +34,7 @@ final class PlayerStore: ObservableObject {
     private var artworkImage: UIImage?
     private var artworkTask: Task<Void, Never>?
     private var artworkRequestID = UUID()
+    private var seekRequestID = UUID()
     private var playerStatusObservation: NSKeyValueObservation?
     private var itemStatusObservation: NSKeyValueObservation?
     private var lifecycleObservers: [NSObjectProtocol] = []
@@ -262,6 +263,7 @@ final class PlayerStore: ObservableObject {
 
     func play(url: URL, title: String, artist: String, album: String? = nil, artworkURL: URL? = nil) {
         errorMessage = nil
+        seekRequestID = UUID()
         trackTitle = title
         trackArtist = artist
         trackAlbum = album
@@ -357,9 +359,14 @@ final class PlayerStore: ObservableObject {
         isPlaying = false
         isBuffering = true
         errorMessage = nil
+        seekRequestID = UUID()
+        let requestID = seekRequestID
         item.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self, weak item] finished in
             Task { @MainActor [weak self, weak item] in
-                guard let self, let item, finished, self.player.currentItem === item, self.wantsPlayback else { return }
+                guard let self, let item, finished,
+                      self.player.currentItem === item,
+                      self.seekRequestID == requestID,
+                      self.wantsPlayback else { return }
                 self.player.playImmediately(atRate: 1.0)
                 self.currentTime = 0
                 self.updateNowPlayingInfo()
@@ -370,6 +377,8 @@ final class PlayerStore: ObservableObject {
     func seek(to seconds: TimeInterval) {
         guard duration > 0, let item = player.currentItem else { return }
         let target = min(max(0, seconds), duration)
+        seekRequestID = UUID()
+        let requestID = seekRequestID
         item.seek(
             to: CMTime(seconds: target, preferredTimescale: 600),
             toleranceBefore: .zero,
@@ -377,7 +386,9 @@ final class PlayerStore: ObservableObject {
         ) { [weak self, weak item] finished in
             guard finished else { return }
             Task { @MainActor [weak self, weak item] in
-                guard let self, let item, self.player.currentItem === item else { return }
+                guard let self, let item,
+                      self.player.currentItem === item,
+                      self.seekRequestID == requestID else { return }
                 self.currentTime = target
                 self.updateNowPlayingInfo()
             }
@@ -386,6 +397,7 @@ final class PlayerStore: ObservableObject {
 
     func stop() {
         wantsPlayback = false
+        seekRequestID = UUID()
         player.pause()
         let oldItem = player.currentItem
         player.replaceCurrentItem(with: nil)
