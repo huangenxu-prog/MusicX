@@ -368,16 +368,16 @@ final class PlayerStore: ObservableObject {
     }
 
     func seek(to seconds: TimeInterval) {
-        guard duration > 0 else { return }
+        guard duration > 0, let item = player.currentItem else { return }
         let target = min(max(0, seconds), duration)
-        player.seek(
+        item.seek(
             to: CMTime(seconds: target, preferredTimescale: 600),
             toleranceBefore: .zero,
             toleranceAfter: .zero
-        ) { [weak self] finished in
+        ) { [weak self, weak item] finished in
             guard finished else { return }
-            Task { @MainActor [weak self] in
-                guard let self else { return }
+            Task { @MainActor [weak self, weak item] in
+                guard let self, let item, self.player.currentItem === item else { return }
                 self.currentTime = target
                 self.updateNowPlayingInfo()
             }
