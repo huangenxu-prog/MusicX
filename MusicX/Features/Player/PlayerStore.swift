@@ -78,7 +78,7 @@ final class PlayerStore: ObservableObject {
                     self.recordDiagnostic("playback-failed \(error)")
                     self.updateNowPlayingInfo()
                     if shouldAdvanceQueue {
-                        NotificationCenter.default.post(name: .musicXPlaybackFailed, object: nil)
+                        NotificationCenter.default.post(name: .musicXPlaybackFailed, object: item)
                     }
                 }
             }
@@ -307,6 +307,10 @@ final class PlayerStore: ObservableObject {
 
     /// Pause the current stream while retaining its AVPlayer item and Now Playing ownership.
     /// Used while resolving the next track so the previous song does not continue underneath.
+    func isCurrentItem(_ item: AVPlayerItem) -> Bool {
+        player.currentItem === item
+    }
+
     func pauseForTrackChange() {
         wantsPlayback = false
         player.pause()
