@@ -109,9 +109,9 @@ struct GDStudioMusicSearchService {
         } ?? playlists.first { row in
             let name = row["name"] as? String ?? ""
             return name.localizedCaseInsensitiveContains(normalizedKeyword)
-        } ?? playlists.first
+        }
         guard let playlistID = matchedPlaylist?["id"] else {
-            throw MusicSourceError.invalidResponse("歌单搜索结果缺少有效 ID")
+            throw MusicSourceError.invalidResponse("没有找到与“\\(normalizedKeyword)”匹配的歌单，已停止使用无关歌单替代")
         }
         var detailComponents = URLComponents(string: "https://music.163.com/api/playlist/detail")
         detailComponents?.queryItems = [URLQueryItem(name: "id", value: String(describing: playlistID))]
