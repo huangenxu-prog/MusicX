@@ -736,12 +736,12 @@ struct MusicDiscoveryPage: View {
                     do {
                         result = try await service.playlistTracks(playlistID: playlist.sourceID, count: 50)
                     } catch {
-                        playlistLoadError = "真实歌单曲目加载失败：\\(error.localizedDescription)"
+                        playlistLoadError = "真实歌单曲目加载失败：\(error.localizedDescription)"
                         result = []
                         MusicSourceDiagnostics.shared.record(
                             event: "playlist-tracks", source: playlist.source.rawValue,
                             provider: "qq-playlist-detail", duration: 0,
-                            result: "failed", detail: "\\(playlist.name): \\(error.localizedDescription)"
+                            result: "failed", detail: "\(playlist.name): \(error.localizedDescription)"
                         )
                     }
                 } else {
