@@ -1,0 +1,56 @@
+name: Import MusicX home hero header
+
+on:
+  push:
+    branches:
+      - home/final-design-asset-pass
+    paths:
+      - "MusicX-Home-Hero-Header.zip"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import-hero:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout development branch
+        uses: actions/checkout@v4
+        with:
+          ref: home/final-design-asset-pass
+
+      - name: Validate and replace hero title artwork
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="MusicX-Home-Hero-Header.zip"
+          test -f "$archive" || { echo "::error::Upload $archive to repository root."; exit 1; }
+          temp="/tmp/musicx-home-hero"
+          mkdir -p "$temp"
+          unzip -q "$archive" -d "$temp"
+          folder="$(find "$temp" -type d -name "hero_title.imageset" -print -quit)"
+          test -n "$folder" || { echo "::error::Missing hero_title.imageset"; exit 1; }
+          python3 - "$folder" <<'PY'
+          import json, sys
+          from pathlib import Path
+          folder = Path(sys.argv[1])
+          data = json.loads((folder / "Contents.json").read_text())
+          images = data.get("images", [])
+          if len(images) != 1:
+              raise SystemExit("Expected exactly one hero image")
+          filename = images[0].get("filename")
+          if not filename or not (folder / filename).is_file():
+              raise SystemExit("Hero image file is missing")
+          if not filename.lower().endswith((".jpg", ".jpeg", ".png")):
+              raise SystemExit("Unsupported hero image format")
+          PY
+          destination="MusicX/Assets.xcassets/hero_title.imageset"
+          rm -rf "$destination"
+          cp -R "$folder" "$destination"
+          rm "$archive"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$destination" "$archive"
+          git commit -m "Replace MusicX home hero header artwork"
+          git push origin HEAD:home/final-design-asset-pass
