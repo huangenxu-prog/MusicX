@@ -340,7 +340,7 @@ struct MusicDiscoveryPage: View {
                 HStack(spacing: 10) {
                     Group {
                         if let song {
-                            songArtwork(song, index: 0, isCurrent: true, size: 48)
+                            SongArtworkView(song: song, tint: MusicXTheme.blue, size: 48)
                         } else {
                             Image("player_cover")
                                 .resizable()
