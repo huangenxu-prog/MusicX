@@ -59,3 +59,4 @@ jobs:
           git add "$destination" "$archive"
           git commit -m "Import complete redesigned MusicX visual assets"
           git push origin HEAD:home/final-design-asset-pass
+# Asset import completed; subsequent iOS build uses the committed image sets.
