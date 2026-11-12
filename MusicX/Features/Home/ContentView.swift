@@ -139,6 +139,8 @@ struct ContentView: View {
     @State private var playbackRequestID = UUID()
     @State private var playbackTask: Task<Void, Never>?
     @State private var playbackQueueSongs: [AppSong] = []
+    @State private var shuffleHistory: [Int] = []
+    @State private var shuffleForwardHistory: [Int] = []
     @State private var hasCustomPlaybackQueue = false
     @State private var isResolvingSong = false
     @State private var failedPlaybackSongIDs: Set<Int> = []
@@ -1433,8 +1435,22 @@ struct ContentView: View {
         guard !queue.isEmpty, offset == -1 || offset == 1 else { return }
         let index = queue.firstIndex(where: { $0.id == currentSong?.id }) ?? 0
         if isShuffleEnabled && queue.count > 1 {
-            let candidates = queue.filter { $0.id != currentSong?.id }
-            if let next = candidates.randomElement() { select(next) }
+            if offset < 0 {
+                guard let previousID = shuffleHistory.popLast(),
+                      let previous = queue.first(where: { $0.id == previousID }),
+                      let currentSong else { return }
+                shuffleForwardHistory.insert(currentSong.id, at: 0)
+                select(previous)
+            } else if !shuffleForwardHistory.isEmpty {
+                guard let nextID = shuffleForwardHistory.first,
+                      let next = queue.first(where: { $0.id == nextID }),
+                      let currentSong else { return }
+                shuffleForwardHistory.removeFirst()
+                shuffleHistory.append(currentSong.id)
+                select(next)
+            } else {
+                selectRandomNextTrack(from: queue)
+            }
             return
         }
 
@@ -1444,6 +1460,15 @@ struct ContentView: View {
         } else if repeatMode == 1 {
             select(offset > 0 ? queue[0] : queue[queue.count - 1])
         }
+    }
+
+    private func selectRandomNextTrack(from queue: [AppSong]) {
+        guard let currentSong else { return }
+        let candidates = queue.filter { $0.id != currentSong.id }
+        guard let next = candidates.randomElement() else { return }
+        shuffleHistory.append(currentSong.id)
+        shuffleForwardHistory.removeAll()
+        select(next)
     }
 
     /// A resolved stream URL can expire before playback starts. Invalidate the cached
@@ -1522,8 +1547,7 @@ struct ContentView: View {
         let queue = playbackQueue
         guard let index = queue.firstIndex(where: { $0.id == currentSong.id }) else { return }
         if isShuffleEnabled && queue.count > 1 {
-            let candidates = queue.filter { $0.id != currentSong.id }
-            if let next = candidates.randomElement() { select(next) }
+            selectRandomNextTrack(from: queue)
             return
         }
         let nextIndex = index + 1
