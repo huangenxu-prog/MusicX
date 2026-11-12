@@ -1531,6 +1531,12 @@ struct ContentView: View {
             return
         }
 
+        // A failed track breaks the shuffle forward path. Keep the successful
+        // backward history, but do not let Next return to a failed selection path.
+        if isShuffleEnabled {
+            shuffleForwardHistory.removeAll()
+        }
+
         let next: AppSong
         if isShuffleEnabled, let random = remaining.randomElement() {
             next = random
