@@ -342,7 +342,7 @@ struct ContentView: View {
                 onQueueChanged: { playbackQueueSongs = $0.map { AppSong(id: stableSongID($0), title: $0.title, artist: $0.artist, album: $0.album ?? "", tint: MusicXTheme.blue, onlineSong: $0) }; hasCustomPlaybackQueue = true }, 
                 currentTime: playerStore.currentTime,
                 duration: playerStore.duration,
-                onOpenPlaylist: { discoveryRoute = .playlist($0) },
+                onOpenPlaylist: { discoveryRoute = .playlistByID($0) },
                 onOpenAlbum: { discoveryRoute = .album(title: $0, artist: $1) },
                 onSelectChart: { discoveryRoute = .chart($0) })
         }
