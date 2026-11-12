@@ -145,6 +145,11 @@ struct GDStudioMusicSearchService {
                 trackCount: trackCount
             )
         }
+        guard !playlists.isEmpty else {
+            throw MusicSourceError.invalidResponse("QQ音乐没有返回可用歌单")
+        }
+        await MusicCatalogStore.shared.save(playlists, for: cacheKey, refreshAfter: 7 * 24 * 60 * 60)
+        return playlists
     }
 
     /// Resolves a legacy editorial keyword to a QQ playlist, then loads by its native ID.
@@ -319,6 +324,12 @@ struct GDStudioMusicSearchService {
                 lyricID: String(describing: id)
             )
         }
+        guard !songs.isEmpty else {
+            throw MusicSourceError.invalidResponse("网易云榜单没有可用歌曲")
+        }
+        let refreshInterval: TimeInterval = chartName == "热歌榜" ? 3 * 24 * 60 * 60 : 24 * 60 * 60
+        await MusicCatalogStore.shared.save(songs, for: cacheKey, refreshAfter: refreshInterval)
+        return songs
     }
 
     private func gdSource(_ source: MusicSource) -> String {

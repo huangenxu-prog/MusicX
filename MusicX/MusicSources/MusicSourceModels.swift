@@ -56,7 +56,7 @@ enum MusicQuality: String, CaseIterable, Identifiable {
 }
 
 /// A playlist returned by a provider. Playlist IDs are provider-specific.
-struct MusicPlaylist: Identifiable, Hashable {
+struct MusicPlaylist: Identifiable, Codable, Hashable {
     let source: MusicSource
     let sourceID: String
     let name: String
