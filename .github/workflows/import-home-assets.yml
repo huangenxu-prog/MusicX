@@ -26,7 +26,10 @@ jobs:
         run: |
           set -euo pipefail
           archive="MusicX-Complete-Visual-Assets.zip"
-          test -f "$archive" || { echo "::error::Complete visual asset ZIP not found at repository root."; exit 1; }
+          if [ ! -f "$archive" ]; then
+            echo "No new visual asset ZIP; nothing to import."
+            exit 0
+          fi
 
           temp="/tmp/musicx-complete-visual-assets"
           mkdir -p "$temp"
