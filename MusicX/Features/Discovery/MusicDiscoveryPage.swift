@@ -352,11 +352,11 @@ struct MusicDiscoveryPage: View {
         }
         .padding(.horizontal, 13).frame(height: 76)
         .background {
-            RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Color(red: 0.10, green: 0.12, blue: 0.27).opacity(0.96))
+            RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Color(red: 0.10, green: 0.12, blue: 0.27).opacity(0.72))
                 .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(LinearGradient(colors: [Color(red: 0.40, green: 0.31, blue: 0.66).opacity(0.34), Color(red: 0.08, green: 0.11, blue: 0.25).opacity(0.14)], startPoint: .topLeading, endPoint: .bottomTrailing)))
         }
-        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(.white.opacity(0.28), lineWidth: 1))
-        .shadow(color: Color.black.opacity(0.28), radius: 14, y: 6).padding(.horizontal, 12)
+        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(.white.opacity(0.30), lineWidth: 1))
+        .shadow(color: Color.black.opacity(0.30), radius: 16, y: 7).padding(.horizontal, 12)
     }
 
     private var progressFraction: CGFloat {
