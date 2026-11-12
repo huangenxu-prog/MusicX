@@ -1,0 +1,61 @@
+name: Import redesigned MusicX banner assets
+
+on:
+  push:
+    branches:
+      - home/final-design-asset-pass
+    paths:
+      - "MusicX-Banner-Assets-Redesign.zip"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import-banners:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout development branch
+        uses: actions/checkout@v4
+        with:
+          ref: home/final-design-asset-pass
+
+      - name: Validate and replace banner image sets
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="MusicX-Banner-Assets-Redesign.zip"
+          test -f "$archive" || { echo "::error::Upload $archive to repository root."; exit 1; }
+          rm -rf /tmp/musicx-banners
+          mkdir -p /tmp/musicx-banners
+          unzip -q "$archive" -d /tmp/musicx-banners
+
+          expected=(daily_recommend chart_hot chart_new chart_rising)
+          destination="MusicX/Assets.xcassets"
+          for name in "${expected[@]}"; do
+            folder="$(find /tmp/musicx-banners -type d -name "$name.imageset" -print -quit)"
+            test -n "$folder" || { echo "::error::Missing $name.imageset"; exit 1; }
+            python3 - "$folder" <<'PY'
+          import json, sys
+          from pathlib import Path
+          folder = Path(sys.argv[1])
+          data = json.loads((folder / "Contents.json").read_text())
+          images = data.get("images", [])
+          if len(images) != 1:
+              raise SystemExit(f"Expected one image entry in {folder}")
+          for item in images:
+              filename = item.get("filename")
+              if not filename or not (folder / filename).is_file():
+                  raise SystemExit(f"Missing image file in {folder}")
+          PY
+            rm -rf "$destination/$name.imageset"
+            cp -R "$folder" "$destination/$name.imageset"
+          done
+
+          rm "$archive"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$destination"
+          git add -u "$archive" 2>/dev/null || true
+          git commit -m "Replace daily and chart banner artwork"
+          git push origin HEAD:home/final-design-asset-pass
