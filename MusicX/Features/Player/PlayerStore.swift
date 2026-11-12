@@ -202,8 +202,10 @@ final class PlayerStore: ObservableObject {
         switch type {
         case .began:
             recordDiagnostic("audio-interruption-began")
-            // Keep the intent separate from AVPlayer's transient state.
+            // Keep playback intent for a possible system-approved resume, but
+            // stop presenting the interrupted stream as actively buffering.
             isPlaying = false
+            isBuffering = false
             updateNowPlayingInfo()
         case .ended:
             recordDiagnostic("audio-interruption-ended")
