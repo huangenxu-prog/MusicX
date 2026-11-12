@@ -420,7 +420,6 @@ struct ContentView: View {
                 }
                 .frame(width: proxy.size.width, height: proxy.size.height)
             }
-            .ignoresSafeArea(edges: .top)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("发现音乐，好音乐，总在心里")
