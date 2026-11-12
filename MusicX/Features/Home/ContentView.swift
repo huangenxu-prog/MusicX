@@ -431,7 +431,8 @@ struct ContentView: View {
                 .tracking(1.1)
                 .foregroundStyle(.white.opacity(0.90))
         }
-        .frame(maxWidth: .infinity, height: 122, alignment: .bottomLeading)
+        .frame(maxWidth: .infinity)
+        .frame(height: 122, alignment: .bottomLeading)
         .padding(.horizontal, 20)
         .padding(.top, 56)
         .accessibilityElement(children: .combine)
