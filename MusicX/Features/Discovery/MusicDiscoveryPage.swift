@@ -56,6 +56,7 @@ struct MusicDiscoveryPage: View {
     @State private var selectedChartOverride: String?
     @State private var chartSongCache: [String: [MusicSong]] = [:]
     @State private var chartLoadToken = UUID()
+    @State private var songsLoadToken = UUID()
     @State private var playlistCardResults: [String: MusicPlaylist] = [:]
     @State private var isPlaylistUnavailableAlertPresented = false
     @State private var playlistUnavailableMessage = ""
@@ -698,18 +699,20 @@ struct MusicDiscoveryPage: View {
 
     @MainActor
     private func loadSongs() async {
+        let requestToken = UUID()
+        songsLoadToken = requestToken
         if case .featuredPick = route {
             songs = []
             isLoading = true
             errorMessage = nil
             await loadPlaylistCards(forMood: false, onlyCategory: "本周编辑精选")
-            guard !Task.isCancelled else { isLoading = false; return }
+            guard !Task.isCancelled, songsLoadToken == requestToken else { return }
             if let playlist = playlistCardResults["本周编辑精选"] {
                 onOpenPlaylist(playlist)
             } else {
                 errorMessage = "暂未匹配到真实的本周编辑精选歌单，请稍后重试"
             }
-            isLoading = false
+            if songsLoadToken == requestToken { isLoading = false }
             return
         }
         if case .playlists = route {
@@ -726,7 +729,9 @@ struct MusicDiscoveryPage: View {
         if isChartRoute { await loadChart(selectedChart, showInitialLoading: true); return }
         isLoading = true
         errorMessage = nil
-        defer { isLoading = false }
+        defer {
+            if songsLoadToken == requestToken { isLoading = false }
+        }
         do {
             var playlistLoadError: String?
             let result: [MusicSong]
@@ -762,13 +767,13 @@ struct MusicDiscoveryPage: View {
             default:
                 result = try await service.search(keyword: query, source: .netease, count: 30)
             }
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, songsLoadToken == requestToken else { return }
             songs = result
             if songs.isEmpty {
                 errorMessage = playlistLoadError ?? "音源没有返回匹配的歌曲，请稍后重试"
             }
         } catch {
-            if Task.isCancelled { return }
+            guard !Task.isCancelled, songsLoadToken == requestToken else { return }
             errorMessage = error.localizedDescription
         }
     }
