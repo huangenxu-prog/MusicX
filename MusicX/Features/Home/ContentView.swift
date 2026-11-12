@@ -2198,31 +2198,50 @@ private struct SearchCategoryCard: View {
     let tint: Color
     let action: () -> Void
 
+    private var designGradient: [Color] {
+        switch title {
+        case "华语流行":
+            [Color(red: 0.12, green: 0.41, blue: 0.84), Color(red: 0.07, green: 0.25, blue: 0.53), Color(red: 0.04, green: 0.11, blue: 0.25)]
+        case "经典老歌":
+            [Color(red: 0.73, green: 0.22, blue: 0.55), Color(red: 0.45, green: 0.13, blue: 0.38), Color(red: 0.14, green: 0.07, blue: 0.19)]
+        case "轻音乐":
+            [Color(red: 0.11, green: 0.62, blue: 0.50), Color(red: 0.07, green: 0.38, blue: 0.34), Color(red: 0.04, green: 0.13, blue: 0.18)]
+        case "纯音乐":
+            [Color(red: 0.50, green: 0.25, blue: 0.83), Color(red: 0.29, green: 0.14, blue: 0.51), Color(red: 0.09, green: 0.07, blue: 0.21)]
+        case "摇滚":
+            [Color(red: 0.83, green: 0.35, blue: 0.11), Color(red: 0.50, green: 0.20, blue: 0.07), Color(red: 0.15, green: 0.09, blue: 0.11)]
+        default:
+            [Color(red: 0.12, green: 0.57, blue: 0.77), Color(red: 0.07, green: 0.33, blue: 0.48), Color(red: 0.04, green: 0.11, blue: 0.21)]
+        }
+    }
+
     var body: some View {
         Button(action: action) {
             ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(LinearGradient(colors: [tint, tint.opacity(0.76), Color(red: 0.045, green: 0.065, blue: 0.13)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                RadialGradient(colors: [.white.opacity(0.24), .clear], center: UnitPoint(x: 0.22, y: 0.16), startRadius: 2, endRadius: 145)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(LinearGradient(colors: designGradient, startPoint: .topLeading, endPoint: .bottomTrailing))
                 VStack(alignment: .leading, spacing: 8) {
                     Image(systemName: symbol)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(.white)
-                        .frame(width: 36, height: 36)
-                        .background(.white.opacity(0.24), in: Circle())
-                        .overlay(Circle().stroke(.white.opacity(0.18), lineWidth: 0.8))
+                        .frame(width: 28, height: 28)
+                        .background(.white.opacity(0.25), in: Circle())
+                        .overlay(Circle().stroke(.white.opacity(0.12), lineWidth: 0.8))
                     Spacer(minLength: 0)
-                    Text(title).font(.system(size: 18, weight: .bold)).foregroundStyle(.white)
-                    Text(subtitle).font(.system(size: 12, weight: .medium)).foregroundStyle(.white.opacity(0.88))
+                    Text(title)
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(.white)
+                    Text(subtitle)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.88))
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 11)
             }
             .frame(maxWidth: .infinity)
             .frame(height: 100)
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(.white.opacity(0.28), lineWidth: 1))
-            .shadow(color: tint.opacity(0.22), radius: 12, y: 5)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(tint.opacity(0.82), lineWidth: 1))
         }
         .buttonStyle(.plain)
     }
