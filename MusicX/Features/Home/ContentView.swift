@@ -610,7 +610,7 @@ struct ContentView: View {
         ]
         return VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 6) {
-                Capsule().fill(MusicXTheme.blue).frame(width: 3, height: 21)
+                Capsule().fill(MusicXTheme.blue).frame(width: 4, height: 21)
                 Text("精选歌单").font(.system(size: 20, weight: .bold)).foregroundStyle(.white)
                 Spacer()
                 Button { discoveryRoute = .featuredPlaylists } label: {
