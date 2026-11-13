@@ -17,9 +17,9 @@ struct MusicXLegacySupplierLibrary: MusicResourceProvider, MusicCatalogSearchPro
         self.session = session
     }
 
-    func search(keyword: String, source: MusicSource, page: Int, count: Int, albumOnly: Bool) async throws -> [MusicSong] {
+    func search(keyword: String, source: MusicSource, page: Int, count: Int, albumOnly: Bool, useNativeNetEase: Bool) async throws -> [MusicSong] {
         let service = GDStudioMusicSearchService(session: session)
-        if source == .netease && !albumOnly && page == 1 {
+        if useNativeNetEase && source == .netease && !albumOnly && page == 1 {
             return try await service.searchNetEase(keyword: keyword, count: count)
         }
         return try await service.search(

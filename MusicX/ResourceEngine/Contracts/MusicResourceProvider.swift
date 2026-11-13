@@ -23,7 +23,7 @@ protocol MusicCatalogSearchProvider: Sendable {
     var identifier: String { get }
     var displayName: String { get }
 
-    func search(keyword: String, source: MusicSource, page: Int, count: Int, albumOnly: Bool) async throws -> [MusicSong]
+    func search(keyword: String, source: MusicSource, page: Int, count: Int, albumOnly: Bool, useNativeNetEase: Bool) async throws -> [MusicSong]
     func searchPlaylists(keyword: String, count: Int) async throws -> [MusicPlaylist]
     func playlistTracks(keyword: String, count: Int) async throws -> [MusicSong]
     func playlistTracks(playlistID: String, count: Int) async throws -> [MusicSong]

@@ -32,7 +32,8 @@ struct MusicCatalogSearchEngine {
                                 let songs = try await provider.search(
                                     keyword: query,
                                     source: source,
-                                    count: count
+                                    count: count,
+                                    useNativeNetEase: source == .netease
                                 )
                                 return MusicCatalogSearchResponse(
                                     source: source,
@@ -72,13 +73,14 @@ struct MusicCatalogSearchEngine {
     }
 
 
-    func search(keyword: String, source: MusicSource, page: Int = 1, count: Int = 20, albumOnly: Bool = false) async throws -> [MusicSong] {
+    func search(keyword: String, source: MusicSource, page: Int = 1, count: Int = 20, albumOnly: Bool = false, useNativeNetEase: Bool = false) async throws -> [MusicSong] {
         try await provider.search(
             keyword: keyword,
             source: source,
             page: page,
             count: count,
-            albumOnly: albumOnly
+            albumOnly: albumOnly,
+            useNativeNetEase: useNativeNetEase
         )
     }
 
