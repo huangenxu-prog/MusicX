@@ -363,7 +363,10 @@ struct LXMusicURLResolver: MusicURLResolving, @unchecked Sendable {
         )
         await MusicCache.shared.removeValue(for: cacheKey)
 
-        let excludedProviders = Set(previousResource.map { [$0.providerID] } ?? [])
+        var excludedProviders = Set<String>()
+        if let previousResource {
+            excludedProviders.insert(previousResource.providerID)
+        }
         let resource = try await MusicResourceEngine(session: session).resolveResource(
             song: song,
             quality: quality,
