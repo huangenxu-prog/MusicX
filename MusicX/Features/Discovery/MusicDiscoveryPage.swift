@@ -388,7 +388,7 @@ struct MusicDiscoveryPage: View {
 
     @MainActor
     private func loadRecommendationSongs(for tab: RecommendationTab) async {
-        if let cached = recommendationSongCache[tab], !cached.isEmpty {
+        if tab != .daily, let cached = recommendationSongCache[tab], !cached.isEmpty {
             songs = cached
             errorMessage = nil
             isLoading = false
@@ -440,7 +440,7 @@ struct MusicDiscoveryPage: View {
                 result = resolvedTracks
             }
             guard !Task.isCancelled, songsLoadToken == requestToken else { return }
-            recommendationSongCache[tab] = result
+            if tab != .daily { recommendationSongCache[tab] = result }
             songs = result
             if result.isEmpty { errorMessage = "音源没有返回匹配的歌曲，请稍后重试" }
         } catch {
