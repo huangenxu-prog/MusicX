@@ -32,7 +32,9 @@ struct MusicCatalogSearchEngine {
                                 let songs = try await provider.search(
                                     keyword: query,
                                     source: source,
+                                    page: 1,
                                     count: count,
+                                    albumOnly: false,
                                     useNativeNetEase: source == .netease
                                 )
                                 return MusicCatalogSearchResponse(
