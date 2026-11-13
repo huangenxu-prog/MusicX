@@ -62,13 +62,24 @@ Playback success is never guaranteed solely because a track appears in an offici
 - Resource engine: resolves playable resources independently from catalog origin, with conservative cross-source matching and provider fallback.
 - UI: homepage and collection detail pages consume normalized models; no UI source picker is exposed.
 
-## Current implementation gap (baseline branch: architecture/three-layer-resource-engine)
+## Implementation status (branch: architecture/three-layer-resource-engine)
 
-- Playlist search currently merges QQ and NetEase search results only.
-- Existing featured-playlist page uses six fixed keyword buckets and fuzzy name matching. It can select ordinary search results and is not a true five-platform official editorial feed.
-- Source-aware collection-track loading currently supports QQ and NetEase only.
-- Kugou, Kuwo, and Migu do not yet have integrated editorial discovery and collection-detail loading in MusicX.
-- Existing homepage visual design is out of scope for this data-layer change and must remain unchanged.
+Implemented in source:
+- NetEase and QQ have separate platform-recommendation adapters.
+- Kugou and Kuwo have separate platform-recommendation adapters.
+- Migu is populated through four category feeds (Chinese, Western, soundtrack, and light music) and is labeled `categoryFeatured`, not official editorial.
+- A normalized provenance field distinguishes official editorial, platform recommendations, category content, and ordinary search results.
+- The featured-playlist page now renders a live catalog of up to 25 collections instead of selecting six results from fixed keyword buckets.
+- Source-aware collection-track loading has adapters for all five domestic platforms.
+- Collection tracks retain their original platform IDs and are handed to the Resource Engine for playback resolution and cross-source fallback.
+- Partial source failures are isolated and recorded in diagnostics; a single platform failure does not discard successful results from other platforms.
+
+Not yet verified:
+- Live availability, response shape, rate limits, and HTTPS/ATS behavior of every upstream endpoint have not yet been tested from an iOS device.
+- The five-platform collection detail adapters have not yet been exercised against real collections.
+- No iOS build or real-device playback test has been run for this implementation.
+
+The existing homepage visual design remains out of scope and must remain unchanged.
 
 ## Implementation sequence
 
