@@ -1,8 +1,8 @@
 import Foundation
 import CryptoKit
 
-/// Durable snapshots for discovery content. Expiration schedules refreshes;
-/// it never invalidates the last known-good catalog data.
+/// Durable snapshots for discovery content. Expired snapshots refresh on read;
+/// if refresh fails, the last known-good catalog data remains available.
 actor MusicCatalogStore {
     static let shared = MusicCatalogStore()
 
