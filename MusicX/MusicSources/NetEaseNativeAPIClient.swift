@@ -134,6 +134,66 @@ struct NetEaseNativeAPIClient {
         return url
     }
 
+    // MARK: - Native album search
+
+    func searchAlbums(keyword: String, count: Int = 30, offset: Int = 0) async throws -> [MusicSong] {
+        let query = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return [] }
+        let limit = min(max(count, 1), 100)
+        let normalizedOffset = max(0, offset)
+        let cacheKey = "netease-native-album-search|\(query.lowercased())|\(limit)|\(normalizedOffset)"
+        if let cached: [MusicSong] = await MusicCache.shared.value(for: cacheKey) {
+            return cached
+        }
+
+        let data = try await requestEAPI(
+            path: "/cloudsearch/pc",
+            payload: [
+                "s": query,
+                "type": 10,
+                "limit": limit,
+                "offset": normalizedOffset,
+                "total": true
+            ]
+        )
+        guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              (root["code"] as? Int ?? 200) == 200,
+              let result = root["result"] as? [String: Any],
+              let rows = result["albums"] as? [[String: Any]] else {
+            throw MusicSourceError.invalidResponse("网易云专辑搜索响应格式或业务状态异常")
+        }
+
+        let albums: [MusicSong] = rows.compactMap { row in
+            guard let rawID = row["id"] else { return nil }
+            let artists = (row["artists"] as? [[String: Any]]
+                ?? row["artist"] as? [[String: Any]] ?? [])
+                .compactMap { $0["name"] as? String }
+                .joined(separator: " / ")
+            let name = row["name"] as? String ?? "未知专辑"
+            let artwork = (row["picUrl"] as? String ?? row["blurPicUrl"] as? String)
+                .flatMap(URL.init(string:))
+            return MusicSong(
+                source: .netease,
+                sourceID: String(describing: rawID),
+                title: name,
+                artist: artists.isEmpty ? "未知歌手" : artists,
+                album: name,
+                artworkURL: artwork,
+                duration: nil,
+                hash: nil,
+                albumID: String(describing: rawID),
+                pictureID: row["picId"].map { String(describing: $0) },
+                lyricID: nil
+            )
+        }
+
+        guard !albums.isEmpty else {
+            throw MusicSourceError.invalidResponse("网易云没有返回匹配专辑")
+        }
+        await MusicCache.shared.insert(albums, for: cacheKey, ttl: 5 * 60)
+        return albums
+    }
+
     // MARK: - Native charts
 
     func toplist(_ chartName: String, count: Int = 50) async throws -> [MusicSong] {
