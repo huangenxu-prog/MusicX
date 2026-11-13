@@ -70,6 +70,7 @@ Implemented in source:
 - Migu is populated through four category feeds (Chinese, Western, soundtrack, and light music) and is labeled `categoryFeatured`, not official editorial.
 - A normalized provenance field distinguishes official editorial, platform recommendations, category content, and ordinary search results.
 - The featured-playlist page now renders a live catalog of up to 25 collections instead of selecting six results from fixed keyword buckets.
+- Keyword playlist search now queries all five domestic platforms; mood-category discovery can use the full five-platform result set.
 - Source-aware collection-track loading has adapters for all five domestic platforms.
 - Collection tracks retain their original platform IDs and are handed to the Resource Engine for playback resolution and cross-source fallback.
 - Partial source failures are isolated and recorded in diagnostics; a single platform failure does not discard successful results from other platforms.
