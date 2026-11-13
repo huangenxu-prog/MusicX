@@ -41,7 +41,7 @@ enum AudioSourceTrackMatcher {
 
     private static func artistParts(_ value: String) -> [String] {
         let withoutFeaturedCredits = value.replacingOccurrences(
-            of: #"(?i)\\s+(?:feat\\.?|ft\\.?|featuring|with)\\s+"#,
+            of: #"(?i)\s+(?:feat\.?|ft\.?|featuring|with)\s+"#,
             with: ";",
             options: .regularExpression
         )
