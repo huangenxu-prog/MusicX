@@ -352,25 +352,25 @@ struct ContentView: View {
                 },
                 currentTime: playerStore.currentTime,
                 duration: playerStore.duration,
-                onOpenPlaylist: {
+                onOpenPlaylist: { playlistID in
                     isDiscoveryPopping = false
-                    withAnimation(.easeInOut(duration: 0.28)) { discoveryRoute = .playlistByID($0) }
+                    withAnimation(.easeInOut(duration: 0.28)) { discoveryRoute = .playlistByID(playlistID) }
                 },
-                onOpenPlaylistKeyword: {
+                onOpenPlaylistKeyword: { keyword in
                     isDiscoveryPopping = false
-                    withAnimation(.easeInOut(duration: 0.28)) { discoveryRoute = .playlist($0) }
+                    withAnimation(.easeInOut(duration: 0.28)) { discoveryRoute = .playlist(keyword) }
                 },
                 onOpenFeaturedPick: {
                     isDiscoveryPopping = false
                     withAnimation(.easeInOut(duration: 0.28)) { discoveryRoute = .featuredPick }
                 },
-                onOpenAlbum: {
+                onOpenAlbum: { title, artist in
                     isDiscoveryPopping = false
-                    withAnimation(.easeInOut(duration: 0.28)) { discoveryRoute = .album(title: $0, artist: $1) }
+                    withAnimation(.easeInOut(duration: 0.28)) { discoveryRoute = .album(title: title, artist: artist) }
                 },
-                onSelectChart: {
+                onSelectChart: { chart in
                     isDiscoveryPopping = false
-                    withAnimation(.easeInOut(duration: 0.28)) { discoveryRoute = .chart($0) }
+                    withAnimation(.easeInOut(duration: 0.28)) { discoveryRoute = .chart(chart) }
                 }
             )
             .id(route.id)
