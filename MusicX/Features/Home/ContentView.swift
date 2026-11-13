@@ -379,50 +379,52 @@ struct ContentView: View {
             .padding(.bottom, 8)
         }
         .scrollBounceBehavior(.basedOnSize)
+        .background(Color(red: 0.039, green: 0.055, blue: 0.122))
         .background(alignment: .top) {
             GeometryReader { proxy in
                 ZStack {
-                    Color(red: 0.039, green: 0.055, blue: 0.122)
                     LinearGradient(
                         stops: [
-                            .init(color: Color(red: 0.15, green: 0.22, blue: 0.48), location: 0.00),
-                            .init(color: Color(red: 0.34, green: 0.23, blue: 0.57), location: 0.34),
-                            .init(color: Color(red: 0.63, green: 0.31, blue: 0.57), location: 0.58),
-                            .init(color: Color(red: 0.98, green: 0.56, blue: 0.39), location: 0.78),
-                            .init(color: Color(red: 1.0, green: 0.67, blue: 0.40).opacity(0.0), location: 1.00)
+                            .init(color: Color(red: 0.15, green: 0.21, blue: 0.47), location: 0.00),
+                            .init(color: Color(red: 0.32, green: 0.22, blue: 0.57), location: 0.34),
+                            .init(color: Color(red: 0.66, green: 0.32, blue: 0.59), location: 0.59),
+                            .init(color: Color(red: 1.00, green: 0.65, blue: 0.36), location: 0.79),
+                            .init(color: Color(red: 1.00, green: 0.56, blue: 0.39).opacity(0.30), location: 0.89),
+                            .init(color: Color(red: 0.039, green: 0.055, blue: 0.122).opacity(0.0), location: 1.00)
                         ],
                         startPoint: .top,
                         endPoint: .bottom
                     )
                     RadialGradient(
                         colors: [
-                            Color(red: 1.0, green: 0.68, blue: 0.39).opacity(0.88),
-                            Color(red: 1.0, green: 0.48, blue: 0.43).opacity(0.34),
+                            Color(red: 1.00, green: 0.72, blue: 0.39).opacity(0.96),
+                            Color(red: 1.00, green: 0.53, blue: 0.38).opacity(0.58),
+                            Color(red: 1.00, green: 0.43, blue: 0.48).opacity(0.12),
                             .clear
                         ],
-                        center: UnitPoint(x: 0.56, y: 0.76),
-                        startRadius: 2,
-                        endRadius: proxy.size.width * 0.76
+                        center: UnitPoint(x: 0.58, y: 0.79),
+                        startRadius: 1,
+                        endRadius: proxy.size.width * 0.70
                     )
                     RadialGradient(
-                        colors: [Color(red: 0.78, green: 0.34, blue: 0.68).opacity(0.48), .clear],
-                        center: UnitPoint(x: 0.30, y: 0.40),
-                        startRadius: 2,
-                        endRadius: proxy.size.width * 0.82
+                        colors: [Color(red: 0.76, green: 0.34, blue: 0.68).opacity(0.38), .clear],
+                        center: UnitPoint(x: 0.28, y: 0.38),
+                        startRadius: 1,
+                        endRadius: proxy.size.width * 0.78
                     )
                     LinearGradient(
                         stops: [
-                            .init(color: .clear, location: 0.34),
-                            .init(color: Color(red: 0.039, green: 0.055, blue: 0.122).opacity(0.72), location: 0.72),
+                            .init(color: .clear, location: 0.70),
+                            .init(color: Color(red: 0.039, green: 0.055, blue: 0.122).opacity(0.68), location: 0.88),
                             .init(color: Color(red: 0.039, green: 0.055, blue: 0.122), location: 1.00)
                         ],
                         startPoint: .top,
                         endPoint: .bottom
                     )
                 }
-                .frame(width: proxy.size.width, height: 300)
+                .frame(width: proxy.size.width, height: 190)
             }
-            .frame(height: 300)
+            .frame(height: 190)
             .ignoresSafeArea(edges: .top)
             .allowsHitTesting(false)
         }
@@ -446,10 +448,11 @@ struct ContentView: View {
                 .tracking(1.25)
                 .foregroundStyle(.white.opacity(0.90))
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .frame(height: 122, alignment: .bottomLeading)
         .padding(.horizontal, 20)
         .padding(.top, 56)
+        .offset(y: -63)
         .accessibilityElement(children: .combine)
     }
 
