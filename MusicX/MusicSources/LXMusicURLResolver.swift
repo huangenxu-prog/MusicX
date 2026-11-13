@@ -212,59 +212,86 @@ struct LXMusicURLResolver: MusicURLResolving, @unchecked Sendable {
     /// and artist match is sufficient; duration and album metadata are ignored.
     private func resolveAlternativeSource(song: MusicSong, quality: MusicQuality) async throws -> URL? {
         let service = GDStudioMusicSearchService(session: session)
+
+        // Keep the three general-purpose catalogs on the critical path.
+        // Migu's native search can take up to 12 seconds and its GDStudio
+        // fallback can add another 12 seconds, so it must not block results
+        // already returned by NetEase, QQ, or Kugou.
         async let netease = captureSearch { try await service.search(keyword: song.title, source: .netease, count: 12) }
         async let qq = captureSearch { try await service.search(keyword: song.title, source: .qq, count: 12) }
         async let kugou = captureSearch { try await service.search(keyword: song.title, source: .kugou, count: 12) }
-        async let migu = captureSearch { try await service.search(keyword: song.title, source: .migu, count: 12) }
-        let results = await [netease, qq, kugou, migu]
+        let primaryResults = await [netease, qq, kugou]
         try Task.checkCancellation()
-        let groups = results.map { $0.0 }
-        let searchFailures = results.compactMap { $0.1 }
 
-        var seen = Set<String>()
-        let candidates = groups.flatMap { $0 }
-            .filter { $0.source != song.source }
-            .compactMap { candidate -> (MusicSong, Int)? in
-                let score = matchScore(original: song, candidate: candidate)
-                guard score > 0, seen.insert(candidate.id).inserted else { return nil }
-                return (candidate, score)
-            }
-            .sorted { lhs, rhs in
-                if lhs.1 != rhs.1 { return lhs.1 > rhs.1 }
-                return sourceFallbackPriority(lhs.0.source) > sourceFallbackPriority(rhs.0.source)
-            }
-
+        var searchFailures = primaryResults.compactMap { $0.1 }
         var candidateFailures: [String] = []
-        for (candidate, score) in candidates {
-            try Task.checkCancellation()
-            do {
-                if let url = try await resolveNative(song: candidate, quality: quality) {
+        var seen = Set<String>()
+
+        func makeCandidates(from groups: [[MusicSong]]) -> [(MusicSong, Int)] {
+            groups.flatMap { $0 }
+                .filter { $0.source != song.source }
+                .compactMap { candidate -> (MusicSong, Int)? in
+                    let score = matchScore(original: song, candidate: candidate)
+                    guard score > 0, seen.insert(candidate.id).inserted else { return nil }
+                    return (candidate, score)
+                }
+                .sorted { lhs, rhs in
+                    if lhs.1 != rhs.1 { return lhs.1 > rhs.1 }
+                    return sourceFallbackPriority(lhs.0.source) > sourceFallbackPriority(rhs.0.source)
+                }
+        }
+
+        func resolveCandidates(_ candidates: [(MusicSong, Int)]) async throws -> URL? {
+            for (candidate, score) in candidates {
+                try Task.checkCancellation()
+                do {
+                    if let url = try await resolveNative(song: candidate, quality: quality) {
+                        MusicSourceDiagnostics.shared.record(
+                            event: "resolve-fallback", source: song.source.rawValue,
+                            provider: candidate.source.rawValue, duration: 0,
+                            result: "url_returned",
+                            detail: "matched=\(candidate.title) · \(candidate.artist) · score=\(score)"
+                        )
+                        return url
+                    }
                     MusicSourceDiagnostics.shared.record(
                         event: "resolve-fallback", source: song.source.rawValue,
                         provider: candidate.source.rawValue, duration: 0,
-                        result: "url_returned",
-                        detail: "matched=\(candidate.title) · \(candidate.artist) · score=\(score)"
+                        result: "candidate_unavailable",
+                        detail: "matched=\(candidate.title) · score=\(score)"
                     )
-                    return url
+                } catch {
+                    if Task.isCancelled || error is CancellationError || (error as? URLError)?.code == .cancelled {
+                        throw CancellationError()
+                    }
+                    candidateFailures.append("\(candidate.source.displayName): \(error.localizedDescription)")
+                    MusicSourceDiagnostics.shared.record(
+                        event: "resolve-fallback", source: song.source.rawValue,
+                        provider: candidate.source.rawValue, duration: 0,
+                        result: "candidate_error",
+                        detail: error.localizedDescription
+                    )
                 }
-                MusicSourceDiagnostics.shared.record(
-                    event: "resolve-fallback", source: song.source.rawValue,
-                    provider: candidate.source.rawValue, duration: 0,
-                    result: "candidate_unavailable",
-                    detail: "matched=\(candidate.title) · score=\(score)"
-                )
-            } catch {
-                if Task.isCancelled || error is CancellationError || (error as? URLError)?.code == .cancelled {
-                    throw CancellationError()
-                }
-                candidateFailures.append("\(candidate.source.displayName): \(error.localizedDescription)")
-                MusicSourceDiagnostics.shared.record(
-                    event: "resolve-fallback", source: song.source.rawValue,
-                    provider: candidate.source.rawValue, duration: 0,
-                    result: "candidate_error",
-                    detail: error.localizedDescription
-                )
             }
+            return nil
+        }
+
+        // Try matching results from NetEase, QQ, and Kugou immediately.
+        if let url = try await resolveCandidates(makeCandidates(from: primaryResults.map { $0.0 })) {
+            return url
+        }
+
+        // Migu remains available as a last-resort source, but its slow native
+        // search and subsequent GDStudio fallback no longer delay faster sources.
+        try Task.checkCancellation()
+        let miguResult = await captureSearch {
+            try await service.search(keyword: song.title, source: .migu, count: 12)
+        }
+        if let failure = miguResult.1 {
+            searchFailures.append(failure)
+        }
+        if let url = try await resolveCandidates(makeCandidates(from: [miguResult.0])) {
+            return url
         }
 
         if !candidateFailures.isEmpty {
@@ -272,7 +299,7 @@ struct LXMusicURLResolver: MusicURLResolving, @unchecked Sendable {
                 "跨平台备用解析异常：" + candidateFailures.joined(separator: "；")
             )
         }
-        if candidates.isEmpty && !searchFailures.isEmpty {
+        if searchFailures.count == 3 && primaryResults.allSatisfy({ $0.0.isEmpty }) {
             throw MusicSourceError.invalidResponse(
                 "跨平台搜索接口异常：" + searchFailures.joined(separator: "；")
             )
