@@ -1765,13 +1765,13 @@ struct ContentView: View {
             } catch is CancellationError {
                 return
             } catch {
+                guard playbackRequestID == requestID else { return }
                 MusicSourceDiagnostics.shared.record(
                     event: "playback-retry-url-failed", source: onlineSong.source.rawValue,
                     provider: "playback-pipeline", duration: Date().timeIntervalSince(retryStartedAt),
                     result: "failed",
                     detail: "playback_id=\(retryDiagnosticID); error=\(error.localizedDescription)"
                 )
-                guard playbackRequestID == requestID else { return }
                 searchError = "重新获取播放地址失败：\(error.localizedDescription)"
                 advanceAfterPlaybackFailure()
             }
@@ -1973,6 +1973,7 @@ struct ContentView: View {
                 } catch is CancellationError {
                     return
                 } catch {
+                    guard playbackRequestID == requestID else { return }
                     MusicSourceDiagnostics.shared.record(
                         event: "playback-url-failed", source: onlineSong.source.rawValue,
                         provider: "playback-pipeline",
@@ -1980,7 +1981,6 @@ struct ContentView: View {
                         result: "failed",
                         detail: "playback_id=\(playbackDiagnosticID); error=\(error.localizedDescription)"
                     )
-                    guard playbackRequestID == requestID else { return }
                     isResolvingSong = false
                     searchError = error.localizedDescription
                     advanceAfterPlaybackFailure()
