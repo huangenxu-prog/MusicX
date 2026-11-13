@@ -10,12 +10,27 @@ struct MusicXPlaybackAPI {
         let trackMID: String?
         let fallback: Bool?
 
-        enum CodingKeys: String, CodingKey {
+        private enum CodingKeys: String, CodingKey {
             case url
             case resolvedSource = "resolved_source"
+            case source
             case trackID = "track_id"
+            case id
             case trackMID = "track_mid"
+            case mid
             case fallback
+        }
+
+        init(from decoder: Decoder) throws {
+            let values = try decoder.container(keyedBy: CodingKeys.self)
+            url = try values.decodeIfPresent(URL.self, forKey: .url)
+            resolvedSource = try values.decodeIfPresent(String.self, forKey: .resolvedSource)
+                ?? values.decodeIfPresent(String.self, forKey: .source)
+            trackID = try values.decodeIfPresent(String.self, forKey: .trackID)
+                ?? values.decodeIfPresent(String.self, forKey: .id)
+            trackMID = try values.decodeIfPresent(String.self, forKey: .trackMID)
+                ?? values.decodeIfPresent(String.self, forKey: .mid)
+            fallback = try values.decodeIfPresent(Bool.self, forKey: .fallback)
         }
     }
 
