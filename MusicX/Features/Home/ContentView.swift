@@ -1990,13 +1990,13 @@ struct ContentView: View {
         defer { isLoadingHomeSongs = false }
 
         async let latestResult: Result<[MusicSong], Error> = {
-            do { return .success(try await GDStudioMusicSearchService().toplist("新歌榜", count: 50)) }
+            do { return .success(try await MusicCatalogSearchEngine().toplist("新歌榜", count: 50)) }
             catch { return .failure(error) }
         }()
         async let albumRows: [[MusicSong]] = withTaskGroup(of: [MusicSong].self) { group in
             for source in [MusicSource.netease, .qq, .kuwo, .kugou, .migu] {
                 group.addTask {
-                    (try? await GDStudioMusicSearchService().search(keyword: "华语", source: source, count: 30, albumOnly: true)) ?? []
+                    (try? await MusicCatalogSearchEngine().search(keyword: "华语", source: source, count: 30, albumOnly: true)) ?? []
                 }
             }
             var results: [[MusicSong]] = []

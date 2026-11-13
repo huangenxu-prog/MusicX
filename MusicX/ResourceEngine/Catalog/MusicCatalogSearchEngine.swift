@@ -70,4 +70,32 @@ struct MusicCatalogSearchEngine {
             }
         }
     }
+
+
+    func search(keyword: String, source: MusicSource, page: Int = 1, count: Int = 20, albumOnly: Bool = false) async throws -> [MusicSong] {
+        try await provider.search(
+            keyword: keyword,
+            source: source,
+            page: page,
+            count: count,
+            albumOnly: albumOnly
+        )
+    }
+
+    func searchPlaylists(keyword: String, count: Int = 10) async throws -> [MusicPlaylist] {
+        try await provider.searchPlaylists(keyword: keyword, count: count)
+    }
+
+    func playlistTracks(keyword: String, count: Int = 50) async throws -> [MusicSong] {
+        try await provider.playlistTracks(keyword: keyword, count: count)
+    }
+
+    func playlistTracks(playlistID: String, count: Int = 50) async throws -> [MusicSong] {
+        try await provider.playlistTracks(playlistID: playlistID, count: count)
+    }
+
+    func toplist(_ chartName: String, count: Int = 50) async throws -> [MusicSong] {
+        try await provider.toplist(chartName, count: count)
+    }
+
 }

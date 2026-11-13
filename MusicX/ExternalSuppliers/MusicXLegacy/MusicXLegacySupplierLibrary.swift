@@ -17,12 +17,34 @@ struct MusicXLegacySupplierLibrary: MusicResourceProvider, MusicCatalogSearchPro
         self.session = session
     }
 
-    func search(keyword: String, source: MusicSource, count: Int) async throws -> [MusicSong] {
+    func search(keyword: String, source: MusicSource, page: Int, count: Int, albumOnly: Bool) async throws -> [MusicSong] {
         let service = GDStudioMusicSearchService(session: session)
-        if source == .netease {
+        if source == .netease && !albumOnly && page == 1 {
             return try await service.searchNetEase(keyword: keyword, count: count)
         }
-        return try await service.search(keyword: keyword, source: source, count: count)
+        return try await service.search(
+            keyword: keyword,
+            source: source,
+            page: page,
+            count: count,
+            albumOnly: albumOnly
+        )
+    }
+
+    func searchPlaylists(keyword: String, count: Int) async throws -> [MusicPlaylist] {
+        try await GDStudioMusicSearchService(session: session).searchPlaylists(keyword: keyword, count: count)
+    }
+
+    func playlistTracks(keyword: String, count: Int) async throws -> [MusicSong] {
+        try await GDStudioMusicSearchService(session: session).playlistTracks(keyword: keyword, count: count)
+    }
+
+    func playlistTracks(playlistID: String, count: Int) async throws -> [MusicSong] {
+        try await GDStudioMusicSearchService(session: session).playlistTracks(playlistID: playlistID, count: count)
+    }
+
+    func toplist(_ chartName: String, count: Int) async throws -> [MusicSong] {
+        try await GDStudioMusicSearchService(session: session).toplist(chartName, count: count)
     }
 
     func resolve(song: MusicSong, quality: MusicQuality) async throws -> ResolvedMusicResource? {

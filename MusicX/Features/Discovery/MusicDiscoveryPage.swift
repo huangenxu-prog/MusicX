@@ -83,7 +83,7 @@ struct MusicDiscoveryPage: View {
         default: false
         }
     }
-    private let service = GDStudioMusicSearchService()
+    private let catalog = MusicCatalogSearchEngine()
 
     private func closePage(isSwipeBack: Bool = false) {
         onClose(isSwipeBack)
@@ -403,7 +403,7 @@ struct MusicDiscoveryPage: View {
         do {
             let result: [MusicSong]
             if tab == .daily {
-                result = try await service.search(keyword: "陈奕迅", source: .netease, count: 30)
+                result = try await catalog.search(keyword: "陈奕迅", source: .netease, count: 30)
             } else {
                 await loadPlaylistCards(forMood: false, onlyCategory: "本周编辑精选")
                 guard !Task.isCancelled, songsLoadToken == requestToken else { return }
@@ -412,7 +412,7 @@ struct MusicDiscoveryPage: View {
                     errorMessage = "暂未匹配到本周精选歌单"
                     return
                 }
-                result = try await service.playlistTracks(playlistID: playlist.sourceID, count: 30)
+                result = try await catalog.playlistTracks(playlistID: playlist.sourceID, count: 30)
             }
             guard !Task.isCancelled, songsLoadToken == requestToken else { return }
             recommendationSongCache[tab] = result
@@ -1103,7 +1103,7 @@ struct MusicDiscoveryPage: View {
             for keyword in keywords {
                 guard !Task.isCancelled else { return }
                 do {
-                    let results = try await service.searchPlaylists(keyword: keyword, count: 30)
+                    let results = try await catalog.searchPlaylists(keyword: keyword, count: 30)
                     guard !Task.isCancelled else { return }
                     let token = normalized(keyword)
                     let match = results
@@ -1177,19 +1177,19 @@ struct MusicDiscoveryPage: View {
             case .charts, .chart:
                 result = []
             case .newReleases:
-                result = try await service.toplist("新歌榜", count: 50)
+                result = try await catalog.toplist("新歌榜", count: 50)
             case .album(let albumTitle, let albumArtist):
                 result = await searchAlbumTracks(title: albumTitle, artist: albumArtist)
             case .musicCategory(_, _, _, let keyword):
-                result = try await service.search(keyword: keyword, source: .netease, count: 30)
+                result = try await catalog.search(keyword: keyword, source: .netease, count: 30)
             case .featuredPick:
                 result = []
             case .playlist(let name):
-                result = try await service.playlistTracks(keyword: name, count: 50)
+                result = try await catalog.playlistTracks(keyword: name, count: 50)
             case .playlistByID(let playlist):
                 if playlist.source == .qq {
                     do {
-                        result = try await service.playlistTracks(playlistID: playlist.sourceID, count: 50)
+                        result = try await catalog.playlistTracks(playlistID: playlist.sourceID, count: 50)
                     } catch {
                         if Task.isCancelled { return }
                         playlistLoadError = "真实歌单曲目加载失败：\(error.localizedDescription)"
@@ -1205,7 +1205,7 @@ struct MusicDiscoveryPage: View {
                     result = []
                 }
             default:
-                result = try await service.search(keyword: query, source: .netease, count: 30)
+                result = try await catalog.search(keyword: query, source: .netease, count: 30)
             }
             guard !Task.isCancelled, songsLoadToken == requestToken else { return }
             songs = result
@@ -1242,7 +1242,7 @@ struct MusicDiscoveryPage: View {
             for source in [MusicSource.netease, .qq, .kuwo, .kugou, .migu] {
                 guard !Task.isCancelled else { return collected }
                 do {
-                    let found = try await service.search(keyword: keyword, source: source, count: 20)
+                    let found = try await catalog.search(keyword: keyword, source: source, count: 20)
                     for song in found {
                         let key = song.title.lowercased().filter { $0.isLetter || $0.isNumber }
                             + "|" + song.artist.lowercased().filter { $0.isLetter || $0.isNumber }
@@ -1278,7 +1278,7 @@ struct MusicDiscoveryPage: View {
         for source in sources {
             guard !Task.isCancelled else { return candidates }
             do {
-                let rows = try await service.search(keyword: title, source: source, count: 50, albumOnly: true)
+                let rows = try await catalog.search(keyword: title, source: source, count: 50, albumOnly: true)
                 candidates.append(contentsOf: rows)
             } catch {
                 if Task.isCancelled { return candidates }
@@ -1302,7 +1302,7 @@ struct MusicDiscoveryPage: View {
             for source in sources {
                 guard !Task.isCancelled else { return candidates }
                 do {
-                    let rows = try await service.search(keyword: "\(title) \(artist)", source: source, count: 50)
+                    let rows = try await catalog.search(keyword: "\(title) \(artist)", source: source, count: 50)
                     candidates.append(contentsOf: rows)
                 } catch {
                     if Task.isCancelled { return candidates }
@@ -1376,7 +1376,7 @@ struct MusicDiscoveryPage: View {
             if chartLoadToken == requestToken { isLoading = false }
         }
         do {
-            let result = try await service.toplist(name, count: 50)
+            let result = try await catalog.toplist(name, count: 50)
             guard !Task.isCancelled, chartLoadToken == requestToken else { return }
             if !result.isEmpty {
                 chartSongCache[name] = result
@@ -1407,7 +1407,7 @@ struct MusicDiscoveryPage: View {
             if showInitialLoading, chartLoadToken == requestToken { isLoading = false }
         }
         do {
-            let result = try await service.toplist(name, count: 50)
+            let result = try await catalog.toplist(name, count: 50)
             guard !Task.isCancelled, chartLoadToken == requestToken else { return }
             if !result.isEmpty { chartSongCache[name] = result }
             songs = result
