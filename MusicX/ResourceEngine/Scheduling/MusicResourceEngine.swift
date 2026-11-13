@@ -125,6 +125,9 @@ struct MusicResourceEngine {
             (KumoneKugouAudioSourceProvider(session: session), 20),
             (KumoneKuwoAudioSourceProvider(session: session), 10)
         ]
+        if song.source == .netease {
+            providers.insert((NetEaseNativeAudioProvider(session: session), 40), at: 0)
+        }
         if song.source == .youtubeMusic {
             providers.insert((YouTubeMusicAudioSourceProvider(session: session), 40), at: 0)
         }
