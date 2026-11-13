@@ -87,7 +87,7 @@ struct MusicXLegacySupplierLibrary: MusicResourceProvider, MusicCatalogSearchPro
             )
         }
 
-        let bySource = Dictionary(grouping: groups.flatMap { $0 }, by: \\.source)
+        let bySource = Dictionary(grouping: groups.flatMap { $0 }, by: \.source)
         let sourceOrder: [MusicSource] = [.netease, .qq, .kugou, .kuwo, .migu]
         var merged: [MusicPlaylist] = []
         var seenIDs = Set<String>()
@@ -98,7 +98,7 @@ struct MusicXLegacySupplierLibrary: MusicResourceProvider, MusicCatalogSearchPro
             var added = 0
             for playlist in candidates {
                 let normalizedName = playlist.name
-                    .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+                    .folding(options: String.CompareOptions.caseInsensitive.union(.diacriticInsensitive), locale: Locale.current)
                     .filter { $0.isLetter || $0.isNumber }
                 let normalizedCreator = (playlist.creator ?? "")
                     .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
