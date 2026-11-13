@@ -142,7 +142,7 @@ struct MusicResourceEngine {
         if song.source == .migu {
             providers.insert((MiguNativeAudioProvider(session: session), 900), at: 0)
         }
-        if song.source == .youtubeMusic {
+        if song.source == .youtubeMusic || song.source == .youtube {
             providers.insert((YouTubeMusicAudioSourceProvider(session: session), 40), at: 0)
         }
 
