@@ -1532,11 +1532,9 @@ struct ContentView: View {
                 if vpsResolvedSongID == song.id, let failedSource = vpsResolvedSource {
                     let api = MusicXPlaybackAPI()
                     if failedSource == "netease" || failedSource == "qq" {
-                        try? await api.reportFailure(
-                            source: failedSource,
-                            trackID: vpsResolvedTrackID,
-                            trackMID: vpsResolvedTrackMID
-                        )
+                        // The refresh endpoint already invalidates the failed source cache
+                        // before resolving with that source excluded; a separate report call
+                        // would only add a redundant network round trip.
                         do {
                             let refreshed = try await api.refresh(
                                 song: onlineSong,
