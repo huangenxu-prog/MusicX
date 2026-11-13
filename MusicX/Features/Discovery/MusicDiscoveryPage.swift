@@ -337,6 +337,11 @@ struct MusicDiscoveryPage: View {
         .padding(.bottom, 2)
     }
 
+    private var isRecommendationPlaylistRoute: Bool {
+        if case .playlistByID = route { return true }
+        return false
+    }
+
     private var isRecommendationRoute: Bool {
         if case .daily = route { return true }
         if case .featuredPick = route { return true }
@@ -1169,46 +1174,74 @@ struct MusicDiscoveryPage: View {
                         onQueueChanged(songs)
                         onPlay(song)
                     } label: {
-                        HStack(spacing: 14) {
-                            songArtwork(song, index: index, isCurrent: isCurrent, size: isRecommendationRoute ? 56 : 44)
-                                .frame(width: isRecommendationRoute ? 56 : 44, height: isRecommendationRoute ? 56 : 44)
-                                .clipShape(RoundedRectangle(cornerRadius: isRecommendationRoute ? 15 : 10, style: .continuous))
-                            VStack(alignment: .leading, spacing: 5) {
+                        if isRecommendationPlaylistRoute {
+                            HStack(spacing: 18) {
+                                Text("\(index + 1)")
+                                    .font(.system(size: 15, weight: .medium, design: .rounded))
+                                    .foregroundStyle(isCurrent ? MusicXTheme.blue : MusicXTheme.muted)
+                                    .frame(width: 24, alignment: .center)
                                 Text(song.title)
-                                    .font(.system(size: isRecommendationRoute ? 17 : 15, weight: .semibold))
+                                    .font(.system(size: 17, weight: .semibold))
                                     .foregroundStyle(isCurrent ? MusicXTheme.blue : .white)
                                     .lineLimit(1)
-                                Text(song.artist)
-                                    .font(.system(size: isRecommendationRoute ? 14 : 12))
-                                    .foregroundStyle(isCurrent ? .white.opacity(0.78) : MusicXTheme.muted)
-                                    .lineLimit(1)
-                            }
-                            Spacer(minLength: 0)
-                            if isRecommendationRoute {
-                                Text(song.duration.map { String(format: "%d:%02d", Int($0) / 60, Int($0) % 60) } ?? "")
-                                    .font(.system(size: 14))
+                                Spacer(minLength: 0)
+                                Image(systemName: "ellipsis")
+                                    .font(.system(size: 17, weight: .semibold))
                                     .foregroundStyle(MusicXTheme.muted)
-                            } else {
-                                if isCurrent && isPlaying {
-                                    Image(systemName: "waveform").font(.system(size: 13, weight: .semibold)).foregroundStyle(MusicXTheme.blue)
+                            }
+                            .padding(.horizontal, 18)
+                            .frame(minHeight: 88)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background {
+                                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                    .fill(isCurrent ? MusicXTheme.blue.opacity(0.17) : Color.white.opacity(0.012))
+                            }
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                    .stroke(isCurrent ? MusicXTheme.blue.opacity(0.24) : Color.white.opacity(0.045), lineWidth: 1)
+                            }
+                        } else {
+                            HStack(spacing: 14) {
+                                songArtwork(song, index: index, isCurrent: isCurrent, size: isRecommendationRoute ? 56 : 44)
+                                    .frame(width: isRecommendationRoute ? 56 : 44, height: isRecommendationRoute ? 56 : 44)
+                                    .clipShape(RoundedRectangle(cornerRadius: isRecommendationRoute ? 15 : 10, style: .continuous))
+                                VStack(alignment: .leading, spacing: 5) {
+                                    Text(song.title)
+                                        .font(.system(size: isRecommendationRoute ? 17 : 15, weight: .semibold))
+                                        .foregroundStyle(isCurrent ? MusicXTheme.blue : .white)
+                                        .lineLimit(1)
+                                    Text(song.artist)
+                                        .font(.system(size: isRecommendationRoute ? 14 : 12))
+                                        .foregroundStyle(isCurrent ? .white.opacity(0.78) : MusicXTheme.muted)
+                                        .lineLimit(1)
                                 }
-                                Image(systemName: isChartRoute ? "ellipsis" : "chevron.right").font(.system(size: 16, weight: .semibold)).foregroundStyle(MusicXTheme.muted.opacity(0.82))
+                                Spacer(minLength: 0)
+                                if isRecommendationRoute {
+                                    Text(song.duration.map { String(format: "%d:%02d", Int($0) / 60, Int($0) % 60) } ?? "")
+                                        .font(.system(size: 14))
+                                        .foregroundStyle(MusicXTheme.muted)
+                                } else {
+                                    if isCurrent && isPlaying {
+                                        Image(systemName: "waveform").font(.system(size: 13, weight: .semibold)).foregroundStyle(MusicXTheme.blue)
+                                    }
+                                    Image(systemName: isChartRoute ? "ellipsis" : "chevron.right").font(.system(size: 16, weight: .semibold)).foregroundStyle(MusicXTheme.muted.opacity(0.82))
+                                }
                             }
-                        }
-                        .padding(.horizontal, isRecommendationRoute ? 0 : 12)
-                        .padding(.vertical, isRecommendationRoute ? 8 : 10)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .contentShape(Rectangle())
-                        .background {
-                            if !isRecommendationRoute {
-                                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .fill(isCurrent ? MusicXTheme.blue.opacity(0.12) : Color.white.opacity(0.018))
+                            .padding(.horizontal, isRecommendationRoute ? 0 : 12)
+                            .padding(.vertical, isRecommendationRoute ? 8 : 10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
+                            .background {
+                                if !isRecommendationRoute {
+                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                        .fill(isCurrent ? MusicXTheme.blue.opacity(0.12) : Color.white.opacity(0.018))
+                                }
                             }
-                        }
-                        .overlay {
-                            if !isRecommendationRoute {
-                                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .stroke(isCurrent ? MusicXTheme.blue.opacity(0.30) : Color.white.opacity(0.045), lineWidth: 1)
+                            .overlay {
+                                if !isRecommendationRoute {
+                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                        .stroke(isCurrent ? MusicXTheme.blue.opacity(0.30) : Color.white.opacity(0.045), lineWidth: 1)
+                                }
                             }
                         }
                     }
