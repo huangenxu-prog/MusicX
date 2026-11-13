@@ -369,7 +369,7 @@ struct GDStudioMusicSearchService {
             do {
                 let (data, response) = try await session.data(for: request)
                 guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-                    lastError = MusicSourceError.invalidResponse("网易云榜单 HTTP \\((response as? HTTPURLResponse)?.statusCode ?? -1)")
+                    lastError = MusicSourceError.invalidResponse("网易云榜单 HTTP \((response as? HTTPURLResponse)?.statusCode ?? -1)")
                     continue
                 }
                 let root = try JSONSerialization.jsonObject(with: data) as? [String: Any]
