@@ -1705,6 +1705,10 @@ struct ContentView: View {
         if !isFailureFallback {
             failedPlaybackSongIDs.removeAll()
             refreshedPlaybackSongIDs.removeAll()
+            vpsResolvedSongID = nil
+            vpsResolvedSource = nil
+            vpsResolvedTrackID = nil
+            vpsResolvedTrackMID = nil
         }
         if let localURL = song.localFileURL {
             playbackTask?.cancel()
