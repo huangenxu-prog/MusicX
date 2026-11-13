@@ -134,6 +134,85 @@ struct NetEaseNativeAPIClient {
         return url
     }
 
+    // MARK: - Native charts
+
+    func toplist(_ chartName: String, count: Int = 50) async throws -> [MusicSong] {
+        let normalizedChart = ["热歌榜", "新歌榜", "飙升榜"].contains(chartName) ? chartName : "热歌榜"
+        let limit = min(max(count, 1), 100)
+        let cacheKey = "netease-native-chart|\(normalizedChart)|\(limit)"
+        if let cached = await MusicCatalogStore.shared.snapshot(for: cacheKey, as: [MusicSong].self) {
+            if cached.needsRefresh {
+                Task { _ = try? await self.refreshToplist(normalizedChart, count: limit, cacheKey: cacheKey) }
+            }
+            return cached.value
+        }
+        return try await refreshToplist(normalizedChart, count: limit, cacheKey: cacheKey)
+    }
+
+    private func refreshToplist(
+        _ chartName: String,
+        count: Int,
+        cacheKey: String
+    ) async throws -> [MusicSong] {
+        let playlistID: Int
+        switch chartName {
+        case "新歌榜": playlistID = 3779629
+        case "飙升榜": playlistID = 19723756
+        default: playlistID = 3778678
+        }
+
+        let data = try await requestEAPI(
+            path: "/v6/playlist/detail",
+            payload: ["id": playlistID, "n": 100_000, "s": 8]
+        )
+        guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              (root["code"] as? Int ?? 200) == 200,
+              let playlist = root["playlist"] as? [String: Any],
+              let rows = playlist["tracks"] as? [[String: Any]] else {
+            throw MusicSourceError.invalidResponse("网易云榜单详情响应格式异常")
+        }
+
+        let songs: [MusicSong] = rows.prefix(count).compactMap { row in
+            guard let rawID = row["id"] else { return nil }
+            let artists = (row["ar"] as? [[String: Any]]
+                ?? row["artists"] as? [[String: Any]] ?? [])
+                .compactMap { $0["name"] as? String }
+                .joined(separator: " / ")
+            let album = row["al"] as? [String: Any]
+                ?? row["album"] as? [String: Any] ?? [:]
+            let rawDuration = row["dt"] ?? row["duration"]
+            let duration: TimeInterval? = {
+                if let value = rawDuration as? Double {
+                    return value > 1_000 ? value / 1_000 : value
+                }
+                if let value = rawDuration as? Int {
+                    return value > 1_000 ? Double(value) / 1_000 : Double(value)
+                }
+                return nil
+            }()
+            return MusicSong(
+                source: .netease,
+                sourceID: String(describing: rawID),
+                title: row["name"] as? String ?? "未知歌曲",
+                artist: artists.isEmpty ? "未知歌手" : artists,
+                album: album["name"] as? String,
+                artworkURL: (album["picUrl"] as? String).flatMap(URL.init(string:)),
+                duration: duration,
+                hash: nil,
+                albumID: album["id"].map { String(describing: $0) },
+                pictureID: (album["pic_str"] ?? album["pic"]).map { String(describing: $0) },
+                lyricID: String(describing: rawID)
+            )
+        }
+
+        guard !songs.isEmpty else {
+            throw MusicSourceError.invalidResponse("网易云榜单没有可用歌曲")
+        }
+        let refreshInterval: TimeInterval = chartName == "热歌榜" ? 3 * 24 * 60 * 60 : 24 * 60 * 60
+        await MusicCatalogStore.shared.save(songs, for: cacheKey, refreshAfter: refreshInterval)
+        return songs
+    }
+
     // MARK: - eAPI transport
 
     private func requestEAPI(path: String, payload: [String: Any]) async throws -> Data {
