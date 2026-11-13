@@ -64,7 +64,7 @@ struct MusicXLegacySupplierLibrary: MusicResourceProvider, MusicCatalogSearchPro
             .dailyRecommendedSongs(count: limit)
         async let qq: [MusicSong]? = try? await GDStudioMusicSearchService(session: session)
             .dailyRecommendedSongs(count: limit)
-        let groups = [await netease ?? [], await qq ?? []]
+        let groups = [(await netease) ?? [], (await qq) ?? []]
         try Task.checkCancellation()
 
         func key(_ song: MusicSong) -> String {
@@ -89,8 +89,8 @@ struct MusicXLegacySupplierLibrary: MusicResourceProvider, MusicCatalogSearchPro
         let limit = min(max(count, 1), 60)
         async let netease: [MusicPlaylist]? = try? await NetEaseNativeAPIClient(session: session).recommendedPlaylists(count: limit)
         async let qq: [MusicPlaylist]? = try? await GDStudioMusicSearchService(session: session).recommendedPlaylists(count: limit)
-        let neteaseResults = await netease ?? []
-        let qqResults = await qq ?? []
+        let neteaseResults = (await netease) ?? []
+        let qqResults = (await qq) ?? []
         try Task.checkCancellation()
 
         var merged: [MusicPlaylist] = []
