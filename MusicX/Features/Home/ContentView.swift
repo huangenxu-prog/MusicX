@@ -388,13 +388,12 @@ struct ContentView: View {
                         ZStack {
                             LinearGradient(
                                 stops: [
-                                    .init(color: Color(red: 0.118, green: 0.165, blue: 0.420), location: 0.00),
-                                    .init(color: Color(red: 0.357, green: 0.227, blue: 0.620), location: 0.30),
-                                    .init(color: Color(red: 0.690, green: 0.333, blue: 0.541), location: 0.55),
-                                    .init(color: Color(red: 0.910, green: 0.502, blue: 0.416), location: 0.75),
-                                    .init(color: Color(red: 0.961, green: 0.647, blue: 0.353).opacity(0.96), location: 0.825),
-                                    .init(color: Color(red: 0.910, green: 0.475, blue: 0.380).opacity(0.62), location: 0.90),
-                                    .init(color: navy.opacity(0.0), location: 1.00)
+                                    .init(color: Color(red: 30.0 / 255.0, green: 42.0 / 255.0, blue: 107.0 / 255.0), location: 0.00),
+                                    .init(color: Color(red: 75.0 / 255.0, green: 52.0 / 255.0, blue: 144.0 / 255.0), location: 0.25),
+                                    .init(color: Color(red: 154.0 / 255.0, green: 79.0 / 255.0, blue: 143.0 / 255.0), location: 0.50),
+                                    .init(color: Color(red: 232.0 / 255.0, green: 128.0 / 255.0, blue: 106.0 / 255.0), location: 0.70),
+                                    .init(color: Color(red: 245.0 / 255.0, green: 165.0 / 255.0, blue: 90.0), location: 0.825),
+                                    .init(color: navy, location: 1.00)
                                 ],
                                 startPoint: .top,
                                 endPoint: .bottom
@@ -441,11 +440,11 @@ struct ContentView: View {
     private var heroHeader: some View {
         VStack(alignment: .leading, spacing: 7) {
             Text("发现音乐")
-                .font(.system(size: 36, weight: .bold))
+                .font(.system(size: 34, weight: .bold))
                 .tracking(0.1)
                 .foregroundStyle(.white)
             Text("— 好音乐，总在心里 —")
-                .font(.system(size: 14, weight: .medium))
+                .font(.system(size: 13, weight: .medium))
                 .tracking(1.25)
                 .foregroundStyle(.white.opacity(0.90))
         }
@@ -498,7 +497,7 @@ struct ContentView: View {
                         .overlay(Circle().stroke(.white.opacity(0.22), lineWidth: 0.8))
                     Spacer(minLength: 0)
                     Text(title).font(.system(size: 17, weight: .bold)).foregroundStyle(.white).lineLimit(1)
-                    Text(subtitle).font(.system(size: 11, weight: .medium)).foregroundStyle(.white.opacity(0.86))
+                    Text(subtitle).font(.system(size: 12, weight: .medium)).foregroundStyle(.white.opacity(0.86))
                         .lineLimit(1).minimumScaleFactor(0.75).padding(.top, 2)
                 }.padding(.leading, 15).padding(.vertical, 10)
             }
