@@ -94,6 +94,34 @@ struct NetEaseNativeAPIClient {
 
     /// Loads NetEase's public personalized playlist feed. This is a platform
     /// recommendation feed, not a search result or a claim of manual editorial.
+    /// NetEase personalized daily recommendations. This endpoint may require
+    /// an authenticated session; callers should gracefully fall back to QQ.
+    func dailyRecommendedSongs(count: Int = 30) async throws -> [MusicSong] {
+        let limit = min(max(count, 1), 100)
+        let cacheKey = "netease-daily-recommendations|\(limit)"
+        if let cached: [MusicSong] = await MusicCache.shared.value(for: cacheKey) {
+            return cached
+        }
+        let data = try await requestEAPI(
+            path: "/recommend/songs",
+            payload: ["limit": limit, "offset": 0, "total": true]
+        )
+        guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              (root["code"] as? Int ?? 200) == 200 else {
+            throw MusicSourceError.invalidResponse("每日推荐暂时不可用")
+        }
+        let container = root["data"] as? [String: Any] ?? root
+        let rows = container["dailySongs"] as? [[String: Any]]
+            ?? container["songs"] as? [[String: Any]]
+            ?? []
+        let songs = rows.compactMap { Self.makeSong(from: $0) }
+        guard !songs.isEmpty else {
+            throw MusicSourceError.invalidResponse("每日推荐暂时没有可用歌曲")
+        }
+        await MusicCache.shared.insert(songs, for: cacheKey, ttl: 60 * 60)
+        return Array(songs.prefix(limit))
+    }
+
     func recommendedPlaylists(count: Int = 30) async throws -> [MusicPlaylist] {
         let limit = min(max(count, 1), 100)
         let cacheKey = "netease-recommended-playlists|\(limit)"
