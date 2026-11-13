@@ -83,49 +83,76 @@ struct KumoneKuwoAudioSourceProvider: MusicResourceProvider {
         guard let candidate = candidates.first else { return nil }
         try Task.checkCancellation()
 
-        var convertComponents = URLComponents(string: "https://antiserver.kuwo.cn/anti.s")
-        convertComponents?.queryItems = [
-            URLQueryItem(name: "type", value: "convert_url"),
-            URLQueryItem(name: "format", value: "mp3"),
-            URLQueryItem(name: "response", value: "url"),
-            URLQueryItem(name: "rid", value: "MUSIC_\(candidate.rid)")
-        ]
-        guard let convertURL = convertComponents?.url else {
-            throw MusicSourceError.invalidResponse("酷我播放地址请求无效")
+        let formats: [(type: String, format: String)]
+        switch quality {
+        case .standard:
+            formats = [("convert_url", "mp3")]
+        case .high:
+            formats = [("convert_url2", "mp3"), ("convert_url", "mp3")]
+        case .lossless, .hires:
+            // Kuwo's newer convert_url2 endpoint can return a FLAC stream.
+            // If the track has no lossless rendition, fall back to its MP3 stream.
+            formats = [("convert_url2", "flac"), ("convert_url2", "mp3"), ("convert_url", "mp3")]
         }
 
-        var convertRequest = URLRequest(url: convertURL)
-        convertRequest.timeoutInterval = 10
-        convertRequest.setValue("okhttp/3.10.0", forHTTPHeaderField: "User-Agent")
-        let (streamData, streamResponse) = try await session.data(for: convertRequest)
-        try Task.checkCancellation()
-        guard let streamHTTP = streamResponse as? HTTPURLResponse,
-              (200..<300).contains(streamHTTP.statusCode) else {
-            throw MusicSourceError.invalidResponse(
-                "Kuwo stream HTTP \((streamResponse as? HTTPURLResponse)?.statusCode ?? -1)"
-            )
+        var resolvedURL: URL?
+        var lastConversionError: Error?
+        for format in formats {
+            try Task.checkCancellation()
+            var convertComponents = URLComponents(string: "https://antiserver.kuwo.cn/anti.s")
+            convertComponents?.queryItems = [
+                URLQueryItem(name: "type", value: format.type),
+                URLQueryItem(name: "format", value: format.format),
+                URLQueryItem(name: "response", value: "url"),
+                URLQueryItem(name: "rid", value: "MUSIC_\\(candidate.rid)")
+            ]
+            guard let convertURL = convertComponents?.url else { continue }
+
+            var convertRequest = URLRequest(url: convertURL)
+            convertRequest.timeoutInterval = 10
+            convertRequest.setValue("okhttp/3.10.0", forHTTPHeaderField: "User-Agent")
+            do {
+                let (streamData, streamResponse) = try await session.data(for: convertRequest)
+                try Task.checkCancellation()
+                guard let streamHTTP = streamResponse as? HTTPURLResponse,
+                      (200..<300).contains(streamHTTP.statusCode) else {
+                    lastConversionError = MusicSourceError.invalidResponse(
+                        "Kuwo stream HTTP \\((streamResponse as? HTTPURLResponse)?.statusCode ?? -1)"
+                    )
+                    continue
+                }
+
+                let responseText = String(data: streamData, encoding: .utf8)?
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                let rawURL = responseText?
+                    .components(separatedBy: .whitespacesAndNewlines)
+                    .first(where: { $0.hasPrefix("http://") || $0.hasPrefix("https://") })?
+                    .trimmingCharacters(in: CharacterSet(charactersIn: "\\"'<>"))
+                guard let rawURL, var url = URL(string: rawURL) else { continue }
+
+                // Kuwo may return an HTTP CDN URL. Upgrade it to HTTPS before
+                // handing it to URLSession/AVPlayer so ATS does not block it.
+                if url.scheme?.lowercased() == "http",
+                   var components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+                    components.scheme = "https"
+                    if let secureURL = components.url { url = secureURL }
+                }
+                guard url.scheme?.lowercased() == "https", Self.isHTTPURL(url) else { continue }
+                resolvedURL = url
+                break
+            } catch {
+                if Task.isCancelled || error is CancellationError {
+                    throw CancellationError()
+                }
+                lastConversionError = error
+            }
         }
 
-        guard let responseText = String(data: streamData, encoding: .utf8),
-              let rawURL = responseText
-                .components(separatedBy: .whitespacesAndNewlines)
-                .first(where: { $0.hasPrefix("http://") || $0.hasPrefix("https://") })?
-                .trimmingCharacters(in: CharacterSet(charactersIn: "\"'<>")),
-              var url = URL(string: rawURL) else {
-            throw MusicSourceError.invalidResponse("酷我没有返回有效播放地址")
-        }
-        // Kuwo's resolver may return an HTTP CDN URL. Upgrade it to HTTPS
-        // before handing it to URLSession/AVPlayer so ATS does not block it.
-        if url.scheme?.lowercased() == "http",
-           var components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
-            components.scheme = "https"
-            if let secureURL = components.url { url = secureURL }
-        }
-        guard url.scheme?.lowercased() == "https", Self.isHTTPURL(url) else {
-            throw MusicSourceError.invalidResponse("酷我没有返回可通过 ATS 的 HTTPS 播放地址")
+        guard let url = resolvedURL else {
+            if let lastConversionError { throw lastConversionError }
+            throw MusicSourceError.invalidResponse("酷我没有返回可用的播放地址")
         }
 
-        return ResolvedMusicResource(url: url, providerID: identifier, providerName: displayName)
     }
 
     private struct Candidate {
