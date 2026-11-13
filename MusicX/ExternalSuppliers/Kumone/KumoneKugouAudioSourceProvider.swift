@@ -16,7 +16,7 @@ struct KumoneKugouAudioSourceProvider: MusicResourceProvider {
     func resolve(song: MusicSong, quality: MusicQuality) async throws -> ResolvedMusicResource? {
         try Task.checkCancellation()
 
-        var searchComponents = URLComponents(string: "http://mobilecdn.kugou.com/api/v3/search/song")
+        var searchComponents = URLComponents(string: "https://mobilecdn.kugou.com/api/v3/search/song")
         searchComponents?.queryItems = [
             URLQueryItem(name: "format", value: "json"),
             URLQueryItem(name: "keyword", value: "\(song.title) \(song.artist)"),
