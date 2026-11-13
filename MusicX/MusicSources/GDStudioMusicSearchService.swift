@@ -147,6 +147,9 @@ struct GDStudioMusicSearchService {
             method: "get_recommend_feed",
             parameters: ["direction": 0, "page": 1, "v_cache": [], "v_uniq": [], "s_num": 0]
         )
+        if let retcode = feed["retcode"] as? Int, retcode != 0 {
+            throw MusicSourceError.invalidResponse("QQ每日推荐业务状态异常：\(retcode)")
+        }
         guard let shelves = feed["v_shelf"] as? [[String: Any]] else {
             throw MusicSourceError.invalidResponse("QQ每日推荐信息流结构异常")
         }
