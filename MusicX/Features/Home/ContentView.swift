@@ -471,7 +471,7 @@ struct ContentView: View {
                     route: .daily, width: width
                 )
                 recommendationTile(
-                    title: "精选歌单", subtitle: "遇见更好的自己", icon: "text.alignleft",
+                    title: "精选歌曲", subtitle: "遇见更好的自己", icon: "text.alignleft",
                     colors: [Color(red: 0.52, green: 0.36, blue: 0.91), Color(red: 0.22, green: 0.12, blue: 0.55)],
                     route: .featuredPick, width: width
                 )
