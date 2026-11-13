@@ -72,7 +72,7 @@ struct MiguNativeAudioProvider: MusicResourceProvider {
             throw MusicSourceError.invalidResponse("咪咕播放接口 HTTP \((response as? HTTPURLResponse)?.statusCode ?? -1)")
         }
 
-        let payload = try decodePayload(data, signature: http.value(forHTTPHeaderField: "signature"))
+        let payload = try Self.decodePayload(data, signature: http.value(forHTTPHeaderField: "signature"))
         let root = try JSONSerialization.jsonObject(with: payload) as? [String: Any]
         guard let root else {
             throw MusicSourceError.invalidResponse("咪咕播放接口返回非 JSON 对象")
@@ -121,7 +121,7 @@ struct MiguNativeAudioProvider: MusicResourceProvider {
         }
     }
 
-    private func decodePayload(_ data: Data, signature: String?) throws -> Data {
+    static func decodePayload(_ data: Data, signature: String?) throws -> Data {
         let bytes = Array(data)
         let hasMagic = bytes.count >= 3 && Array(bytes.prefix(3)) == Self.magic
         guard signature == "1" || hasMagic else { return data }
