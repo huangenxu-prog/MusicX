@@ -248,7 +248,7 @@ struct MusicDiscoveryPage: View {
             Circle().fill(Color(red: 0.055, green: 0.075, blue: 0.16))
                 .frame(width: 164, height: 164)
                 .overlay(Circle().stroke(Color(red: 0.18, green: 0.25, blue: 0.49).opacity(0.8), lineWidth: 1))
-            ForEach([142.0, 126.0, 110.0, 94.0], id: \.self) { diameter in
+            ForEach([CGFloat(142), 126, 110, 94], id: \.self) { diameter in
                 Circle().stroke(Color(red: 0.12, green: 0.18, blue: 0.36).opacity(0.82), lineWidth: 1)
                     .frame(width: diameter, height: diameter)
             }
