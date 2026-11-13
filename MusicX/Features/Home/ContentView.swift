@@ -96,6 +96,144 @@ private enum PlayerDisplayMode: CaseIterable, Hashable {
 
 private struct MusicXPageBackground: View {
     var body: some View {
+        Color(red: 10/255, green: 14/255, blue: 31/255)
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+    }
+}
+
+struct ContentView: View {
+    @State private var selectedTab: MainTab = .home
+    @Namespace private var tabSelectionNamespace
+    @State private var searchText = ""
+    @State private var searchSuggestions = ["十年", "突然好想你", "晴天", "青花瓷"]
+    @FocusState private var searchFieldFocused: Bool
+    @State private var libraryFilter: LibraryFilter = .recent
+    @State private var libraryContentType: LibraryContentType = .songs
+    @State private var isLocalMusicAlertPresented = false
+    @State private var currentSong: AppSong?
+    @State private var isSeekingProgress = false
+    @State private var seekPreviewTime: TimeInterval = 0
+    @StateObject private var playerStore = PlayerStore()
+    @State private var onlineResults: [AppSong] = []
+    @State private var isSearching = false
+    @State private var searchRequestID = UUID()
+    @State private var searchError: String?
+    @State private var isPlayerPresented = false
+    @State private var playbackRequestID = UUID()
+    @State private var playbackTask: Task<Void, Never>?
+    @State private var playbackQueueSongs: [AppSong] = []
+    @State private var shuffleHistory: [Int] = []
+    @State private var shuffleForwardHistory: [Int] = []
+    @State private var hasCustomPlaybackQueue = false
+    @State private var isResolvingSong = false
+    @State private var failedPlaybackSongIDs: Set<Int> = []
+    @State private var refreshedPlaybackSongIDs: Set<Int> = []
+    @AppStorage("musicx.favoriteIDs") private var favoriteIDs = "1,3"
+    @AppStorage("musicx.recentIDs") private var recentIDs = ""
+    @AppStorage("musicx.recentSongs") private var recentSongsJSON = "[]"
+    @AppStorage("musicx.favoriteSongs") private var favoriteSongsJSON = "[]"
+    @AppStorage("musicx.playbackQuality") private var playbackQualityRaw = MusicQuality.high.rawValue
+
+    private var selectedMusicQuality: MusicQuality {
+        MusicQuality(rawValue: playbackQualityRaw) ?? .high
+    }
+
+    private var favorites: Set<Int> {
+        Set(favoriteIDs.split(separator: ",").compactMap { Int($0) })
+    }
+
+    private var recentSongs: [AppSong] {
+        let stored = decodeLibrarySongs(recentSongsJSON).map { appSong(from: $0) }
+        var available = stored
+        available.append(contentsOf: songs)
+        available.append(contentsOf: onlineResults)
+        available.append(contentsOf: playbackQueueSongs)
+        if let currentSong { available.append(currentSong) }
+        available = uniqueLibrarySongs(available)
+        let ids = recentIDs.split(separator: ",").compactMap { Int($0) }
+        let ordered = ids.compactMap { id in available.first { $0.id == id } }
+        return ordered.isEmpty ? stored : ordered
+    }
+
+    private var favoriteSongs: [AppSong] {
+        let stored = decodeLibrarySongs(favoriteSongsJSON).map { appSong(from: $0) }
+        var available = stored
+        available.append(contentsOf: songs)
+        available.append(contentsOf: onlineResults)
+        available.append(contentsOf: playbackQueueSongs)
+        if let currentSong { available.append(currentSong) }
+        available = uniqueLibrarySongs(available)
+        let ids = favorites
+        let current = available.filter { ids.contains($0.id) }
+        return uniqueLibrarySongs(stored + current).filter { ids.contains($0.id) }
+    }
+
+    private func decodeLibrarySongs(_ raw: String) -> [MusicSong] {
+        guard let data = raw.data(using: .utf8),
+              let decoded = try? JSONDecoder().decode([MusicSong].self, from: data) else { return [] }
+        return decoded
+    }
+
+    private func uniqueLibrarySongs(_ items: [AppSong]) -> [AppSong] {
+        var seen = Set<Int>()
+        return items.filter { seen.insert($0.id).inserted }
+    }
+
+    private func appSong(from song: MusicSong) -> AppSong {
+        AppSong(id: stableSongID(song), title: song.title, artist: song.artist,
+                album: song.album ?? "", tint: MusicXTheme.blue, onlineSong: song)
+    }
+
+    private func encodedLibrarySongs(_ items: [MusicSong]) -> String {
+        guard let data = try? JSONEncoder().encode(items),
+              let value = String(data: data, encoding: .utf8) else { return "[]" }
+        return value
+    }
+
+    @State private var songs: [AppSong] = []
+    @State private var recommendationSongs: [AppSong] = []
+    @State private var homeAlbums: [AppSong] = []
+    @State private var homeAlbumPool: [AppSong] = []
+    @State private var isLoadingHomeSongs = false
+    @State private var homeLoadError: String?
+    @State private var discoveryRoute: MusicDiscoveryRoute?
+    @State private var isDiscoveryPopping = false
+    @State private var isSettingsAlertPresented = false
+
+    private var filteredSongs: [AppSong] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return songs }
+        return onlineResults
+    }
+
+    private var libraryArtists: [LibraryArtist] {
+        let grouped = Dictionary(grouping: librarySongs) { $0.artist.trimmingCharacters(in: .whitespacesAndNewlines) }
+        return grouped.keys.filter { !$0.isEmpty }.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }.compactMap { artist in
+            guard let tracks = grouped[artist], let first = tracks.first else { return nil }
+            return LibraryArtist(artist: artist, song: first, count: tracks.count)
+        }
+    }
+
+    private var librarySongs: [AppSong] {
+        switch libraryFilter {
+        case .favorites: favoriteSongs
+        case .recent: recentSongs
+        }
+    }
+
+    private var libraryAlbums: [LibraryAlbum] {
+        let grouped = Dictionary(grouping: librarySongs) { song in
+            let album = song.album.trimmingCharacters(in: .whitespacesAndNewlines)
+            return album.isEmpty ? song.title : album
+        }
+        return grouped.keys.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }.compactMap { title in
+            guard let tracks = grouped[title], let first = tracks.first else { return nil }
+            return LibraryAlbum(title: title, artist: first.artist, song: first, count: tracks.count)
+        }
+    }
+
+    var body: some View {
         finalAppView
     }
 
