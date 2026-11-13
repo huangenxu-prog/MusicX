@@ -310,14 +310,10 @@ struct DomesticPlaylistDiscoveryService {
                 ?? (row["songId"] as? String)
                 ?? (row["id"] as? String)
             guard let contentID, !contentID.isEmpty else { return nil }
-            let formatRows = (row["newRateFormats"] as? [[String: Any]])
-                ?? (row["rateFormats"] as? [[String: Any]])
-                ?? (row["audioFormats"] as? [[String: Any]])
-                ?? []
-            let preferredFormat = formatRows.first
-            let resourceType = preferredFormat?["resourceType"] as? String ?? "2"
-            let formatType = preferredFormat?["formatType"] as? String ?? "PQ"
-            let sourceID = formatRows.isEmpty ? contentID : "\(contentID)|\(resourceType)|\(formatType)"
+            // Keep the platform's canonical content ID intact. The shared
+            // GDStudio Migu resolver accepts the raw content ID; appending
+            // quality/resource fields would turn it into an invalid song ID.
+            let sourceID = contentID
             let title = (row["name"] as? String) ?? (row["songName"] as? String) ?? ""
             guard !title.isEmpty else { return nil }
             let artists = (row["singers"] as? [[String: Any]]
