@@ -608,7 +608,7 @@ struct ContentView: View {
                     0,
                     ((UIScreen.main.bounds.width - 28 - 24) / 3) * CGFloat((homeOfficialCollections.count + 2) / 3)
                     + CGFloat(max(0, (homeOfficialCollections.count + 2) / 3 - 1)) * 14
-                    + CGFloat((homeOfficialCollections.count + 2) / 3) * 37
+                    + CGFloat((homeOfficialCollections.count + 2) / 3) * 44
                 ))
             }
         }
@@ -672,12 +672,10 @@ struct ContentView: View {
             // Only retain platform-fed collections; keyword search results are not
             // promoted to "official" home content.
             let platformCollections = results.filter { collection in
-                switch collection.provenance {
-                case .officialEditorial, .platformRecommended, .categoryFeatured:
-                    true
-                case .searchResult, .none:
-                    false
-                }
+                guard let provenance = collection.provenance else { return false }
+                return provenance == .officialEditorial
+                    || provenance == .platformRecommended
+                    || provenance == .categoryFeatured
             }
             var seen = Set<String>()
             homeOfficialCollections = Array(
