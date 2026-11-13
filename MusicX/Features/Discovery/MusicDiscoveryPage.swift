@@ -408,9 +408,9 @@ struct MusicDiscoveryPage: View {
             } else {
                 await loadFeaturedPlaylists()
                 guard !Task.isCancelled, songsLoadToken == requestToken else { return }
-                guard let playlist = playlistCardResults["本周编辑精选"] else {
+                guard let playlist = featuredPlaylistResults.first else {
                     songs = []
-                    errorMessage = "暂未匹配到本周精选歌单"
+                    errorMessage = "暂未获取到平台推荐歌单"
                     return
                 }
                 result = try await catalog.playlistTracks(playlistID: playlist.sourceID, source: playlist.source, count: 30)
