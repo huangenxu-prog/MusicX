@@ -1702,7 +1702,7 @@ struct ContentView: View {
         guard !isShuffleEnabled else { return }
         let queue = playbackQueue
         guard let index = queue.firstIndex(where: { $0.id == song.id }) else { return }
-        let upcoming = Array(queue.dropFirst(index + 1).prefix(2)).compactMap(\\.onlineSong)
+        let upcoming = Array(queue.dropFirst(index + 1).prefix(2)).compactMap(\.onlineSong)
         guard !upcoming.isEmpty else { return }
         let quality = selectedMusicQuality
         playbackPrefetchTask = Task {
