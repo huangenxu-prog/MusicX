@@ -187,12 +187,10 @@ struct GDStudioMusicSearchService {
         if let retcode = feed["retcode"] as? Int, retcode != 0 {
             throw MusicSourceError.invalidResponse("QQ每日推荐业务状态异常：\(retcode)")
         }
-        guard let shelves = feed["v_shelf"] as? [[String: Any]] else {
-            throw MusicSourceError.invalidResponse("QQ每日推荐信息流结构异常")
-        }
-
-        // QQ's feed has changed its nesting over time. Walk the complete payload
-        // instead of assuming every card lives at v_shelf/v_niche/v_card.
+        // QQ's feed has changed its nesting over time. Do not require the
+        // legacy v_shelf wrapper: valid responses may move cards under another
+        // top-level container. Walk the complete payload and identify only the
+        // documented daily-playlist card subtype (510).
         func collectDailyCards(from value: Any, into output: inout [[String: Any]]) {
             if let rows = value as? [Any] {
                 for row in rows { collectDailyCards(from: row, into: &output) }
@@ -210,20 +208,40 @@ struct GDStudioMusicSearchService {
         var dailyCards: [[String: Any]] = []
         collectDailyCards(from: feed, into: &dailyCards)
 
-        func cardID(_ card: [String: Any]) -> String? {
-            for key in ["id", "dissid", "content_id", "contentId"] {
-                if let value = card[key] {
-                    let id = String(describing: value)
-                    if !id.isEmpty && id != "0" { return id }
+        func nestedScalar(in value: Any, keys: [String]) -> Any? {
+            if let object = value as? [String: Any] {
+                for key in keys {
+                    if let candidate = object[key], !(candidate is NSNull) {
+                        return candidate
+                    }
+                }
+                for nested in object.values {
+                    if let found = nestedScalar(in: nested, keys: keys) { return found }
+                }
+            } else if let rows = value as? [Any] {
+                for nested in rows {
+                    if let found = nestedScalar(in: nested, keys: keys) { return found }
                 }
             }
             return nil
         }
+
+        func cardID(_ card: [String: Any]) -> String? {
+            guard let value = nestedScalar(
+                in: card,
+                keys: ["dissid", "content_id", "contentId", "id", "tid"]
+            ) else { return nil }
+            let id = String(describing: value).trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let numericID = Int64(id), numericID > 0 else { return nil }
+            return id
+        }
         func cardTimestamp(_ card: [String: Any]) -> TimeInterval? {
-            for key in ["time", "timestamp", "update_time", "updateTime"] {
-                if let value = card[key] as? NSNumber { return value.doubleValue }
-                if let value = card[key] as? String, let parsed = Double(value) { return parsed }
-            }
+            guard let value = nestedScalar(
+                in: card,
+                keys: ["time", "timestamp", "update_time", "updateTime"]
+            ) else { return nil }
+            if let number = value as? NSNumber { return number.doubleValue }
+            if let string = value as? String { return Double(string) }
             return nil
         }
 
