@@ -243,7 +243,8 @@ struct NetEaseNativeAPIClient {
                 creator: creator,
                 description: row["description"] as? String,
                 artworkURL: artwork,
-                trackCount: (row["trackCount"] as? Int) ?? (row["trackCount"] as? String).flatMap(Int.init)
+                trackCount: (row["trackCount"] as? Int) ?? (row["trackCount"] as? String).flatMap(Int.init),
+                provenance: .searchResult
             )
         }
 
