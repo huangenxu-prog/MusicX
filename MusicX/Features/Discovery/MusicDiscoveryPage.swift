@@ -433,7 +433,7 @@ struct MusicDiscoveryPage: View {
             guard !Task.isCancelled, songsLoadToken == requestToken else { return }
             errorMessage = tab == .daily
                 ? "每日推荐暂时无法加载：\(error.localizedDescription)"
-                : "精选歌曲暂时无法加载：\\(error.localizedDescription)"
+                : "精选歌曲暂时无法加载：\(error.localizedDescription)"
         }
     }
 

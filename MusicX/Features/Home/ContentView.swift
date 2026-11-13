@@ -626,16 +626,6 @@ struct ContentView: View {
                     .foregroundStyle(.white)
                     .lineLimit(1)
 
-                HStack(spacing: 4) {
-                    Text(collection.source.displayName)
-                    if let count = collection.trackCount, count > 0 {
-                        Text("·")
-                        Text("\(count)首")
-                    }
-                }
-                .font(.system(size: 11))
-                .foregroundStyle(MusicXTheme.muted)
-                .lineLimit(1)
             }
             .frame(width: width, alignment: .leading)
             .contentShape(Rectangle())
