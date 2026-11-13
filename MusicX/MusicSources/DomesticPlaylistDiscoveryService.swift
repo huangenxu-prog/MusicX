@@ -203,7 +203,7 @@ struct DomesticPlaylistDiscoveryService {
     }
 
     private func refreshKugou(count: Int, cacheKey: String) async throws -> [MusicPlaylist] {
-        guard let url = URL(string: "https://m.kugou.com/plist/index&json=true") else {
+        guard let url = URL(string: "https://m.kugou.com/plist/index?json=true&page=1") else {
             throw MusicSourceError.invalidResponse("酷狗推荐接口地址无效")
         }
         let root = try await getJSON(url, referer: "https://www.kugou.com/")
