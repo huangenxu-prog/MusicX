@@ -27,5 +27,6 @@ protocol MusicCatalogSearchProvider: Sendable {
     func searchPlaylists(keyword: String, count: Int) async throws -> [MusicPlaylist]
     func playlistTracks(keyword: String, count: Int) async throws -> [MusicSong]
     func playlistTracks(playlistID: String, count: Int) async throws -> [MusicSong]
+    func playlistTracks(playlistID: String, source: MusicSource, count: Int) async throws -> [MusicSong]
     func toplist(_ chartName: String, count: Int) async throws -> [MusicSong]
 }
