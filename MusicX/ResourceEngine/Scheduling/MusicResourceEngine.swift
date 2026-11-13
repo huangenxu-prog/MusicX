@@ -120,11 +120,14 @@ struct MusicResourceEngine {
     }
 
     func resolve(song: MusicSong, quality: MusicQuality) async throws -> URL {
-        let providers: [(any MusicResourceProvider, Int)] = [
+        var providers: [(any MusicResourceProvider, Int)] = [
             (MusicXLegacySupplierLibrary(session: session), 30),
             (KumoneKugouAudioSourceProvider(session: session), 20),
             (KumoneKuwoAudioSourceProvider(session: session), 10)
         ]
+        if song.source == .youtubeMusic {
+            providers.insert((YouTubeMusicAudioSourceProvider(session: session), 40), at: 0)
+        }
 
         let ordered = providers.sorted {
             let lhs = ResourceProviderPerformance.shared.score(
