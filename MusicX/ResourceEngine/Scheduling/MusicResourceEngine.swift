@@ -47,8 +47,8 @@ private final class ResourceProviderPerformance {
         let recent = (attempts[identifier] ?? []).filter { $0.timestamp > cutoff }
         guard !recent.isEmpty else { return baseline }
 
-        let successRate = Double(recent.filter(\\.succeeded).count) / Double(recent.count)
-        let averageLatency = Double(recent.map(\\.durationMilliseconds).reduce(0, +)) / Double(recent.count)
+        let successRate = Double(recent.filter(\.succeeded).count) / Double(recent.count)
+        let averageLatency = Double(recent.map(\.durationMilliseconds).reduce(0, +)) / Double(recent.count)
         return Int(successRate * 100 - min(averageLatency / 150, 30) + Double(baseline))
     }
 }
@@ -244,13 +244,13 @@ struct MusicResourceEngine {
             throw MusicSourceError.invalidResponse("播放地址没有返回 HTTP 响应")
         }
         guard http.statusCode == 200 || http.statusCode == 206 else {
-            throw MusicSourceError.invalidResponse("播放流 HTTP \\(http.statusCode)")
+            throw MusicSourceError.invalidResponse("播放流 HTTP \(http.statusCode)")
         }
 
         if let mimeType = http.mimeType?.lowercased(),
            mimeType == "text/html" || mimeType == "application/json"
             || mimeType.hasPrefix("text/") {
-            throw MusicSourceError.invalidResponse("播放地址返回了非音频内容（\\(mimeType)）")
+            throw MusicSourceError.invalidResponse("播放地址返回了非音频内容（\(mimeType)）")
         }
 
         var receivedBytes = 0
