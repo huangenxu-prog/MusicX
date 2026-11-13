@@ -34,6 +34,31 @@ struct GDStudioMetadataService {
         if let cached: CachedLyrics = await MusicCache.shared.value(for: cacheKey) {
             return (cached.original, cached.translated)
         }
+        if song.source == .netease {
+            do {
+                if let native = try await NetEaseNativeAPIClient(session: session).lyrics(songID: lyricID) {
+                    await MusicCache.shared.insert(
+                        CachedLyrics(original: native.original, translated: native.translated),
+                        for: cacheKey,
+                        ttl: 7 * 24 * 60 * 60
+                    )
+                    return native
+                }
+            } catch {
+                if Task.isCancelled || error is CancellationError
+                    || (error as? URLError)?.code == .cancelled {
+                    throw CancellationError()
+                }
+                MusicSourceDiagnostics.shared.record(
+                    event: "lyrics-fallback",
+                    source: song.source.rawValue,
+                    provider: "netease-native-eapi",
+                    duration: 0,
+                    result: "fallback_to_gdstudio",
+                    detail: error.localizedDescription
+                )
+            }
+        }
         let object = try await request([
             URLQueryItem(name: "types", value: "lyric"),
             URLQueryItem(name: "source", value: sourceName(song.source)),
