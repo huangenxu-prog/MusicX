@@ -63,16 +63,19 @@ struct MusicXLegacySupplierLibrary: MusicResourceProvider, MusicCatalogSearchPro
         async let netease: [MusicPlaylist]? = try? await NetEaseNativeAPIClient(session: session).recommendedPlaylists(count: limit)
         async let qq: [MusicPlaylist]? = try? await GDStudioMusicSearchService(session: session).recommendedPlaylists(count: limit)
         async let other: [MusicPlaylist]? = try? await DomesticPlaylistDiscoveryService(session: session).featuredPlaylists(count: limit)
-        let groups = await [netease ?? [], qq ?? [], other ?? []]
+        let neteaseResults = await netease
+        let qqResults = await qq
+        let otherResults = await other
+        let groups = [neteaseResults ?? [], qqResults ?? [], otherResults ?? []]
         try Task.checkCancellation()
-        if netease == nil {
+        if neteaseResults == nil {
             MusicSourceDiagnostics.shared.record(
                 event: "playlist-discovery", source: MusicSource.netease.rawValue,
                 provider: "netease-recommendations", duration: 0, result: "failed",
                 detail: "网易云推荐歌单接口未返回有效结果"
             )
         }
-        if qq == nil {
+        if qqResults == nil {
             MusicSourceDiagnostics.shared.record(
                 event: "playlist-discovery", source: MusicSource.qq.rawValue,
                 provider: "qq-recommendations", duration: 0, result: "failed",
