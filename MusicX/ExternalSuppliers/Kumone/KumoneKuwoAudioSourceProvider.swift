@@ -104,7 +104,7 @@ struct KumoneKuwoAudioSourceProvider: MusicResourceProvider {
                 URLQueryItem(name: "type", value: format.type),
                 URLQueryItem(name: "format", value: format.format),
                 URLQueryItem(name: "response", value: "url"),
-                URLQueryItem(name: "rid", value: "MUSIC_\\(candidate.rid)")
+                URLQueryItem(name: "rid", value: "MUSIC_\(candidate.rid)")
             ]
             guard let convertURL = convertComponents?.url else { continue }
 
@@ -117,7 +117,7 @@ struct KumoneKuwoAudioSourceProvider: MusicResourceProvider {
                 guard let streamHTTP = streamResponse as? HTTPURLResponse,
                       (200..<300).contains(streamHTTP.statusCode) else {
                     lastConversionError = MusicSourceError.invalidResponse(
-                        "Kuwo stream HTTP \\((streamResponse as? HTTPURLResponse)?.statusCode ?? -1)"
+                        "Kuwo stream HTTP \((streamResponse as? HTTPURLResponse)?.statusCode ?? -1)"
                     )
                     continue
                 }
@@ -127,7 +127,7 @@ struct KumoneKuwoAudioSourceProvider: MusicResourceProvider {
                 let rawURL = responseText?
                     .components(separatedBy: .whitespacesAndNewlines)
                     .first(where: { $0.hasPrefix("http://") || $0.hasPrefix("https://") })?
-                    .trimmingCharacters(in: CharacterSet(charactersIn: "\\"'<>"))
+                    .trimmingCharacters(in: CharacterSet(charactersIn: "\"'<>"))
                 guard let rawURL, var url = URL(string: rawURL) else { continue }
 
                 // Kuwo may return an HTTP CDN URL. Upgrade it to HTTPS before
@@ -153,6 +153,7 @@ struct KumoneKuwoAudioSourceProvider: MusicResourceProvider {
             throw MusicSourceError.invalidResponse("酷我没有返回可用的播放地址")
         }
 
+        return ResolvedMusicResource(url: url, providerID: identifier, providerName: displayName)
     }
 
     private struct Candidate {
