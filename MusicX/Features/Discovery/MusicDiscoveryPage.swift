@@ -100,7 +100,7 @@ struct MusicDiscoveryPage: View {
     private var title: String {
         switch route {
         case .daily, .featuredPick:
-            selectedRecommendationTab == .daily ? "每日推荐" : "精选歌单"
+            selectedRecommendationTab == .daily ? "每日推荐" : "精选歌曲"
         case .playlists: "心情歌单"
         case .featuredPlaylists: "精选歌单"
         case .albums: "热门专辑"
@@ -156,13 +156,8 @@ struct MusicDiscoveryPage: View {
                             .padding(.top, 18)
                         recommendationSectionTitle
                             .padding(.top, 20)
-                        if selectedRecommendationTab == .featured {
-                            featuredPlaylistGrid
-                                .padding(.top, 10)
-                        } else {
-                            trackList
-                                .padding(.top, 10)
-                        }
+                        trackList
+                            .padding(.top, 10)
                     }
                     .padding(.horizontal, 20)
                     .padding(.bottom, 18)
@@ -356,7 +351,7 @@ struct MusicDiscoveryPage: View {
     private var recommendationTabs: some View {
         HStack(spacing: 12) {
             recommendationTabButton("每日推荐", tab: .daily)
-            recommendationTabButton("精选歌单", tab: .featured)
+            recommendationTabButton("精选歌曲", tab: .featured)
         }
     }
 
@@ -365,6 +360,9 @@ struct MusicDiscoveryPage: View {
         return Button {
             guard selectedRecommendationTab != tab else { return }
             selectedRecommendationTab = tab
+            songs = []
+            errorMessage = nil
+            isLoading = true
             Task { await loadRecommendationSongs(for: tab) }
         } label: {
             Text(title)
@@ -385,8 +383,8 @@ struct MusicDiscoveryPage: View {
                 Image("featured_playlist").resizable().scaledToFill()
                 LinearGradient(colors: [.clear, .black.opacity(0.56)], startPoint: .center, endPoint: .bottom)
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("本周精选").font(.system(size: 27, weight: .bold)).foregroundStyle(.white)
-                    Text("歌单").font(.system(size: 14, weight: .medium)).foregroundStyle(.white.opacity(0.84))
+                    Text("精选歌曲").font(.system(size: 27, weight: .bold)).foregroundStyle(.white)
+                    Text("热歌精选").font(.system(size: 14, weight: .medium)).foregroundStyle(.white.opacity(0.84))
                 }
                 .padding(22)
             }
@@ -398,10 +396,10 @@ struct MusicDiscoveryPage: View {
 
     @MainActor
     private func loadRecommendationSongs(for tab: RecommendationTab) async {
-        if tab == .featured {
-            await loadFeaturedPlaylists()
-            songs = []
-            recommendationSongCache[.featured] = []
+        if let cached = recommendationSongCache[tab], !cached.isEmpty {
+            songs = cached
+            errorMessage = nil
+            isLoading = false
             return
         }
         if let cached = recommendationSongCache[.daily], !cached.isEmpty {
@@ -418,14 +416,24 @@ struct MusicDiscoveryPage: View {
             if songsLoadToken == requestToken { isLoading = false }
         }
         do {
-            let result = try await catalog.dailyRecommendedSongs(count: 30)
+            let result: [MusicSong]
+            if tab == .daily {
+                result = try await catalog.dailyRecommendedSongs(count: 30)
+            } else {
+                // 精选歌曲独立于每日推荐：从平台热歌榜提取真实歌曲条目。
+                result = try await catalog.toplist("热歌榜", count: 30)
+            }
             guard !Task.isCancelled, songsLoadToken == requestToken else { return }
-            recommendationSongCache[.daily] = result
+            recommendationSongCache[tab] = result
             songs = result
-            if result.isEmpty { errorMessage = "暂时没有可展示的歌曲" }
+            if result.isEmpty {
+                errorMessage = tab == .daily ? "每日推荐暂时没有可用歌曲" : "精选歌曲暂时没有可用歌曲"
+            }
         } catch {
             guard !Task.isCancelled, songsLoadToken == requestToken else { return }
-            errorMessage = "每日推荐暂时无法加载，请稍后重试"
+            errorMessage = tab == .daily
+                ? "每日推荐暂时无法加载：\(error.localizedDescription)"
+                : "精选歌曲暂时无法加载：\\(error.localizedDescription)"
         }
     }
 
