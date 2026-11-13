@@ -560,7 +560,7 @@ struct GDStudioMusicSearchService {
         let (data, response) = try await session.data(for: request)
         try Task.checkCancellation()
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-            throw MusicSourceError.invalidResponse("咪咕搜索 HTTP \\((response as? HTTPURLResponse)?.statusCode ?? -1)")
+            throw MusicSourceError.invalidResponse("咪咕搜索 HTTP \((response as? HTTPURLResponse)?.statusCode ?? -1)")
         }
 
         let payload = try MiguNativeAudioProvider.decodePayload(
@@ -573,7 +573,7 @@ struct GDStudioMusicSearchService {
         if let code = root["code"] {
             let value = String(describing: code)
             if !value.isEmpty && value != "000000" && value != "0" {
-                throw MusicSourceError.invalidResponse("咪咕搜索业务状态异常：\\(value)")
+                throw MusicSourceError.invalidResponse("咪咕搜索业务状态异常：\(value)")
             }
         }
 
