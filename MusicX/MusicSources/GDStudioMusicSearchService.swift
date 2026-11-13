@@ -201,7 +201,7 @@ struct GDStudioMusicSearchService {
         let cacheKey = "qq-recommended-playlists|\(limit)"
         if let cached = await MusicCatalogStore.shared.snapshot(for: cacheKey, as: [MusicPlaylist].self) {
             if cached.needsRefresh {
-                Task { _ = try? await self.refreshRecommendedPlaylists(count: limit, cacheKey: cacheKey) }
+                return (try? await refreshRecommendedPlaylists(count: limit, cacheKey: cacheKey)) ?? cached.value
             }
             return cached.value
         }
@@ -246,7 +246,7 @@ struct GDStudioMusicSearchService {
         let cacheKey = "catalog-playlists|\(query.lowercased())|\(count)"
         if let cached = await MusicCatalogStore.shared.snapshot(for: cacheKey, as: [MusicPlaylist].self) {
             if cached.needsRefresh {
-                Task { _ = try? await self.refreshPlaylistSearch(keyword: query, count: count, cacheKey: cacheKey) }
+                return (try? await refreshPlaylistSearch(keyword: query, count: count, cacheKey: cacheKey)) ?? cached.value
             }
             return cached.value
         }
@@ -448,7 +448,7 @@ struct GDStudioMusicSearchService {
         let cacheKey = "catalog-chart|\(normalizedChart)|\(count)"
         if let cached = await MusicCatalogStore.shared.snapshot(for: cacheKey, as: [MusicSong].self) {
             if cached.needsRefresh {
-                Task { _ = try? await self.refreshToplist(normalizedChart, count: count, cacheKey: cacheKey) }
+                return (try? await refreshToplist(normalizedChart, count: count, cacheKey: cacheKey)) ?? cached.value
             }
             return cached.value
         }
