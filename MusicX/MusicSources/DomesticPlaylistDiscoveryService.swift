@@ -101,8 +101,10 @@ struct DomesticPlaylistDiscoveryService {
             guard let rawID = row["playlistid"] as? String, !rawID.isEmpty,
                   let name = row["name"] as? String, !name.isEmpty else { return nil }
             let rawCover = row["pic"] as? String
-            let cover = rawCover?.replacingOccurrences(of: "_150.", with: "_700.")
-                .map { $0.hasPrefix("http") ? $0 : "https://" + $0 }
+            let cover = rawCover.map { value -> String in
+                let normalized = value.replacingOccurrences(of: "_150.", with: "_700.")
+                return normalized.hasPrefix("http") ? normalized : "https://" + normalized
+            }
             return MusicPlaylist(
                 source: .kuwo,
                 sourceID: rawID,
