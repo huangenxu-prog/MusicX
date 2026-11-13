@@ -882,6 +882,14 @@ struct MusicDiscoveryPage: View {
                     .lineLimit(1)
                 HStack(spacing: 5) {
                     Text(playlist.source.displayName)
+                    Text("· " + {
+                        switch playlist.provenance {
+                        case .officialEditorial: "官方精选"
+                        case .platformRecommended: "平台推荐"
+                        case .categoryFeatured: "分类推荐"
+                        case .searchResult, .none: "歌单"
+                        }
+                    }())
                     if let trackCount = playlist.trackCount, trackCount > 0 {
                         Text("· \(trackCount)首")
                     }
@@ -1111,12 +1119,11 @@ struct MusicDiscoveryPage: View {
 
     @MainActor
     private func loadFeaturedPlaylists() async {
-        if !featuredPlaylistResults.isEmpty { return }
-        isLoading = true
+        isLoading = featuredPlaylistResults.isEmpty
         errorMessage = nil
         defer { isLoading = false }
         do {
-            let results = try await catalog.featuredPlaylists(count: 30)
+            let results = try await catalog.featuredPlaylists(count: 25)
             guard !Task.isCancelled else { return }
             featuredPlaylistResults = results
             if results.isEmpty { errorMessage = "平台暂时没有返回可用歌单" }
