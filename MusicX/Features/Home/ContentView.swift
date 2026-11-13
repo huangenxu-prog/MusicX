@@ -576,7 +576,7 @@ struct ContentView: View {
             nextBatch = Array(homeAlbumPool.filter { !currentIDs.contains($0.id) }.shuffled().prefix(6))
         }
         if nextBatch.count < 6 {
-            let remaining = homeAlbumPool.filter { !nextBatch.contains(where: { $0.id == $0.id }) }
+            let remaining = homeAlbumPool.filter { candidate in !nextBatch.contains(where: { $0.id == candidate.id }) }
             nextBatch.append(contentsOf: remaining.shuffled().prefix(6 - nextBatch.count))
         }
         homeAlbums = nextBatch
