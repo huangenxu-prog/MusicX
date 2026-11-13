@@ -217,22 +217,23 @@ struct MusicResourceEngine {
                 }
 
                 let elapsed = Date().timeIntervalSince(startedAt)
-                if Self.shouldTripCircuitBreaker(for: error) {
+                let providerLevelFailure = Self.shouldTripCircuitBreaker(for: error)
+                if providerLevelFailure {
                     ResourceProviderCircuitBreaker.shared.recordFailure(provider.identifier)
+                    ResourceProviderPerformance.shared.record(
+                        identifier: provider.identifier,
+                        succeeded: false,
+                        duration: elapsed
+                    )
                 } else {
                     ResourceProviderCircuitBreaker.shared.recordResourceFailure(provider.identifier)
                 }
-                ResourceProviderPerformance.shared.record(
-                    identifier: provider.identifier,
-                    succeeded: false,
-                    duration: elapsed
-                )
                 MusicSourceDiagnostics.shared.record(
                     event: "resource-provider",
                     source: song.source.rawValue,
                     provider: provider.identifier,
                     duration: elapsed,
-                    result: "failed",
+                    result: providerLevelFailure ? "failed" : "resource_unavailable",
                     detail: error.localizedDescription
                 )
                 failures.append("\(provider.displayName)：\(error.localizedDescription)")
