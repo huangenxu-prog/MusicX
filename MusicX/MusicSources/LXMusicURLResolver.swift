@@ -94,10 +94,36 @@ struct LXMusicURLResolver: MusicURLResolving {
     /// Entry point used only by the MusicX legacy supplier adapter. It bypasses
     /// the public cache boundary and never calls the resource engine recursively.
     func resolveFromLegacyLibrary(song: MusicSong, quality: MusicQuality) async throws -> URL? {
-        if let nativeURL = try await resolveNative(song: song, quality: quality) {
-            return nativeURL
+        var nativeFailure: Error?
+        do {
+            if let nativeURL = try await resolveNative(song: song, quality: quality) {
+                return nativeURL
+            }
+        } catch {
+            if Task.isCancelled || error is CancellationError || (error as? URLError)?.code == .cancelled {
+                throw CancellationError()
+            }
+            nativeFailure = error
         }
-        return try await resolveAlternativeSource(song: song, quality: quality)
+
+        do {
+            if let fallbackURL = try await resolveAlternativeSource(song: song, quality: quality) {
+                return fallbackURL
+            }
+        } catch {
+            if Task.isCancelled || error is CancellationError || (error as? URLError)?.code == .cancelled {
+                throw CancellationError()
+            }
+            if let nativeFailure {
+                throw MusicSourceError.invalidResponse(
+                    "原生音源失败：\\(nativeFailure.localizedDescription)；跨平台回退失败：\\(error.localizedDescription)"
+                )
+            }
+            throw error
+        }
+
+        if let nativeFailure { throw nativeFailure }
+        return nil
     }
 
     /// Resolve only the source-native ID. IDs are never passed between providers.
