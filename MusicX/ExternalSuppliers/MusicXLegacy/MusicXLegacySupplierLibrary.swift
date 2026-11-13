@@ -178,25 +178,28 @@ struct MusicXLegacySupplierLibrary: MusicResourceProvider, MusicCatalogSearchPro
     }
 
     func toplist(_ chartName: String, count: Int) async throws -> [MusicSong] {
-        do {
-            return try await NetEaseNativeAPIClient(session: session).toplist(chartName, count: count)
-        } catch {
-            if Task.isCancelled || error is CancellationError
-                || (error as? URLError)?.code == .cancelled {
-                throw CancellationError()
-            }
-            MusicSourceDiagnostics.shared.record(
-                event: "catalog-fallback",
-                source: MusicSource.netease.rawValue,
-                provider: "netease-native-eapi",
-                duration: 0,
-                result: "fallback_to_gdstudio",
-                detail: error.localizedDescription
-            )
-            return try await GDStudioMusicSearchService(session: session).toplist(chartName, count: count)
-        }
-    }
+        let limit = min(max(count, 1), 100)
+        async let netease: [MusicSong]? = try? await NetEaseNativeAPIClient(session: session)
+            .toplist(chartName, count: limit)
+        async let qq: [MusicSong]? = try? await GDStudioMusicSearchService(session: session)
+            .toplist(chartName, count: limit)
+        let groups = [await netease ?? [], await qq ?? []]
+        try Task.checkCancellation()
 
+        func normalized(_ value: String) -> String {
+            value.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+                .filter { $0.isLetter || $0.isNumber }
+        }
+        var seen = Set<String>()
+        let merged = groups.flatMap { $0 }.filter { song in
+            let identity = normalized(song.title) + "|" + normalized(song.artist)
+            return !identity.isEmpty && seen.insert(identity).inserted
+        }
+        guard !merged.isEmpty else {
+            throw MusicSourceError.invalidResponse("榜单暂时无法加载，请稍后重试")
+        }
+        return Array(merged.prefix(limit))
+    }
     func resolve(song: MusicSong, quality: MusicQuality) async throws -> ResolvedMusicResource? {
         let resolver = LXMusicURLResolver(session: session)
         guard let url = try await resolver.resolveFromLegacyLibrary(song: song, quality: quality) else {
