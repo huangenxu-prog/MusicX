@@ -355,8 +355,7 @@ struct ContentView: View {
                     heroAndRecommendation
                     chartSection
                     newMusicSection
-                    albumSection
-                    editorialPlaylistSection
+                    featuredCollectionSection
                 }
                 .padding(.top, 0)
                 .padding(.bottom, 8)
@@ -511,16 +510,27 @@ struct ContentView: View {
         }
     }
 
-    private var albumSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            homeSectionTitle("热门专辑", action: { discoveryRoute = .albums }).padding(.horizontal, 14)
+    private var featuredCollectionSection: some View {
+        let editorialItems: [(title: String, subtitle: String, artwork: String)] = [
+            ("本周编辑精选", "本周精选", "album_07"),
+            ("华语流行精选", "宝藏好歌 · 优质华语流行歌曲合集", "album_08"),
+            ("经典金曲精选", "经久不衰的动人歌声", "album_09"),
+            ("独立音乐精选", "Indie Music｜独立音乐聚落", "album_10"),
+            ("影视原声精选", "影视原声与经典配乐", "album_11"),
+            ("通勤驾驶精选", "通勤路上｜有前行感的节奏", "album_12")
+        ]
+        return VStack(alignment: .leading, spacing: 10) {
+            homeSectionTitle("精选歌单", action: { discoveryRoute = .featuredPlaylists }).padding(.horizontal, 14)
             GeometryReader { proxy in
                 let gap: CGFloat = 12
                 let width = max(112, (proxy.size.width - 28 - gap * 2) / 3)
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: gap) {
+                    HStack(alignment: .top, spacing: gap) {
                         ForEach(Array(homeAlbums.prefix(6).enumerated()), id: \.element.id) { _, album in
                             dynamicAlbumTile(album: album, width: width)
+                        }
+                        ForEach(editorialItems, id: \.title) { item in
+                            editorialCollectionTile(item: item, width: width)
                         }
                     }.padding(.horizontal, 14)
                 }
@@ -541,6 +551,21 @@ struct ContentView: View {
                 }
                 Text(album.album).font(.system(size: 13, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
                 Text(album.artist).font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
+            }.frame(width: width, alignment: .leading)
+        }.buttonStyle(.plain)
+    }
+
+    private func editorialCollectionTile(item: (title: String, subtitle: String, artwork: String), width: CGFloat) -> some View {
+        Button {
+            discoveryRoute = .playlist(item.title)
+        } label: {
+            VStack(alignment: .leading, spacing: 7) {
+                Image(item.artwork).resizable().scaledToFill()
+                    .frame(width: width, height: width).clipped()
+                    .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 15, style: .continuous).stroke(.white.opacity(0.16), lineWidth: 0.8))
+                Text(item.title).font(.system(size: 13, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
+                Text(item.subtitle).font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
             }.frame(width: width, alignment: .leading)
         }.buttonStyle(.plain)
     }

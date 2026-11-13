@@ -172,7 +172,7 @@ struct MusicDiscoveryPage: View {
                         case .albums: albumsIntro
                         case .charts, .chart: chartIntro
                         case .newReleases: newReleasesHeader
-                        case .playlist(let name): detailBanner(name, subtitle: playlistSubtitle(for: name))
+                        case .playlist(let name): musicCategoryAlbumHeader(title: name, subtitle: playlistSubtitle(for: name), artwork: categoryArtworkName(for: name))
                         case .playlistByID(let playlist): detailBanner(playlist.name, subtitle: playlistSubtitle(for: playlist.name))
                         case .album(let title, let artist): albumBanner(title: title, artist: artist)
                         case .musicCategory(let title, let subtitle, let artwork, _):
@@ -190,6 +190,8 @@ struct MusicDiscoveryPage: View {
                             if case .album = route {
                                 musicCategoryTrackList
                             } else if case .musicCategory = route {
+                                musicCategoryTrackList
+                            } else if case .playlist = route {
                                 musicCategoryTrackList
                             } else {
                                 trackList
