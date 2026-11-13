@@ -1508,8 +1508,9 @@ struct ContentView: View {
         select(queue[(index + offset + queue.count) % queue.count])
     }
 
-    /// Retry the VPS-issued stream through its failure-report/refresh contract.
-    /// If the VPS is unavailable, retain the existing local fresh-resolution path.
+    /// Retry a failed stream without making the VPS a single point of failure.
+    /// A VPS-issued URL is refreshed with its failed provider excluded. A locally
+    /// issued URL is first refreshed locally, then the VPS is used as a secondary path.
     private func retryCurrentSongWithFreshURL() {
         guard let song = currentSong, let onlineSong = song.onlineSong,
               !refreshedPlaybackSongIDs.contains(song.id) else {
@@ -1526,47 +1527,82 @@ struct ContentView: View {
             defer {
                 if playbackRequestID == requestID { isResolvingSong = false }
             }
-            do {
-                let resolver = LXMusicURLResolver()
-                let url: URL
-                if vpsResolvedSongID == song.id, let failedSource = vpsResolvedSource {
-                    let api = MusicXPlaybackAPI()
-                    if failedSource == "netease" || failedSource == "qq" {
-                        // The refresh endpoint already invalidates the failed source cache
-                        // before resolving with that source excluded; a separate report call
-                        // would only add a redundant network round trip.
-                        do {
-                            let refreshed = try await api.refresh(
-                                song: onlineSong,
-                                failedSource: failedSource,
-                                failedTrackID: vpsResolvedTrackID,
-                                failedTrackMID: vpsResolvedTrackMID
-                            )
-                            guard let refreshedURL = refreshed.url else {
-                                throw MusicXPlaybackAPI.APIError.noPlayableURL
-                            }
-                            vpsResolvedSource = refreshed.resolvedSource
-                            vpsResolvedTrackID = refreshed.trackID
-                            vpsResolvedTrackMID = refreshed.trackMID
-                            url = refreshedURL
-                        } catch {
-                            url = try await resolver.resolveFresh(song: onlineSong, quality: selectedMusicQuality)
-                        }
-                    } else {
-                        url = try await resolver.resolveFresh(song: onlineSong, quality: selectedMusicQuality)
-                    }
-                } else {
-                    url = try await resolver.resolveFresh(song: onlineSong, quality: selectedMusicQuality)
+
+            let api = MusicXPlaybackAPI()
+            let resolver = LXMusicURLResolver()
+            var refreshedURL: URL?
+
+            // If the failed stream came from the VPS, ask it for a different provider.
+            if vpsResolvedSongID == song.id,
+               let failedSource = vpsResolvedSource,
+               failedSource == "netease" || failedSource == "qq" {
+                do {
+                    let response = try await api.refresh(
+                        song: onlineSong,
+                        failedSource: failedSource,
+                        failedTrackID: vpsResolvedTrackID,
+                        failedTrackMID: vpsResolvedTrackMID
+                    )
+                    refreshedURL = response.url
+                    vpsResolvedSource = response.resolvedSource
+                    vpsResolvedTrackID = response.trackID
+                    vpsResolvedTrackMID = response.trackMID
+                } catch {
+                    // Continue to local refresh below; VPS failure must not block playback.
                 }
+            }
+
+            // If the first stream was local, or VPS refresh failed, refresh local providers.
+            if refreshedURL == nil {
+                do {
+                    refreshedURL = try await resolver.resolveFresh(
+                        song: onlineSong,
+                        quality: selectedMusicQuality
+                    )
+                    vpsResolvedSongID = nil
+                    vpsResolvedSource = nil
+                    vpsResolvedTrackID = nil
+                    vpsResolvedTrackMID = nil
+                } catch {
+                    // The local resolver has exhausted its configured providers.
+                }
+            }
+
+            // Last fallback: ask the VPS to resolve the original source independently.
+            if refreshedURL == nil, api.isConfigured {
+                do {
+                    let response = try await api.resolve(song: onlineSong)
+                    refreshedURL = response.url
+                    vpsResolvedSongID = song.id
+                    vpsResolvedSource = response.resolvedSource
+                    vpsResolvedTrackID = response.trackID
+                    vpsResolvedTrackMID = response.trackMID
+                } catch {
+                    // Both local and VPS resolution failed; advance the queue below.
+                }
+            }
+
+            do {
                 try Task.checkCancellation()
                 guard playbackRequestID == requestID else { return }
-                playerStore.play(url: url, title: onlineSong.title, artist: onlineSong.artist,
-                                 album: onlineSong.album, artworkURL: onlineSong.artworkURL)
+                guard let url = refreshedURL else {
+                    throw MusicSourceError.noPlayableURL(
+                        source: onlineSong.source,
+                        details: "本地音源与 VPS 均未能重新获取播放地址"
+                    )
+                }
+                playerStore.play(
+                    url: url,
+                    title: onlineSong.title,
+                    artist: onlineSong.artist,
+                    album: onlineSong.album,
+                    artworkURL: onlineSong.artworkURL
+                )
             } catch is CancellationError {
                 return
             } catch {
                 guard playbackRequestID == requestID else { return }
-                searchError = "重新获取播放地址失败：\(error.localizedDescription)"
+                searchError = "重新获取播放地址失败：\\(error.localizedDescription)"
                 advanceAfterPlaybackFailure()
             }
         }
