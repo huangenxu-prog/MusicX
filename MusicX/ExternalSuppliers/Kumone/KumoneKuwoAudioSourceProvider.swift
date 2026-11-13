@@ -107,9 +107,18 @@ struct KumoneKuwoAudioSourceProvider: MusicResourceProvider {
                 .components(separatedBy: .whitespacesAndNewlines)
                 .first(where: { $0.hasPrefix("http://") || $0.hasPrefix("https://") })?
                 .trimmingCharacters(in: CharacterSet(charactersIn: "\"'<>")),
-              let url = URL(string: rawURL),
-              Self.isHTTPURL(url) else {
+              var url = URL(string: rawURL) else {
             throw MusicSourceError.invalidResponse("酷我没有返回有效播放地址")
+        }
+        // Kuwo's resolver may return an HTTP CDN URL. Upgrade it to HTTPS
+        // before handing it to URLSession/AVPlayer so ATS does not block it.
+        if url.scheme?.lowercased() == "http",
+           var components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+            components.scheme = "https"
+            if let secureURL = components.url { url = secureURL }
+        }
+        guard url.scheme?.lowercased() == "https", Self.isHTTPURL(url) else {
+            throw MusicSourceError.invalidResponse("酷我没有返回可通过 ATS 的 HTTPS 播放地址")
         }
 
         return ResolvedMusicResource(url: url, providerID: identifier, providerName: displayName)
