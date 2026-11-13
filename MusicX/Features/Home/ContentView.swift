@@ -1893,7 +1893,7 @@ struct ContentView: View {
                         let durationKey = item.duration.map { String(Int($0.rounded())) } ?? "unknown"
                         return seen.insert("\(title)|\(artist)|\(version)|\(durationKey)").inserted
                     }
-                    onlineResults = Array(uniqueResults.prefix(50)).map { item in
+                    onlineResults = Array(uniqueResults.prefix(100)).map { item in
                         AppSong(id: stableSongID(item), title: item.title, artist: item.artist,
                                 album: item.album ?? "", tint: searchTint(for: item.source), onlineSong: item)
                     }
