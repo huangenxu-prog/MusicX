@@ -171,8 +171,13 @@ struct GDStudioMusicSearchService {
             throw MusicSourceError.invalidResponse("QQ今日推荐歌单卡片缺失或不唯一")
         }
         let playlistID = String(describing: rawID)
+        let timestamp: TimeInterval? = {
+            if let value = card["time"] as? NSNumber { return value.doubleValue }
+            if let value = card["time"] as? String { return Double(value) }
+            return nil
+        }()
         guard let numericID = Int64(playlistID), String(numericID) == playlistID,
-              let timestamp = (card["time"] as? NSNumber)?.doubleValue,
+              let timestamp,
               timestamp >= 1_000_000_000, timestamp <= 9_999_999_999,
               calendar.isDate(Date(timeIntervalSince1970: timestamp), inSameDayAs: Date()) else {
             throw MusicSourceError.invalidResponse("QQ今日推荐歌单已过期或编号无效")
