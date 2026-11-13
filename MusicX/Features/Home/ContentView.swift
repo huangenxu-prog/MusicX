@@ -96,144 +96,55 @@ private enum PlayerDisplayMode: CaseIterable, Hashable {
 
 private struct MusicXPageBackground: View {
     var body: some View {
-        Color(red: 10/255, green: 14/255, blue: 31/255)
-            .ignoresSafeArea()
-            .allowsHitTesting(false)
-    }
-}
-
-struct ContentView: View {
-    @State private var selectedTab: MainTab = .home
-    @Namespace private var tabSelectionNamespace
-    @State private var searchText = ""
-    @State private var searchSuggestions = ["十年", "突然好想你", "晴天", "青花瓷"]
-    @FocusState private var searchFieldFocused: Bool
-    @State private var libraryFilter: LibraryFilter = .recent
-    @State private var libraryContentType: LibraryContentType = .songs
-    @State private var isLocalMusicAlertPresented = false
-    @State private var currentSong: AppSong?
-    @State private var isSeekingProgress = false
-    @State private var seekPreviewTime: TimeInterval = 0
-    @StateObject private var playerStore = PlayerStore()
-    @State private var onlineResults: [AppSong] = []
-    @State private var isSearching = false
-    @State private var searchRequestID = UUID()
-    @State private var searchError: String?
-    @State private var isPlayerPresented = false
-    @State private var playbackRequestID = UUID()
-    @State private var playbackTask: Task<Void, Never>?
-    @State private var playbackQueueSongs: [AppSong] = []
-    @State private var shuffleHistory: [Int] = []
-    @State private var shuffleForwardHistory: [Int] = []
-    @State private var hasCustomPlaybackQueue = false
-    @State private var isResolvingSong = false
-    @State private var failedPlaybackSongIDs: Set<Int> = []
-    @State private var refreshedPlaybackSongIDs: Set<Int> = []
-    @AppStorage("musicx.favoriteIDs") private var favoriteIDs = "1,3"
-    @AppStorage("musicx.recentIDs") private var recentIDs = ""
-    @AppStorage("musicx.recentSongs") private var recentSongsJSON = "[]"
-    @AppStorage("musicx.favoriteSongs") private var favoriteSongsJSON = "[]"
-    @AppStorage("musicx.playbackQuality") private var playbackQualityRaw = MusicQuality.high.rawValue
-
-    private var selectedMusicQuality: MusicQuality {
-        MusicQuality(rawValue: playbackQualityRaw) ?? .high
+        finalAppView
     }
 
-    private var favorites: Set<Int> {
-        Set(favoriteIDs.split(separator: ",").compactMap { Int($0) })
+    private var finalAppView: some View {
+        presentationView
+            .onChange(of: discoveryRoute?.id) { oldValue, newValue in
+                if oldValue == nil && newValue != nil { isDiscoveryPopping = false }
+            }
+            .task { await loadHomeSongs() }
     }
 
-    private var recentSongs: [AppSong] {
-        let stored = decodeLibrarySongs(recentSongsJSON).map { appSong(from: $0) }
-        var available = stored
-        available.append(contentsOf: songs)
-        available.append(contentsOf: onlineResults)
-        available.append(contentsOf: playbackQueueSongs)
-        if let currentSong { available.append(currentSong) }
-        available = uniqueLibrarySongs(available)
-        let ids = recentIDs.split(separator: ",").compactMap { Int($0) }
-        let ordered = ids.compactMap { id in available.first { $0.id == id } }
-        return ordered.isEmpty ? stored : ordered
+    private var presentationView: some View {
+        playbackView
+            .overlay { discoveryOverlay }
+            .animation(.easeInOut(duration: 0.28), value: discoveryRoute?.id)
+            .overlay { playerOverlay }
+            .animation(.easeInOut(duration: 0.28), value: isPlayerPresented)
+            .animation(.easeInOut(duration: 0.28), value: selectedTab)
     }
 
-    private var favoriteSongs: [AppSong] {
-        let stored = decodeLibrarySongs(favoriteSongsJSON).map { appSong(from: $0) }
-        var available = stored
-        available.append(contentsOf: songs)
-        available.append(contentsOf: onlineResults)
-        available.append(contentsOf: playbackQueueSongs)
-        if let currentSong { available.append(currentSong) }
-        available = uniqueLibrarySongs(available)
-        let ids = favorites
-        let current = available.filter { ids.contains($0.id) }
-        return uniqueLibrarySongs(stored + current).filter { ids.contains($0.id) }
+    private var playbackView: some View {
+        appContent
+            .preferredColorScheme(.dark)
+            .confirmationDialog("播放设置", isPresented: $isSettingsAlertPresented, titleVisibility: .visible) {
+                Button("标准音质 · 128 kbps") { playbackQualityRaw = MusicQuality.standard.rawValue }
+                Button("高音质 · 320 kbps") { playbackQualityRaw = MusicQuality.high.rawValue }
+                Button("无损音质") { playbackQualityRaw = MusicQuality.lossless.rawValue }
+                Button("Hi-Res") { playbackQualityRaw = MusicQuality.hires.rawValue }
+                Button("取消", role: .cancel) { }
+            } message: {
+                Text("当前音质：\(qualityDisplayName(selectedMusicQuality))。不同音源实际支持的最高音质可能不同。")
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .musicXRemoteNextTrack)) { _ in
+                stepSong(by: 1)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .musicXRemotePreviousTrack)) { _ in
+                stepSong(by: -1)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .musicXPlaybackDidFinish)) { _ in
+                playNextAfterNaturalFinish()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .musicXPlaybackFailed)) { notification in
+                guard let failedItem = notification.object as? AVPlayerItem,
+                      playerStore.isCurrentItem(failedItem) else { return }
+                retryCurrentSongWithFreshURL()
+            }
     }
 
-    private func decodeLibrarySongs(_ raw: String) -> [MusicSong] {
-        guard let data = raw.data(using: .utf8),
-              let decoded = try? JSONDecoder().decode([MusicSong].self, from: data) else { return [] }
-        return decoded
-    }
-
-    private func uniqueLibrarySongs(_ items: [AppSong]) -> [AppSong] {
-        var seen = Set<Int>()
-        return items.filter { seen.insert($0.id).inserted }
-    }
-
-    private func appSong(from song: MusicSong) -> AppSong {
-        AppSong(id: stableSongID(song), title: song.title, artist: song.artist,
-                album: song.album ?? "", tint: MusicXTheme.blue, onlineSong: song)
-    }
-
-    private func encodedLibrarySongs(_ items: [MusicSong]) -> String {
-        guard let data = try? JSONEncoder().encode(items),
-              let value = String(data: data, encoding: .utf8) else { return "[]" }
-        return value
-    }
-
-    @State private var songs: [AppSong] = []
-    @State private var recommendationSongs: [AppSong] = []
-    @State private var homeAlbums: [AppSong] = []
-    @State private var homeAlbumPool: [AppSong] = []
-    @State private var isLoadingHomeSongs = false
-    @State private var homeLoadError: String?
-    @State private var discoveryRoute: MusicDiscoveryRoute?
-    @State private var isDiscoveryPopping = false
-    @State private var isSettingsAlertPresented = false
-
-    private var filteredSongs: [AppSong] {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return songs }
-        return onlineResults
-    }
-
-    private var libraryArtists: [LibraryArtist] {
-        let grouped = Dictionary(grouping: librarySongs) { $0.artist.trimmingCharacters(in: .whitespacesAndNewlines) }
-        return grouped.keys.filter { !$0.isEmpty }.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }.compactMap { artist in
-            guard let tracks = grouped[artist], let first = tracks.first else { return nil }
-            return LibraryArtist(artist: artist, song: first, count: tracks.count)
-        }
-    }
-
-    private var librarySongs: [AppSong] {
-        switch libraryFilter {
-        case .favorites: favoriteSongs
-        case .recent: recentSongs
-        }
-    }
-
-    private var libraryAlbums: [LibraryAlbum] {
-        let grouped = Dictionary(grouping: librarySongs) { song in
-            let album = song.album.trimmingCharacters(in: .whitespacesAndNewlines)
-            return album.isEmpty ? song.title : album
-        }
-        return grouped.keys.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }.compactMap { title in
-            guard let tracks = grouped[title], let first = tracks.first else { return nil }
-            return LibraryAlbum(title: title, artist: first.artist, song: first, count: tracks.count)
-        }
-    }
-
-    var body: some View {
+    private var appContent: some View {
         ZStack {
             MusicXPageBackground()
             Group {
@@ -265,87 +176,83 @@ struct ContentView: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
-        .confirmationDialog("播放设置", isPresented: $isSettingsAlertPresented, titleVisibility: .visible) {
-            Button("标准音质 · 128 kbps") { playbackQualityRaw = MusicQuality.standard.rawValue }
-            Button("高音质 · 320 kbps") { playbackQualityRaw = MusicQuality.high.rawValue }
-            Button("无损音质") { playbackQualityRaw = MusicQuality.lossless.rawValue }
-            Button("Hi-Res") { playbackQualityRaw = MusicQuality.hires.rawValue }
-            Button("取消", role: .cancel) { }
-        } message: {
-            Text("当前音质：\(qualityDisplayName(selectedMusicQuality))。不同音源实际支持的最高音质可能不同。")
+    }
+
+    @ViewBuilder
+    private var discoveryOverlay: some View {
+        if let route = discoveryRoute {
+            MusicDiscoveryPage(
+                route: route,
+                featuredAlbums: homeAlbums.compactMap(\.onlineSong),
+                selectedMainTab: selectedTab.rawValue,
+                onSelectMainTab: { title in
+                    isDiscoveryPopping = true
+                    withAnimation(.easeInOut(duration: 0.28)) {
+                        selectedTab = MainTab.allCases.first(where: { $0.rawValue == title }) ?? .home
+                        discoveryRoute = nil
+                    }
+                },
+                onClose: { _ in
+                    isDiscoveryPopping = true
+                    withAnimation(.easeInOut(duration: 0.28)) { discoveryRoute = nil }
+                },
+                onPlay: { playDiscoverySong($0) },
+                currentSong: currentSong?.onlineSong,
+                isPlaying: playerStore.isPlaying,
+                onTogglePlayback: { playerStore.togglePlayback() },
+                onOpenPlayer: { isPlayerPresented = true },
+                onPrevious: { stepSong(by: -1) },
+                onNext: { stepSong(by: 1) },
+                onOpenQueue: { playerDisplayMode = .queue; isPlayerPresented = true },
+                onQueueChanged: {
+                    playbackQueueSongs = $0.map {
+                        AppSong(id: stableSongID($0), title: $0.title, artist: $0.artist,
+                                album: $0.album ?? "", tint: MusicXTheme.blue, onlineSong: $0)
+                    }
+                    hasCustomPlaybackQueue = true
+                    resetShuffleHistory()
+                },
+                currentTime: playerStore.currentTime,
+                duration: playerStore.duration,
+                onOpenPlaylist: {
+                    isDiscoveryPopping = false
+                    withAnimation(.easeInOut(duration: 0.28)) { discoveryRoute = .playlistByID($0) }
+                },
+                onOpenPlaylistKeyword: {
+                    isDiscoveryPopping = false
+                    withAnimation(.easeInOut(duration: 0.28)) { discoveryRoute = .playlist($0) }
+                },
+                onOpenFeaturedPick: {
+                    isDiscoveryPopping = false
+                    withAnimation(.easeInOut(duration: 0.28)) { discoveryRoute = .featuredPick }
+                },
+                onOpenAlbum: {
+                    isDiscoveryPopping = false
+                    withAnimation(.easeInOut(duration: 0.28)) { discoveryRoute = .album(title: $0, artist: $1) }
+                },
+                onSelectChart: {
+                    isDiscoveryPopping = false
+                    withAnimation(.easeInOut(duration: 0.28)) { discoveryRoute = .chart($0) }
+                }
+            )
+            .id(route.id)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(MusicXPageBackground())
+            .transition(.asymmetric(
+                insertion: .move(edge: isDiscoveryPopping ? .leading : .trailing),
+                removal: .move(edge: isDiscoveryPopping ? .trailing : .leading)
+            ))
+            .zIndex(30)
         }
-        .onReceive(NotificationCenter.default.publisher(for: .musicXRemoteNextTrack)) { _ in
-            stepSong(by: 1)
+    }
+
+    @ViewBuilder
+    private var playerOverlay: some View {
+        if isPlayerPresented {
+            nowPlayingPage
+                .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .trailing)))
+                .zIndex(40)
         }
-        .onReceive(NotificationCenter.default.publisher(for: .musicXRemotePreviousTrack)) { _ in
-            stepSong(by: -1)
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .musicXPlaybackDidFinish)) { _ in
-            playNextAfterNaturalFinish()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .musicXPlaybackFailed)) { notification in
-            guard let failedItem = notification.object as? AVPlayerItem,
-                  playerStore.isCurrentItem(failedItem) else { return }
-            retryCurrentSongWithFreshURL()
-        }
-        .overlay {
-            if let route = discoveryRoute {
-                MusicDiscoveryPage(route: route,
-                    featuredAlbums: homeAlbums.compactMap(\.onlineSong),
-                    selectedMainTab: selectedTab.rawValue,
-                    onSelectMainTab: { title in
-                        isDiscoveryPopping = true
-                        withAnimation(.easeInOut(duration: 0.28)) {
-                            selectedTab = MainTab.allCases.first(where: { $0.rawValue == title }) ?? .home
-                            discoveryRoute = nil
-                        }
-                    },
-                    onClose: { _ in
-                        isDiscoveryPopping = true
-                        withAnimation(.easeInOut(duration: 0.28)) { discoveryRoute = nil }
-                    },
-                    onPlay: { playDiscoverySong($0) },
-                    currentSong: currentSong?.onlineSong,
-                    isPlaying: playerStore.isPlaying,
-                    onTogglePlayback: { playerStore.togglePlayback() },
-                    onOpenPlayer: { isPlayerPresented = true },
-                    onPrevious: { stepSong(by: -1) },
-                    onNext: { stepSong(by: 1) },
-                    onOpenQueue: { playerDisplayMode = .queue; isPlayerPresented = true },
-                    onQueueChanged: {
-                        playbackQueueSongs = $0.map { AppSong(id: stableSongID($0), title: $0.title, artist: $0.artist, album: $0.album ?? "", tint: MusicXTheme.blue, onlineSong: $0) }
-                        hasCustomPlaybackQueue = true
-                        resetShuffleHistory()
-                    },
-                    currentTime: playerStore.currentTime,
-                    duration: playerStore.duration,
-                    onOpenPlaylist: { isDiscoveryPopping = false; withAnimation(.easeInOut(duration: 0.28)) { discoveryRoute = .playlistByID($0) } },
-                    onOpenPlaylistKeyword: { isDiscoveryPopping = false; withAnimation(.easeInOut(duration: 0.28)) { discoveryRoute = .playlist($0) } },
-                    onOpenFeaturedPick: { isDiscoveryPopping = false; withAnimation(.easeInOut(duration: 0.28)) { discoveryRoute = .featuredPick } },
-                    onOpenAlbum: { isDiscoveryPopping = false; withAnimation(.easeInOut(duration: 0.28)) { discoveryRoute = .album(title: $0, artist: $1) } },
-                    onSelectChart: { isDiscoveryPopping = false; withAnimation(.easeInOut(duration: 0.28)) { discoveryRoute = .chart($0) } })
-                    .id(route.id)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(MusicXPageBackground())
-                    .transition(.asymmetric(insertion: .move(edge: isDiscoveryPopping ? .leading : .trailing), removal: .move(edge: isDiscoveryPopping ? .trailing : .leading)))
-                    .zIndex(30)
-            }
-        }
-        .animation(.easeInOut(duration: 0.28), value: discoveryRoute?.id)
-        .overlay {
-            if isPlayerPresented {
-                nowPlayingPage
-                    .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .trailing)))
-                    .zIndex(40)
-            }
-        }
-        .animation(.easeInOut(duration: 0.28), value: isPlayerPresented)
-        .animation(.easeInOut(duration: 0.28), value: selectedTab)
-        .onChange(of: discoveryRoute?.id) { oldValue, newValue in
-            if oldValue == nil && newValue != nil { isDiscoveryPopping = false }
-        }
-        .task { await loadHomeSongs() }
     }
 
     private var homePage: some View {
