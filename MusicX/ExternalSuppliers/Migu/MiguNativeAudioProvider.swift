@@ -82,7 +82,7 @@ struct MiguNativeAudioProvider: MusicResourceProvider {
             if !value.isEmpty && value != "000000" && value != "0" {
                 // A valid API response with no licensed rendition is a
                 // track-level miss, not a provider outage. Let the engine fall back.
-                return nil
+                return try await fallback(song: song, after: quality)
             }
         }
 
@@ -100,7 +100,7 @@ struct MiguNativeAudioProvider: MusicResourceProvider {
               let scheme = streamURL.scheme?.lowercased(),
               scheme == "http" || scheme == "https",
               streamURL.host?.isEmpty == false else {
-            return nil
+            return try await fallback(song: song, after: quality)
         }
 
         return ResolvedMusicResource(
@@ -108,6 +108,17 @@ struct MiguNativeAudioProvider: MusicResourceProvider {
             providerID: identifier,
             providerName: displayName
         )
+    }
+
+    private func fallback(song: MusicSong, after quality: MusicQuality) async throws -> ResolvedMusicResource? {
+        switch quality {
+        case .lossless, .hires:
+            return try await resolve(song: song, quality: .high)
+        case .high:
+            return try await resolve(song: song, quality: .standard)
+        case .standard:
+            return nil
+        }
     }
 
     private func decodePayload(_ data: Data, signature: String?) throws -> Data {
