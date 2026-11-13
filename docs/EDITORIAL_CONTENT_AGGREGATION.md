@@ -84,3 +84,5 @@ Playback success is never guaranteed solely because a track appears in an offici
 ## Dependency and compliance notes
 
 Unofficial endpoints can change or impose access limits. Keep each source adapter isolated, use timeouts and caching, and degrade gracefully when a provider fails. Respect upstream terms, rights, regional restrictions, and any attribution requirements. Do not describe an unofficial endpoint as an official API.
+
+The `guohuiyuan/music-lib` project is a useful capability reference for the five platforms, but its repository declares AGPL-3.0 and an educational/non-commercial disclaimer. MusicX must not copy or link its implementation into the app without a deliberate license/compliance decision. Use it only to understand capability coverage and independently implement adapters against verified platform behavior. Its documented matrix also indicates that Migu has category and playlist-detail support but no recommended-playlist feed, so Migu must not be represented as having the same recommendation capability as the other four platforms.
