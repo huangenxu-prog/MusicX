@@ -25,27 +25,18 @@ struct GDStudioMusicSearchService {
                 detail: "count=\(diagnosticCount)"
             )
         }
-        guard var components = URLComponents(string: baseURL) else {
-            throw MusicSourceError.invalidResponse("搜索接口地址无效")
-        }
-        components.queryItems = [
+        let queryItems = [
             URLQueryItem(name: "types", value: "search"),
             URLQueryItem(name: "source", value: gdSource(source) + (albumOnly ? "_album" : "")),
             URLQueryItem(name: "name", value: query),
             URLQueryItem(name: "count", value: String(count)),
             URLQueryItem(name: "pages", value: String(page))
         ]
-        guard let url = components.url else {
-            throw MusicSourceError.invalidResponse("无法生成搜索请求")
-        }
-        var request = URLRequest(url: url)
-        request.timeoutInterval = 12
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
         var responseData: Data?
         var lastRequestError: Error?
         for endpoint in baseURLs {
             guard var endpointComponents = URLComponents(string: endpoint) else { continue }
-            endpointComponents.queryItems = components.queryItems
+            endpointComponents.queryItems = queryItems
             guard let endpointURL = endpointComponents.url else { continue }
             var endpointRequest = URLRequest(url: endpointURL)
             endpointRequest.timeoutInterval = 12
