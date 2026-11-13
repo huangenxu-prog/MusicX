@@ -14,7 +14,7 @@ struct NetEaseNativeAPIClient {
     }
 
     /// Native NetEase eAPI search, following Kumone's cloudsearch request contract.
-    func searchNetEase(keyword: String, count: Int = 100, offset: Int = 0) async throws -> [MusicSong] {
+    func search(keyword: String, count: Int = 100, offset: Int = 0) async throws -> [MusicSong] {
         let query = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return [] }
         let limit = min(max(count, 1), 100)
