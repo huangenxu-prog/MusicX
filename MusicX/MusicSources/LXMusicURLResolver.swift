@@ -76,19 +76,27 @@ struct LXMusicURLResolver: MusicURLResolving, @unchecked Sendable {
         try await resolve(song: song, quality: quality, useCache: true)
     }
 
+    private func resourceCacheKey(for song: MusicSong, quality: MusicQuality) -> String {
+        "playback-resource|\(song.source.rawValue)|\(song.sourceID)|\(quality.rawValue)"
+    }
+
     private func resolve(song: MusicSong, quality: MusicQuality, useCache: Bool) async throws -> URL {
-        let cacheKey = "playback-url|\(song.source.rawValue)|\(song.sourceID)|\(quality.rawValue)"
-        if useCache, let cached: URL = await MusicCache.shared.value(for: cacheKey) {
+        let cacheKey = resourceCacheKey(for: song, quality: quality)
+        if useCache,
+           let cached: ResolvedMusicResource = await MusicCache.shared.value(
+                for: cacheKey, as: ResolvedMusicResource.self
+           ) {
             MusicSourceDiagnostics.shared.record(
                 event: "resolve", source: song.source.rawValue,
-                provider: "disk-cache", duration: 0, result: "cache_hit"
+                provider: cached.providerID, duration: 0, result: "cache_hit"
             )
-            return cached
+            return cached.url
         }
 
-        let url = try await MusicResourceEngine(session: session).resolve(song: song, quality: quality)
-        await MusicCache.shared.insert(url, for: cacheKey, ttl: 5 * 60)
-        return url
+        let resource = try await MusicResourceEngine(session: session)
+            .resolveResource(song: song, quality: quality)
+        await MusicCache.shared.insert(resource, for: cacheKey, ttl: 5 * 60)
+        return resource.url
     }
 
     /// Entry point used only by the MusicX legacy supplier adapter. It bypasses
@@ -345,11 +353,32 @@ struct LXMusicURLResolver: MusicURLResolving, @unchecked Sendable {
             .filter { $0.isLetter || $0.isNumber }
     }
 
-    /// Force a fresh provider lookup after AVPlayer rejects a previously resolved URL.
+    /// Continue with the next provider after AVPlayer rejects the previously
+    /// resolved stream. The cached resource carries its provider identity, so a
+    /// fresh lookup cannot return the same provider's failing URL again.
     func resolveFresh(song: MusicSong, quality: MusicQuality = .high) async throws -> URL {
-        // Bypass cache reads entirely: another in-flight lookup may repopulate
-        // the key after removal but before a normal resolve checks it.
-        return try await resolve(song: song, quality: quality, useCache: false)
+        let cacheKey = resourceCacheKey(for: song, quality: quality)
+        let previousResource: ResolvedMusicResource? = await MusicCache.shared.value(
+            for: cacheKey, as: ResolvedMusicResource.self
+        )
+        await MusicCache.shared.removeValue(for: cacheKey)
+
+        let excludedProviders = Set(previousResource.map { [$0.providerID] } ?? [])
+        let resource = try await MusicResourceEngine(session: session).resolveResource(
+            song: song,
+            quality: quality,
+            excludingProviderIDs: excludedProviders
+        )
+        await MusicCache.shared.insert(resource, for: cacheKey, ttl: 5 * 60)
+        MusicSourceDiagnostics.shared.record(
+            event: "playback-provider-fallback",
+            source: song.source.rawValue,
+            provider: resource.providerID,
+            duration: 0,
+            result: "next_provider_selected",
+            detail: previousResource.map { "previous_provider=\($0.providerID)" }
+        )
+        return resource.url
     }
 
     /// Retry one time only for transient transport failures. Provider-side errors and
