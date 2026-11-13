@@ -172,7 +172,10 @@ struct DomesticPlaylistDiscoveryService {
             guard let rawID, !rawID.isEmpty else { return nil }
             let title = (row["name"] as? String) ?? (row["songName"] as? String) ?? ""
             guard !title.isEmpty else { return nil }
-            let artists = (row["singers"] as? [[String: Any]] ?? row["artists"] as? [[String: Any]] ?? [])
+            let artists = (row["singers"] as? [[String: Any]]
+                ?? row["artists"] as? [[String: Any]]
+                ?? row["singerList"] as? [[String: Any]]
+                ?? [])
                 .compactMap { $0["name"] as? String }
             let artist = artists.isEmpty ? ((row["singer"] as? String) ?? "未知歌手") : artists.joined(separator: " / ")
             let albums = row["albums"] as? [[String: Any]] ?? []
