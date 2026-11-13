@@ -194,6 +194,59 @@ struct NetEaseNativeAPIClient {
         return albums
     }
 
+    // MARK: - Native lyrics
+
+    func lyrics(songID: String) async throws -> (original: String, translated: String?)? {
+        guard let id = Int(songID), id > 0 else {
+            throw MusicSourceError.invalidResponse("网易云歌词 ID 无效")
+        }
+
+        let versioned = try await requestEAPI(
+            path: "/song/lyric/v1",
+            payload: [
+                "id": id,
+                "cp": false,
+                "lv": 0,
+                "kv": 0,
+                "tv": 0,
+                "rv": 0,
+                "yv": 0,
+                "ytv": 0,
+                "yrv": 0
+            ]
+        )
+        if let parsed = Self.parseLyrics(versioned) {
+            return parsed
+        }
+
+        try Task.checkCancellation()
+        let classic = try await requestEAPI(
+            path: "/song/lyric",
+            payload: [
+                "id": id,
+                "lv": -1,
+                "kv": -1,
+                "tv": -1,
+                "rv": -1
+            ]
+        )
+        return Self.parseLyrics(classic)
+    }
+
+    private static func parseLyrics(_ data: Data) -> (original: String, translated: String?)? {
+        guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return nil
+        }
+        let lrc = root["lrc"] as? [String: Any]
+        let original = (lrc?["lyric"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let original, !original.isEmpty else { return nil }
+        let tlyric = root["tlyric"] as? [String: Any]
+        let translated = (tlyric?["lyric"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return (original, translated?.isEmpty == false ? translated : nil)
+    }
+
     // MARK: - Native charts
 
     func toplist(_ chartName: String, count: Int = 50) async throws -> [MusicSong] {
