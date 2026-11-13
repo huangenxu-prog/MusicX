@@ -1892,6 +1892,7 @@ struct ContentView: View {
 
         let service = GDStudioMusicSearchService()
         var received: [[MusicSong]] = []
+        var failedSources: [String] = []
         await withTaskGroup(of: (MusicSource, [MusicSong], String?).self) { group in
             for source in [MusicSource.netease, .qq, .kuwo, .kugou, .migu] {
                 group.addTask {
@@ -1907,7 +1908,8 @@ struct ContentView: View {
                     }
                 }
             }
-            for await (_, rows, _) in group {
+            for await (source, rows, errorMessage) in group {
+                if let errorMessage { failedSources.append("\(source.displayName)：\(errorMessage)") }
                 guard !Task.isCancelled,
                       searchRequestID == requestID,
                       searchText.trimmingCharacters(in: .whitespacesAndNewlines) == query else { continue }
@@ -1939,7 +1941,9 @@ struct ContentView: View {
         guard !Task.isCancelled,
               searchRequestID == requestID,
               searchText.trimmingCharacters(in: .whitespacesAndNewlines) == query else { return }
-        if onlineResults.isEmpty { searchError = "当前音源暂未返回结果" }
+        if onlineResults.isEmpty {
+            searchError = failedSources.isEmpty ? "当前音源暂未返回结果" : "搜索失败：\(failedSources.joined(separator: "；"))"
+        }
     }
 
     @MainActor

@@ -2,7 +2,7 @@ import Foundation
 
 struct GDStudioMusicSearchService {
     private let session: URLSession
-    private let baseURLs = ["https://music-api.gdstudio.xyz/api.php", "https://music-api.ucds.me/api.php"]
+    private let baseURLs = ["https://music-api.gdstudio.xyz/api.php"]
 
     init(session: URLSession = .shared) {
         self.session = session
@@ -41,6 +41,8 @@ struct GDStudioMusicSearchService {
             var endpointRequest = URLRequest(url: endpointURL)
             endpointRequest.timeoutInterval = 12
             endpointRequest.setValue("application/json", forHTTPHeaderField: "Accept")
+            endpointRequest.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148", forHTTPHeaderField: "User-Agent")
+            endpointRequest.setValue("https://music.gdstudio.xyz/", forHTTPHeaderField: "Referer")
             do {
                 let (data, response) = try await session.data(for: endpointRequest)
                 guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
@@ -82,8 +84,12 @@ struct GDStudioMusicSearchService {
                 artist = objects.compactMap { ($0["name"] as? String) ?? ($0["title"] as? String) }.joined(separator: " / ")
             } else if let name = row["artist"] as? String {
                 artist = name
+            } else if let artistObject = row["artist"] as? [String: Any] {
+                artist = (artistObject["name"] as? String) ?? (artistObject["title"] as? String) ?? ""
             } else if let singer = row["singer"] as? [[String: Any]] {
-                artist = singer.compactMap { $0["name"] as? String }.joined(separator: " / ")
+                artist = singer.compactMap { ($0["name"] as? String) ?? ($0["title"] as? String) }.joined(separator: " / ")
+            } else if let singer = row["singer"] as? String {
+                artist = singer
             } else {
                 artist = "未知歌手"
             }
@@ -343,8 +349,8 @@ struct GDStudioMusicSearchService {
         default: playlistID = "3778678"
         }
         let endpoints = [
-            "https://music.163.com/api/playlist/detail",
-            "https://interface.music.163.com/api/playlist/detail"
+            "https://music.163.com/api/v6/playlist/detail",
+            "https://interface.music.163.com/api/v6/playlist/detail"
         ]
         var lastError: Error?
         for endpoint in endpoints {
