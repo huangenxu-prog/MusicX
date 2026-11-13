@@ -55,7 +55,11 @@ struct MiguNativeAudioProvider: MusicResourceProvider {
         request.setValue("application/json, text/plain, */*", forHTTPHeaderField: "Accept")
         request.setValue("1", forHTTPHeaderField: "signature")
         request.setValue("h5page", forHTTPHeaderField: "birth")
-        request.setValue("https://h5.nf.migu.cn/", forHTTPHeaderField: "Origin")
+        request.setValue("Android_migu", forHTTPHeaderField: "ua")
+        request.setValue("6.8.8", forHTTPHeaderField: "version")
+        request.setValue("014021I", forHTTPHeaderField: "channel")
+        request.setValue("014021I", forHTTPHeaderField: "subchannel")
+        request.setValue("https://h5.nf.migu.cn", forHTTPHeaderField: "Origin")
         request.setValue("https://h5.nf.migu.cn/", forHTTPHeaderField: "Referer")
         request.setValue(
             "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148",
