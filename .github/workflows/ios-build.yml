@@ -81,6 +81,25 @@ jobs:
           rm "$PACKAGE"
           echo "Installed unified redesign image sets; replaced only matching asset names."
 
+      - name: Install 12 home discovery artworks
+        run: |
+          set -euo pipefail
+          ASSET_CATALOG="$(find . -type d -name Assets.xcassets -print -quit)"
+          test -n "$ASSET_CATALOG"
+          PACKAGE="$ASSET_CATALOG/MusicX_12_Album_Assets_Ready_To_Upload.zip"
+          test -s "$PACKAGE"
+          SOURCE="$RUNNER_TEMP/musicx-home-discovery-artworks"
+          mkdir -p "$SOURCE"
+          unzip -oq "$PACKAGE" -d "$SOURCE"
+          for n in 01 02 03 04 05 06 07 08 09 10 11 12; do
+            NAME="album_$n"
+            test -s "$SOURCE/$NAME.imageset/$NAME.png"
+            python3 -m json.tool "$SOURCE/$NAME.imageset/Contents.json" >/dev/null
+            rm -rf "$ASSET_CATALOG/$NAME.imageset"
+            cp -R "$SOURCE/$NAME.imageset" "$ASSET_CATALOG/$NAME.imageset"
+          done
+          echo "Installed 12 home discovery artwork assets."
+
       - name: Render app icon asset
         run: swift scripts/render-app-icon.swift
 

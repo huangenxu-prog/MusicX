@@ -193,6 +193,7 @@ struct ContentView: View {
 
     @State private var songs: [AppSong] = []
     @State private var recommendationSongs: [AppSong] = []
+    @State private var homeAlbums: [AppSong] = []
     @State private var isLoadingHomeSongs = false
     @State private var homeLoadError: String?
     @State private var discoveryRoute: MusicDiscoveryRoute?
@@ -517,26 +518,30 @@ struct ContentView: View {
                 let width = max(112, (proxy.size.width - 28 - gap * 2) / 3)
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: gap) {
-                        ForEach(0..<5, id: \.self) { index in staticAlbumTile(index: index, width: width) }
+                        ForEach(Array(homeAlbums.prefix(6).enumerated()), id: \.element.id) { _, album in
+                            dynamicAlbumTile(album: album, width: width)
+                        }
                     }.padding(.horizontal, 14)
                 }
             }.frame(height: 150)
         }
     }
 
-    private func staticAlbumTile(index: Int, width: CGFloat) -> some View {
-        let titles = ["DUO", "最伟大的作品", "宇宙的有趣", "A-Lin", "幼鸟指南"]
-        let artists = ["陈奕迅", "周杰伦", "告五人", "LINK", "毛不易"]
-        return Button { discoveryRoute = .album(title: titles[index], artist: artists[index]) } label: {
+    private func dynamicAlbumTile(album: AppSong, width: CGFloat) -> some View {
+        Button { discoveryRoute = .album(title: album.album, artist: album.artist) } label: {
             VStack(alignment: .leading, spacing: 7) {
-                Image("album_0\(index + 1)").resizable().scaledToFill()
-                    .frame(width: width, height: width).clipped()
-                    .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 15, style: .continuous).stroke(.white.opacity(0.16), lineWidth: 0.8))
-                Text(titles[index]).font(.system(size: 13, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
-                Text(artists[index]).font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
+                if let song = album.onlineSong {
+                    SongArtworkView(song: song, tint: MusicXTheme.blue, size: width)
+                        .overlay(RoundedRectangle(cornerRadius: 15, style: .continuous).stroke(.white.opacity(0.16), lineWidth: 0.8))
+                } else {
+                    Image("album_01").resizable().scaledToFill()
+                        .frame(width: width, height: width).clipped()
+                        .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+                }
+                Text(album.album).font(.system(size: 13, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
+                Text(album.artist).font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
             }.frame(width: width, alignment: .leading)
-         }.buttonStyle(.plain)
+        }.buttonStyle(.plain)
     }
 
     private var chartSection: some View {
@@ -559,12 +564,12 @@ struct ContentView: View {
 
     private var editorialPlaylistSection: some View {
         let items: [(title: String, subtitle: String, artwork: String)] = [
-            ("本周编辑精选", "本周精选", "featured_playlist"),
-            ("华语流行精选", "宝藏好歌 · 优质华语流行歌曲合集", "category_chinese_pop"),
-            ("经典金曲精选", "经久不衰的动人歌声", "category_classic"),
-            ("独立音乐精选", "Indie Music｜独立音乐聚落", "category_singers"),
-            ("影视原声精选", "问心系列 影视原声带", "category_instrumental"),
-            ("通勤驾驶精选", "通勤路上｜有前行感的节奏", "playlist_drive")
+            ("本周编辑精选", "本周精选", "album_07"),
+            ("华语流行精选", "宝藏好歌 · 优质华语流行歌曲合集", "album_08"),
+            ("经典金曲精选", "经久不衰的动人歌声", "album_09"),
+            ("独立音乐精选", "Indie Music｜独立音乐聚落", "album_10"),
+            ("影视原声精选", "影视原声与经典配乐", "album_11"),
+            ("通勤驾驶精选", "通勤路上｜有前行感的节奏", "album_12")
         ]
         return VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 6) {
@@ -1913,12 +1918,24 @@ struct ContentView: View {
         homeLoadError = nil
         defer { isLoadingHomeSongs = false }
         do {
-            let latestTracks = try await GDStudioMusicSearchService().toplist("新歌榜", count: 50)
+            async let latestRequest = GDStudioMusicSearchService().toplist("新歌榜", count: 50)
+            async let hotRequest = GDStudioMusicSearchService().toplist("热歌榜", count: 50)
+            let (latestTracks, hotTracks) = try await (latestRequest, hotRequest)
             guard !Task.isCancelled else { return }
             songs = latestTracks.map { item in
                 AppSong(id: stableSongID(item), title: item.title, artist: item.artist,
                         album: item.album ?? "", tint: MusicXTheme.blue, onlineSong: item)
             }
+            var seenAlbums = Set<String>()
+            homeAlbums = hotTracks.compactMap { item in
+                let title = (item.album ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                let artist = item.artist.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !title.isEmpty, !artist.isEmpty, title != "未知专辑", artist != "未知歌手" else { return nil }
+                let key = "\(title.lowercased())|\(artist.lowercased())"
+                guard seenAlbums.insert(key).inserted else { return nil }
+                return AppSong(id: stableSongID(item), title: title, artist: artist, album: title,
+                               tint: MusicXTheme.blue, onlineSong: item)
+            }.prefix(6).map { $0 }
             recommendationSongs = Array(songs.shuffled().prefix(6))
             if songs.isEmpty {
                 homeLoadError = "网易云新歌榜暂时没有返回歌曲，请稍后重试"
