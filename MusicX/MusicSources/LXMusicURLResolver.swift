@@ -344,7 +344,7 @@ struct LXMusicURLResolver: MusicURLResolving {
             ]
         case .kugou, .migu:
             return [Backend(name: "\(source.rawValue)-gdstudio", resolve: gdstudioPlatform)]
-        case .qishui, .youtubeMusic, .youtube, .spotify:
+        case .kuwo, .qishui, .youtubeMusic, .youtube, .spotify:
             return []
         }
     }
