@@ -100,7 +100,7 @@ struct KumoneKugouAudioSourceProvider: MusicResourceProvider {
                 continue
             }
             if (500..<600).contains(streamHTTP.statusCode) || streamHTTP.statusCode == 429 {
-                throw MusicSourceError.invalidResponse("Kugou stream HTTP \\(streamHTTP.statusCode)")
+                throw MusicSourceError.invalidResponse("Kugou stream HTTP \(streamHTTP.statusCode)")
             }
             guard (200..<300).contains(streamHTTP.statusCode) else { continue }
 
