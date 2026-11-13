@@ -131,6 +131,16 @@ struct MusicResourceEngine {
     }
 
     func resolve(song: MusicSong, quality: MusicQuality) async throws -> URL {
+        try await resolveResource(song: song, quality: quality).url
+    }
+
+    /// Resolve a resource while excluding providers whose last returned stream
+    /// was rejected by AVPlayer for this same track.
+    func resolveResource(
+        song: MusicSong,
+        quality: MusicQuality,
+        excludingProviderIDs: Set<String> = []
+    ) async throws -> ResolvedMusicResource {
         // Temporary source policy: NetEase only.
         // 1) Official NetEase playback URL (free/original resource).
         // 2) Kumone pyncmd for tracks whose official URL is unavailable (e.g. VIP).
@@ -151,6 +161,20 @@ struct MusicResourceEngine {
         for entry in providers {
             let provider = entry.provider
             try Task.checkCancellation()
+
+            if excludingProviderIDs.contains(provider.identifier) {
+                MusicSourceDiagnostics.shared.record(
+                    event: "resource-provider",
+                    source: song.source.rawValue,
+                    provider: provider.identifier,
+                    duration: 0,
+                    result: "skipped_after_playback_failure",
+                    detail: "AVPlayer rejected the previous stream from this provider"
+                )
+                failures.append("\(provider.displayName)：上一次播放失败，已跳过")
+                continue
+            }
+
             guard ResourceProviderCircuitBreaker.shared.shouldAttempt(provider.identifier) else {
                 MusicSourceDiagnostics.shared.record(
                     event: "resource-provider",
@@ -199,7 +223,7 @@ struct MusicResourceEngine {
                     duration: elapsed,
                     result: "url_returned_direct"
                 )
-                return resource.url
+                return resource
             } catch {
                 if Task.isCancelled || error is CancellationError
                     || (error as? URLError)?.code == .cancelled {
