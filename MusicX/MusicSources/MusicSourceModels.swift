@@ -28,7 +28,7 @@ enum MusicSource: String, Codable, CaseIterable, Identifiable, Sendable {
     }
 }
 
-enum MusicQuality: String, CaseIterable, Identifiable {
+enum MusicQuality: String, CaseIterable, Identifiable, Sendable {
     case standard = "128k"
     case high = "320k"
     case lossless = "flac"
