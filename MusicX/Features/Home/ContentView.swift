@@ -588,54 +588,6 @@ struct ContentView: View {
         .padding(.bottom, 18)
     }
 
-    private var editorialPlaylistSection: some View {
-        let items: [(title: String, subtitle: String, artwork: String)] = [
-            ("本周编辑精选", "本周精选", "album_07"),
-            ("华语流行精选", "宝藏好歌 · 优质华语流行歌曲合集", "album_08"),
-            ("经典金曲精选", "经久不衰的动人歌声", "album_09"),
-            ("独立音乐精选", "Indie Music｜独立音乐聚落", "album_10"),
-            ("影视原声精选", "影视原声与经典配乐", "album_11"),
-            ("通勤驾驶精选", "通勤路上｜有前行感的节奏", "album_12")
-        ]
-        return VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 6) {
-                Capsule().fill(MusicXTheme.blue).frame(width: 4, height: 21)
-                Text("精选歌单").font(.system(size: 20, weight: .bold)).foregroundStyle(.white)
-                Spacer()
-                Button { discoveryRoute = .featuredPlaylists } label: {
-                    HStack(spacing: 4) {
-                        Text("全部").font(.system(size: 13, weight: .medium))
-                        Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold))
-                    }.foregroundStyle(MusicXTheme.muted)
-                }.buttonStyle(.plain)
-            }.padding(.horizontal, 14)
-            ScrollView(.horizontal, showsIndicators: false) {
-                let cardWidth = (UIScreen.main.bounds.width - 44) / 2.15
-                HStack(alignment: .top, spacing: 12) {
-                    ForEach(items, id: \.title) { item in
-                        Button {
-                            if item.title == "本周编辑精选" {
-                                discoveryRoute = .featuredPlaylists
-                            } else {
-                                discoveryRoute = .playlist(item.title)
-                            }
-                        } label: {
-                            VStack(alignment: .leading, spacing: 7) {
-                                HomeArtwork(name: item.artwork)
-                                    .frame(width: cardWidth, height: cardWidth * 0.78)
-                                    .clipped()
-                                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                                    .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.white.opacity(0.18), lineWidth: 0.8))
-                                Text(item.title).font(.system(size: 13, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
-                                Text(item.subtitle).font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(2).fixedSize(horizontal: false, vertical: true)
-                            }.frame(width: cardWidth, alignment: .leading).contentShape(Rectangle())
-                        }.buttonStyle(.plain)
-                    }
-                }.padding(.horizontal, 14)
-            }
-        }
-    }
-
     private func albumArtwork(_ song: MusicSong?, tint: Color, width: CGFloat, height: CGFloat) -> some View {
         Group {
             if let url = song?.artworkURL {
