@@ -43,12 +43,16 @@ struct KumoneKuwoAudioSourceProvider: MusicResourceProvider {
             )
         }
 
-        guard let root = try JSONSerialization.jsonObject(with: searchData) as? [String: Any],
-              let content = root["content"] as? [[String: Any]],
-              content.count > 1,
-              let musicPage = content[1]["musicpage"] as? [String: Any],
-              let rows = musicPage["abslist"] as? [[String: Any]] else {
+        guard let root = try JSONSerialization.jsonObject(with: searchData) as? [String: Any] else {
             throw MusicSourceError.invalidResponse("酷我搜索响应格式错误")
+        }
+        let content = root["content"] as? [[String: Any]] ?? []
+        let musicPage = content
+            .compactMap { $0["musicpage"] as? [String: Any] }
+            .first { $0["abslist"] is [[String: Any]] }
+            ?? (root["musicpage"] as? [String: Any])
+        guard let rows = musicPage?["abslist"] as? [[String: Any]] else {
+            throw MusicSourceError.invalidResponse("酷我搜索响应中没有歌曲列表")
         }
 
         let candidates: [Candidate] = rows.prefix(5).compactMap { row in
