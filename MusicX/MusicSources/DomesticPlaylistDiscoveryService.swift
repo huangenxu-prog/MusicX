@@ -305,11 +305,19 @@ struct DomesticPlaylistDiscoveryService {
         let data = root["data"] as? [String: Any]
         let rows = data?["songList"] as? [[String: Any]] ?? []
         let songs: [MusicSong] = rows.compactMap { row in
-            let rawID = (row["contentId"] as? String)
+            let contentID = (row["contentId"] as? String)
                 ?? (row["copyrightId"] as? String)
-                ?? (row["id"] as? String)
                 ?? (row["songId"] as? String)
-            guard let rawID, !rawID.isEmpty else { return nil }
+                ?? (row["id"] as? String)
+            guard let contentID, !contentID.isEmpty else { return nil }
+            let formatRows = (row["newRateFormats"] as? [[String: Any]])
+                ?? (row["rateFormats"] as? [[String: Any]])
+                ?? (row["audioFormats"] as? [[String: Any]])
+                ?? []
+            let preferredFormat = formatRows.first
+            let resourceType = preferredFormat?["resourceType"] as? String ?? "2"
+            let formatType = preferredFormat?["formatType"] as? String ?? "PQ"
+            let sourceID = formatRows.isEmpty ? contentID : "\(contentID)|\(resourceType)|\(formatType)"
             let title = (row["name"] as? String) ?? (row["songName"] as? String) ?? ""
             guard !title.isEmpty else { return nil }
             let artists = (row["singers"] as? [[String: Any]]
@@ -325,7 +333,7 @@ struct DomesticPlaylistDiscoveryService {
             let duration = (row["duration"] as? Double) ?? (row["duration"] as? Int).map(Double.init)
             return MusicSong(
                 source: .migu,
-                sourceID: rawID,
+                sourceID: sourceID,
                 title: title,
                 artist: artist,
                 album: album,
@@ -334,7 +342,7 @@ struct DomesticPlaylistDiscoveryService {
                 hash: nil,
                 albumID: row["albumId"] as? String,
                 pictureID: nil,
-                lyricID: rawID
+                lyricID: contentID
             )
         }
         guard !songs.isEmpty else { throw MusicSourceError.invalidResponse("咪咕歌单没有返回有效歌曲") }
