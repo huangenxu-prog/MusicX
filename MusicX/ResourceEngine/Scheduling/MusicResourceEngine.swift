@@ -165,7 +165,8 @@ struct MusicResourceEngine {
         }
 
         var failures: [String] = []
-        for entry in ordered {\n            let provider = entry.provider
+        for entry in ordered {
+            let provider = entry.provider
             try Task.checkCancellation()
             guard ResourceProviderCircuitBreaker.shared.shouldAttempt(provider.identifier) else {
                 MusicSourceDiagnostics.shared.record(
