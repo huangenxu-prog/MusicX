@@ -1976,7 +1976,7 @@ struct ContentView: View {
         var failedSources: [String] = []
         let searchStream = MusicCatalogSearchEngine().search(
             keyword: query,
-            sources: [.netease, .qq, .kuwo, .kugou, .migu]
+            sources: [.netease, .qq, .kugou, .migu]
         )
         for await response in searchStream {
             let source = response.source

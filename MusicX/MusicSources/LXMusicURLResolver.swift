@@ -182,10 +182,9 @@ struct LXMusicURLResolver: MusicURLResolving {
         let service = GDStudioMusicSearchService(session: session)
         async let netease = captureSearch { try await service.search(keyword: song.title, source: .netease, count: 12) }
         async let qq = captureSearch { try await service.search(keyword: song.title, source: .qq, count: 12) }
-        async let kuwo = captureSearch { try await service.search(keyword: song.title, source: .kuwo, count: 12) }
         async let kugou = captureSearch { try await service.search(keyword: song.title, source: .kugou, count: 12) }
         async let migu = captureSearch { try await service.search(keyword: song.title, source: .migu, count: 12) }
-        let results = await [netease, qq, kuwo, kugou, migu]
+        let results = await [netease, qq, kugou, migu]
         try Task.checkCancellation()
         let groups = results.map { $0.0 }
         let searchFailures = results.compactMap { $0.1 }
@@ -343,12 +342,6 @@ struct LXMusicURLResolver: MusicURLResolving {
                 Backend(name: "qq-gdstudio", resolve: qqGDStudio),
                 Backend(name: "qq-chksz", resolve: qqChksz)
             ]
-        case .kuwo:
-            return [
-                Backend(name: "kuwo-gdstudio", resolve: kuwoGDStudio),
-                Backend(name: "kuwo-lerd", resolve: kuwoLerd),
-                Backend(name: "kuwo-cenguigui", resolve: kuwoCenguigui)
-            ]
         case .kugou, .migu:
             return [Backend(name: "\(source.rawValue)-gdstudio", resolve: gdstudioPlatform)]
         case .qishui, .youtubeMusic, .youtube, .spotify:
@@ -427,44 +420,6 @@ struct LXMusicURLResolver: MusicURLResolving {
                     URLQueryItem(name: "br", value: quality.gdstudioBitrate)]
         )
         return extractURL(data, paths: [["url"], ["data", "url"]])
-    }
-
-    private func kuwoGDStudio(_ song: MusicSong, _ quality: MusicQuality) async throws -> URL? {
-        let data = try await get(
-            "https://music-api.gdstudio.xyz/api.php",
-            query: [URLQueryItem(name: "types", value: "url"),
-                    URLQueryItem(name: "source", value: "kuwo"),
-                    URLQueryItem(name: "id", value: song.sourceID),
-                    URLQueryItem(name: "br", value: quality.gdstudioBitrate)]
-        )
-        return extractURL(data, paths: [["url"], ["data", "url"]])
-    }
-
-    // MARK: - Kuwo
-
-    private func kuwoLerd(_ song: MusicSong, _ quality: MusicQuality) async throws -> URL? {
-        let data = try await post(
-            "https://api.music.lerd.dpdns.org/kw",
-            body: ["musicInfo": ["songmid": song.sourceID], "type": quality.rawValue]
-        )
-        return extractURL(data, paths: [["data", "url"], ["url"]])
-    }
-
-    private func kuwoCenguigui(_ song: MusicSong, _ quality: MusicQuality) async throws -> URL? {
-        let level: String
-        switch quality {
-        case .standard: level = "128k"
-        case .high: level = "320k"
-        case .lossless, .hires: level = "flac"
-        }
-        let data = try await get(
-            "https://api.cenguigui.cn/api/kuwo/music_v1.php",
-            query: [URLQueryItem(name: "id", value: song.sourceID),
-                    URLQueryItem(name: "type", value: "song"),
-                    URLQueryItem(name: "format", value: "json"),
-                    URLQueryItem(name: "level", value: level)]
-        )
-        return extractURL(data, paths: [["data", "url"], ["url"]])
     }
 
     // MARK: - HTTP and response parsing

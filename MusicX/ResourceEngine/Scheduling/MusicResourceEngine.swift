@@ -138,8 +138,7 @@ struct MusicResourceEngine {
             || song.source == .youtubeMusic || song.source == .youtube ? 1 : 0
         var providers: [(provider: any MusicResourceProvider, tier: Int, baseline: Int)] = [
             (MusicXLegacySupplierLibrary(session: session), legacyTier, 30),
-            (KumoneKugouAudioSourceProvider(session: session), 2, 20),
-            (KumoneKuwoAudioSourceProvider(session: session), 2, 10)
+            (KumoneKugouAudioSourceProvider(session: session), 2, 20)
         ]
         if song.source == .netease {
             providers.append((NetEaseNativeAudioProvider(session: session), 0, 1_000))

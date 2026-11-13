@@ -1452,7 +1452,7 @@ struct MusicDiscoveryPage: View {
         let artistToken = normalize(artist)
         guard !albumToken.isEmpty, !artistToken.isEmpty else { return [] }
 
-        let sources: [MusicSource] = [.netease, .qq, .kuwo, .kugou, .migu]
+        let sources: [MusicSource] = [.netease, .qq, .kugou, .migu]
         var candidates: [MusicSong] = []
 
         // Album-specific endpoints first; regular song search is a fallback when providers
