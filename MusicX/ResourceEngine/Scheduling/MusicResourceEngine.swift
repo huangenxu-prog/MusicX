@@ -131,7 +131,8 @@ struct MusicResourceEngine {
     }
 
     func resolve(song: MusicSong, quality: MusicQuality) async throws -> URL {
-        try await resolveResource(song: song, quality: quality).url
+        let resource = try await resolveResource(song: song, quality: quality)
+        return resource.url
     }
 
     /// Resolve a resource while excluding providers whose last returned stream
