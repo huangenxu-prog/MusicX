@@ -1897,19 +1897,28 @@ struct ContentView: View {
         defer { isLoadingHomeSongs = false }
         do {
             async let latestRequest = GDStudioMusicSearchService().toplist("新歌榜", count: 50)
-            async let hotRequest = GDStudioMusicSearchService().toplist("热歌榜", count: 50)
-            let (latestTracks, hotTracks) = try await (latestRequest, hotRequest)
+            async let albumRequests: [[MusicSong]] = withThrowingTaskGroup(of: [MusicSong].self) { group in
+                for source in [MusicSource.netease, .qq, .kuwo, .kugou, .migu] {
+                    group.addTask {
+                        try await GDStudioMusicSearchService().search(keyword: "华语", source: source, count: 30, albumOnly: true)
+                    }
+                }
+                var results: [[MusicSong]] = []
+                for try await rows in group { results.append(rows) }
+                return results
+            }
+            let (latestTracks, albumRows) = try await (latestRequest, albumRequests)
             guard !Task.isCancelled else { return }
             songs = latestTracks.map { item in
                 AppSong(id: stableSongID(item), title: item.title, artist: item.artist,
                         album: item.album ?? "", tint: MusicXTheme.blue, onlineSong: item)
             }
             var seenAlbums = Set<String>()
-            homeAlbums = hotTracks.compactMap { item in
-                let title = (item.album ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            homeAlbums = albumRows.flatMap { $0 }.compactMap { item in
+                let title = (item.album ?? item.title).trimmingCharacters(in: .whitespacesAndNewlines)
                 let artist = item.artist.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !title.isEmpty, !artist.isEmpty, title != "未知专辑", artist != "未知歌手" else { return nil }
-                let key = "\(title.lowercased())|\(artist.lowercased())"
+                let key = "\(title.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current))|\(artist.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current))"
                 guard seenAlbums.insert(key).inserted else { return nil }
                 return AppSong(id: stableSongID(item), title: title, artist: artist, album: title,
                                tint: MusicXTheme.blue, onlineSong: item)

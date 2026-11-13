@@ -1185,7 +1185,7 @@ struct MusicDiscoveryPage: View {
             case .featuredPick:
                 result = []
             case .playlist(let name):
-                result = await searchEditorialTracks(name: name)
+                result = try await service.playlistTracks(keyword: name, count: 50)
             case .playlistByID(let playlist):
                 if playlist.source == .qq {
                     do {
