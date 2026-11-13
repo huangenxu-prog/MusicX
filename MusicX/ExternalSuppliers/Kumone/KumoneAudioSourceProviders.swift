@@ -179,7 +179,7 @@ struct KumoneKuwoAudioSourceProvider: MusicResourceProvider {
         )
         guard let responseText = String(data: body, encoding: .utf8),
               let range = responseText.range(
-                of: #"https?://[^\\s$"]+"#,
+                of: #"https?://[^\s$"]+"#,
                 options: .regularExpression
               ),
               let streamURL = KumoneAudioSourceTransport.httpURL(String(responseText[range])) else {
