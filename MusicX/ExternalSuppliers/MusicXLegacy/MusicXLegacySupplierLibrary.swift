@@ -59,9 +59,32 @@ struct MusicXLegacySupplierLibrary: MusicResourceProvider, MusicCatalogSearchPro
     }
 
     func dailyRecommendedSongs(count: Int) async throws -> [MusicSong] {
-        try await GDStudioMusicSearchService(session: session).dailyRecommendedSongs(count: count)
-    }
+        let limit = min(max(count, 1), 100)
+        async let netease: [MusicSong]? = try? await NetEaseNativeAPIClient(session: session)
+            .dailyRecommendedSongs(count: limit)
+        async let qq: [MusicSong]? = try? await GDStudioMusicSearchService(session: session)
+            .dailyRecommendedSongs(count: limit)
+        let groups = [await netease ?? [], await qq ?? []]
+        try Task.checkCancellation()
 
+        func key(_ song: MusicSong) -> String {
+            func normalize(_ value: String) -> String {
+                value.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+                    .filter { $0.isLetter || $0.isNumber }
+            }
+            return normalize(song.title) + "|" + normalize(song.artist)
+        }
+
+        var seen = Set<String>()
+        let merged = groups.flatMap { $0 }.filter { song in
+            let identity = key(song)
+            return !identity.isEmpty && seen.insert(identity).inserted
+        }
+        guard !merged.isEmpty else {
+            throw MusicSourceError.invalidResponse("每日推荐暂时无法加载")
+        }
+        return Array(merged.prefix(limit))
+    }
     func featuredPlaylists(count: Int) async throws -> [MusicPlaylist] {
         let limit = min(max(count, 1), 60)
         async let netease: [MusicPlaylist]? = try? await NetEaseNativeAPIClient(session: session).recommendedPlaylists(count: limit)
