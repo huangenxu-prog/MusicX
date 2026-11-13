@@ -8,6 +8,58 @@ struct GDStudioMusicSearchService {
         self.session = session
     }
 
+    /// Native NetEase web search, following Kumone's cloudsearch song-search contract.
+    func searchNetEase(keyword: String, count: Int = 100, offset: Int = 0) async throws -> [MusicSong] {
+        let query = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return [] }
+        let limit = min(max(count, 1), 100)
+        let cacheKey = "netease-native-search|\(query.lowercased())|\(limit)|\(max(0, offset))"
+        if let cached: [MusicSong] = await MusicCache.shared.value(for: cacheKey) { return cached }
+        let endpoints = ["https://music.163.com/api/search/get/web", "https://interface.music.163.com/api/search/get/web"]
+        var lastError: Error?
+        for endpoint in endpoints {
+            guard let url = URL(string: endpoint) else { continue }
+            var form = URLComponents()
+            form.queryItems = [URLQueryItem(name: "s", value: query), URLQueryItem(name: "type", value: "1"), URLQueryItem(name: "limit", value: String(limit)), URLQueryItem(name: "offset", value: String(max(0, offset))), URLQueryItem(name: "total", value: "true")]
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.timeoutInterval = 12
+            request.httpBody = form.percentEncodedQuery?.data(using: .utf8)
+            request.setValue("application/x-www-form-urlencoded; charset=UTF-8", forHTTPHeaderField: "Content-Type")
+            request.setValue("application/json", forHTTPHeaderField: "Accept")
+            request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148", forHTTPHeaderField: "User-Agent")
+            request.setValue("https://music.163.com/", forHTTPHeaderField: "Referer")
+            do {
+                let (data, response) = try await session.data(for: request)
+                guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+                    lastError = MusicSourceError.invalidResponse("网易云搜索 HTTP \((response as? HTTPURLResponse)?.statusCode ?? -1)")
+                    continue
+                }
+                guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any], let result = root["result"] as? [String: Any], let rows = result["songs"] as? [[String: Any]] else {
+                    lastError = MusicSourceError.invalidResponse("网易云搜索响应缺少 result.songs")
+                    continue
+                }
+                let songs: [MusicSong] = rows.compactMap { row in
+                    guard let rawID = row["id"] else { return nil }
+                    let artists = (row["artists"] as? [[String: Any]] ?? row["ar"] as? [[String: Any]] ?? []).compactMap { $0["name"] as? String }.joined(separator: " / ")
+                    let album = row["album"] as? [String: Any] ?? row["al"] as? [String: Any] ?? [:]
+                    let rawDuration = row["duration"] ?? row["dt"]
+                    let duration: TimeInterval? = {
+                        if let value = rawDuration as? Double { return value > 1000 ? value / 1000 : value }
+                        if let value = rawDuration as? Int { return value > 1000 ? Double(value) / 1000 : Double(value) }
+                        return nil
+                    }()
+                    return MusicSong(source: .netease, sourceID: String(describing: rawID), title: row["name"] as? String ?? "未知歌曲", artist: artists.isEmpty ? "未知歌手" : artists, album: album["name"] as? String, artworkURL: (album["picUrl"] as? String).flatMap(URL.init(string:)), duration: duration, hash: nil, albumID: album["id"].map { String(describing: $0) }, pictureID: nil, lyricID: String(describing: rawID))
+                }
+                guard !songs.isEmpty else { lastError = MusicSourceError.invalidResponse("网易云没有返回匹配歌曲"); continue }
+                await MusicCache.shared.insert(songs, for: cacheKey, ttl: 5 * 60)
+                MusicSourceDiagnostics.shared.record(event: "search", source: MusicSource.netease.rawValue, provider: "netease-native-cloudsearch", duration: 0, result: "success", detail: "count=\(songs.count)")
+                return songs
+            } catch { lastError = error }
+        }
+        MusicSourceDiagnostics.shared.record(event: "search", source: MusicSource.netease.rawValue, provider: "netease-native-cloudsearch", duration: 0, result: "failed", detail: lastError?.localizedDescription ?? "unknown")
+        throw lastError ?? MusicSourceError.invalidResponse("网易云搜索暂时不可用")
+    }
     func search(keyword: String, source: MusicSource, page: Int = 1, count: Int = 20, albumOnly: Bool = false) async throws -> [MusicSong] {
         let query = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return [] }

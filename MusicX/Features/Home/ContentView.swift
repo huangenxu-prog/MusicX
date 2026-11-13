@@ -198,6 +198,7 @@ struct ContentView: View {
     @State private var isLoadingHomeSongs = false
     @State private var homeLoadError: String?
     @State private var discoveryRoute: MusicDiscoveryRoute?
+    @State private var isDiscoveryPopping = false
     @State private var isSettingsAlertPresented = false
 
     private var filteredSongs: [AppSong] {
@@ -243,7 +244,7 @@ struct ContentView: View {
                 }
             }
             .id(selectedTab)
-            .transition(.asymmetric(insertion: .move(edge: .leading), removal: .move(edge: .trailing)))
+            .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -294,20 +295,16 @@ struct ContentView: View {
                     featuredAlbums: homeAlbums.compactMap(\.onlineSong),
                     selectedMainTab: selectedTab.rawValue,
                     onSelectMainTab: { title in
-                        withAnimation(.easeInOut(duration: 0.20)) {
+                        isDiscoveryPopping = true
+                        withAnimation(.easeInOut(duration: 0.28)) {
                             selectedTab = MainTab.allCases.first(where: { $0.rawValue == title }) ?? .home
                             discoveryRoute = nil
                         }
                     },
-                    onClose: { isSwipeBack in
-                    if isSwipeBack {
-                        var transaction = Transaction()
-                        transaction.disablesAnimations = true
-                        withTransaction(transaction) { discoveryRoute = nil }
-                    } else {
+                    onClose: { _ in
+                        isDiscoveryPopping = true
                         withAnimation(.easeInOut(duration: 0.28)) { discoveryRoute = nil }
-                    }
-                },
+                    },
                     onPlay: { playDiscoverySong($0) },
                     currentSong: currentSong?.onlineSong,
                     isPlaying: playerStore.isPlaying,
@@ -323,15 +320,15 @@ struct ContentView: View {
                     },
                     currentTime: playerStore.currentTime,
                     duration: playerStore.duration,
-                    onOpenPlaylist: { discoveryRoute = .playlistByID($0) },
-                    onOpenPlaylistKeyword: { discoveryRoute = .playlist($0) },
-                    onOpenFeaturedPick: { discoveryRoute = .featuredPick },
-                    onOpenAlbum: { discoveryRoute = .album(title: $0, artist: $1) },
-                    onSelectChart: { discoveryRoute = .chart($0) })
+                    onOpenPlaylist: { isDiscoveryPopping = false; withAnimation(.easeInOut(duration: 0.28)) { discoveryRoute = .playlistByID($0) } },
+                    onOpenPlaylistKeyword: { isDiscoveryPopping = false; withAnimation(.easeInOut(duration: 0.28)) { discoveryRoute = .playlist($0) } },
+                    onOpenFeaturedPick: { isDiscoveryPopping = false; withAnimation(.easeInOut(duration: 0.28)) { discoveryRoute = .featuredPick } },
+                    onOpenAlbum: { isDiscoveryPopping = false; withAnimation(.easeInOut(duration: 0.28)) { discoveryRoute = .album(title: $0, artist: $1) } },
+                    onSelectChart: { isDiscoveryPopping = false; withAnimation(.easeInOut(duration: 0.28)) { discoveryRoute = .chart($0) } })
                     .id(route.id)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(MusicXPageBackground())
-                    .transition(.asymmetric(insertion: .move(edge: .leading), removal: .move(edge: .trailing)))
+                    .transition(.asymmetric(insertion: .move(edge: isDiscoveryPopping ? .leading : .trailing), removal: .move(edge: isDiscoveryPopping ? .trailing : .leading)))
                     .zIndex(30)
             }
         }
@@ -339,7 +336,7 @@ struct ContentView: View {
         .overlay {
             if isPlayerPresented {
                 nowPlayingPage
-                    .transition(.asymmetric(insertion: .move(edge: .leading), removal: .move(edge: .trailing)))
+                    .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .trailing)))
                     .zIndex(40)
             }
         }
@@ -1897,7 +1894,7 @@ struct ContentView: View {
             for source in [MusicSource.netease, .qq, .kuwo, .kugou, .migu] {
                 group.addTask {
                     do {
-                        let rows = try await service.search(keyword: query, source: source, count: 50)
+                        let rows = source == .netease ? try await service.searchNetEase(keyword: query, count: 100) : try await service.search(keyword: query, source: source, count: 50)
                         return (source, rows, Optional<String>.none)
                     } catch {
                         MusicSourceDiagnostics.shared.record(
