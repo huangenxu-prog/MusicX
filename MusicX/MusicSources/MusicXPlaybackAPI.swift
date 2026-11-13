@@ -94,11 +94,13 @@ struct MusicXPlaybackAPI {
 
     private struct ReportFailureRequest: Encodable {
         let source: String
-        let trackID: String
+        let trackID: String?
+        let trackMID: String?
 
         enum CodingKeys: String, CodingKey {
             case source
             case trackID = "track_id"
+            case trackMID = "track_mid"
         }
     }
 
@@ -141,10 +143,10 @@ struct MusicXPlaybackAPI {
         return result
     }
 
-    func reportFailure(source: String, trackID: String) async throws {
+    func reportFailure(source: String, trackID: String? = nil, trackMID: String? = nil) async throws {
         let request = try makeRequest(
             path: "/api/v2/playback/report-failure",
-            body: ReportFailureRequest(source: source, trackID: trackID)
+            body: ReportFailureRequest(source: source, trackID: trackID, trackMID: trackMID)
         )
         let response: ReportFailureResponse = try await send(request)
         guard response.success else { throw APIError.invalidResponse }
