@@ -111,10 +111,10 @@ struct NetEaseNativeAPIClient {
 
         guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               (root["code"] as? Int ?? 200) == 200,
-              let rows = root["data"] as? [[String: Any]],
-              let item = rows.first else {
+              let rows = root["data"] as? [[String: Any]] else {
             throw MusicSourceError.invalidResponse("网易云播放地址响应格式异常")
         }
+        guard let item = rows.first else { return nil }
 
         if let code = item["code"] as? Int, code != 200 {
             return nil
@@ -137,6 +137,7 @@ struct NetEaseNativeAPIClient {
     // MARK: - eAPI transport
 
     private func requestEAPI(path: String, payload: [String: Any]) async throws -> Data {
+        try Task.checkCancellation()
         let now = Date().timeIntervalSince1970
         var body = payload
         body["header"] = [
@@ -218,6 +219,7 @@ struct NetEaseNativeAPIClient {
 
             do {
                 let (data, response) = try await session.data(for: request)
+                try Task.checkCancellation()
                 guard let http = response as? HTTPURLResponse,
                       (200..<300).contains(http.statusCode) else {
                     lastError = MusicSourceError.invalidResponse(
