@@ -319,7 +319,7 @@ struct NetEaseNativeAPIClient {
 
         let data = try await requestEAPI(
             path: "/v6/playlist/detail",
-            payload: ["id": id, "n": 100_000, "s": 8]
+            payload: ["id": id, "n": min(count, 100), "s": 8]
         )
         guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               (root["code"] as? Int ?? 200) == 200,
