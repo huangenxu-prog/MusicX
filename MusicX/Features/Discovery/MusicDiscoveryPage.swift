@@ -68,6 +68,7 @@ struct MusicDiscoveryPage: View {
     @State private var chartLoadToken = UUID()
     @State private var songsLoadToken = UUID()
     @State private var playlistCardResults: [String: MusicPlaylist] = [:]
+    @State private var featuredPlaylistResults: [MusicPlaylist] = []
     @State private var isPlaylistUnavailableAlertPresented = false
     @State private var playlistUnavailableMessage = ""
     @State private var selectedRecommendationTab: RecommendationTab = .daily
@@ -405,14 +406,14 @@ struct MusicDiscoveryPage: View {
             if tab == .daily {
                 result = try await catalog.search(keyword: "陈奕迅", source: .netease, count: 30)
             } else {
-                await loadPlaylistCards(forMood: false, onlyCategory: "本周编辑精选")
+                await loadFeaturedPlaylists()
                 guard !Task.isCancelled, songsLoadToken == requestToken else { return }
                 guard let playlist = playlistCardResults["本周编辑精选"] else {
                     songs = []
                     errorMessage = "暂未匹配到本周精选歌单"
                     return
                 }
-                result = try await catalog.playlistTracks(playlistID: playlist.sourceID, count: 30)
+                result = try await catalog.playlistTracks(playlistID: playlist.sourceID, source: playlist.source, count: 30)
             }
             guard !Task.isCancelled, songsLoadToken == requestToken else { return }
             recommendationSongCache[tab] = result
@@ -846,14 +847,53 @@ struct MusicDiscoveryPage: View {
     }
 
     private var featuredPlaylistGrid: some View {
-        playlistCategoryGrid(items: [
-            PlaylistCardItem(title: "本周编辑精选", subtitle: "本周精选", artwork: "featured_playlist"),
-            PlaylistCardItem(title: "华语流行精选", subtitle: "宝藏好歌 · 优质华语流行歌曲合集", artwork: "category_chinese_pop"),
-            PlaylistCardItem(title: "经典金曲精选", subtitle: "经久不衰的动人歌声", artwork: "category_classic"),
-            PlaylistCardItem(title: "独立音乐精选", subtitle: "Indie Music｜独立音乐聚落", artwork: "category_singers"),
-            PlaylistCardItem(title: "影视原声精选", subtitle: "问心系列 影视原声带", artwork: "category_instrumental"),
-            PlaylistCardItem(title: "通勤驾驶精选", subtitle: "通勤路上｜有前行感的节奏", artwork: "playlist_drive")
-        ])
+        let screenWidth = UIScreen.main.bounds.width
+        let cardWidth = max((screenWidth - 32 - 12) / 2, 0)
+        return LazyVGrid(
+            columns: [GridItem(.fixed(cardWidth), spacing: 12), GridItem(.fixed(cardWidth), spacing: 12)],
+            alignment: .leading,
+            spacing: 14
+        ) {
+            if featuredPlaylistResults.isEmpty {
+                if isLoading {
+                    ProgressView().tint(MusicXTheme.blue).frame(maxWidth: .infinity).padding(.vertical, 28).gridCellColumns(2)
+                } else {
+                    Text(errorMessage ?? "暂时没有获取到平台推荐歌单")
+                        .font(.system(size: 13))
+                        .foregroundStyle(MusicXTheme.muted)
+                        .frame(maxWidth: .infinity).padding(.vertical, 28).gridCellColumns(2)
+                }
+            } else {
+                ForEach(Array(featuredPlaylistResults.enumerated()), id: \.element.id) { index, playlist in
+                    featuredPlaylistTile(playlist, index: index, width: cardWidth, imageHeight: cardWidth * 0.705)
+                }
+            }
+        }
+    }
+
+    private func featuredPlaylistTile(_ playlist: MusicPlaylist, index: Int, width: CGFloat, imageHeight: CGFloat) -> some View {
+        Button { onOpenPlaylist(playlist) } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                gradientCollectionCard(index: index, title: playlist.name)
+                    .frame(width: width, height: imageHeight)
+                Text(playlist.name)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Color(red: 0.94, green: 0.95, blue: 0.99))
+                    .lineLimit(1)
+                HStack(spacing: 5) {
+                    Text(playlist.source.displayName)
+                    if let trackCount = playlist.trackCount, trackCount > 0 {
+                        Text("· \(trackCount)首")
+                    }
+                }
+                .font(.system(size: 12))
+                .foregroundStyle(Color(red: 0.69, green: 0.72, blue: 0.81))
+                .lineLimit(1)
+            }
+            .frame(width: width, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     // Mood and editorial categories deliberately share one page template and card geometry.
@@ -1070,24 +1110,36 @@ struct MusicDiscoveryPage: View {
     }
 
     @MainActor
-    private func loadPlaylistCards(forMood: Bool, onlyCategory: String? = nil) async {
-        let items: [(String, [String])] = forMood
-            ? [
-                ("开心愉悦", ["开心", "快乐", "愉悦", "好心情"]),
-                ("温柔治愈", ["治愈", "温柔", "疗愈", "舒缓"]),
-                ("放松舒缓", ["放松", "轻松", "休闲", "Relax"]),
-                ("安静专注", ["专注", "学习", "工作", "纯音乐"]),
-                ("释放情绪", ["摇滚", "热血", "燃", "释放情绪"]),
-                ("夜晚助眠", ["助眠", "睡眠", "晚安", "轻音乐"])
-            ]
-            : [
-                ("本周编辑精选", ["编辑精选", "本周精选", "编辑推荐"]),
-                ("华语流行精选", ["华语流行", "华语"]),
-                ("经典金曲精选", ["经典金曲", "经典", "怀旧"]),
-                ("独立音乐精选", ["独立音乐", "独立", "Indie"]),
-                ("影视原声精选", ["影视原声", "影视", "OST"]),
-                ("通勤驾驶精选", ["通勤", "开车", "驾车", "驾驶"])
-            ]
+    private func loadFeaturedPlaylists() async {
+        if !featuredPlaylistResults.isEmpty { return }
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+        do {
+            let results = try await catalog.featuredPlaylists(count: 30)
+            guard !Task.isCancelled else { return }
+            featuredPlaylistResults = results
+            if results.isEmpty { errorMessage = "平台暂时没有返回可用歌单" }
+        } catch {
+            guard !Task.isCancelled else { return }
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    private func loadPlaylistCards(forMood: Bool) async {
+        guard forMood else {
+            await loadFeaturedPlaylists()
+            return
+        }
+        let items: [(String, [String])] = [
+            ("开心愉悦", ["开心", "快乐", "愉悦", "好心情"]),
+            ("温柔治愈", ["治愈", "温柔", "疗愈", "舒缓"]),
+            ("放松舒缓", ["放松", "轻松", "休闲", "Relax"]),
+            ("安静专注", ["专注", "学习", "工作", "纯音乐"]),
+            ("释放情绪", ["摇滚", "热血", "燃", "释放情绪"]),
+            ("夜晚助眠", ["助眠", "睡眠", "晚安", "轻音乐"])
+        ]
 
         func normalized(_ value: String) -> String {
             value.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
@@ -1096,7 +1148,7 @@ struct MusicDiscoveryPage: View {
 
         var updated = playlistCardResults
         var assignedPlaylistIDs = Set(updated.values.map { $0.id })
-        for (category, keywords) in items where updated[category] == nil && (onlyCategory == nil || category == onlyCategory) {
+        for (category, keywords) in items where updated[category] == nil {
             guard !Task.isCancelled else { return }
             var selected: MusicPlaylist?
             var lastError: String?
@@ -1110,8 +1162,7 @@ struct MusicDiscoveryPage: View {
                         .filter { !assignedPlaylistIDs.contains($0.id) }
                         .map { playlist -> (MusicPlaylist, Int) in
                             let name = normalized(playlist.name)
-                            let score = name == token ? 100
-                                : (name.contains(token) ? 80 : 0)
+                            let score = name == token ? 100 : (name.contains(token) ? 80 : 0)
                             return (playlist, score)
                         }
                         .filter { $0.1 >= 80 }
@@ -1187,29 +1238,24 @@ struct MusicDiscoveryPage: View {
             case .playlist(let name):
                 result = try await catalog.playlistTracks(keyword: name, count: 50)
             case .playlistByID(let playlist):
-                if playlist.source == .qq || playlist.source == .netease {
-                    do {
-                        result = try await catalog.playlistTracks(
-                            playlistID: playlist.sourceID,
-                            source: playlist.source,
-                            count: 50
-                        )
-                    } catch {
-                        if Task.isCancelled { return }
-                        playlistLoadError = "真实歌单曲目加载失败：\(error.localizedDescription)"
-                        result = []
-                        MusicSourceDiagnostics.shared.record(
-                            event: "playlist-tracks",
-                            source: playlist.source.rawValue,
-                            provider: "\(playlist.source.rawValue)-playlist-detail",
-                            duration: 0,
-                            result: "failed",
-                            detail: "\(playlist.name): \(error.localizedDescription)"
-                        )
-                    }
-                } else {
-                    playlistLoadError = "暂不支持加载该音源的真实歌单曲目。"
+                do {
+                    result = try await catalog.playlistTracks(
+                        playlistID: playlist.sourceID,
+                        source: playlist.source,
+                        count: 50
+                    )
+                } catch {
+                    if Task.isCancelled { return }
+                    playlistLoadError = "真实歌单曲目加载失败：\(error.localizedDescription)"
                     result = []
+                    MusicSourceDiagnostics.shared.record(
+                        event: "playlist-tracks",
+                        source: playlist.source.rawValue,
+                        provider: "\(playlist.source.rawValue)-playlist-detail",
+                        duration: 0,
+                        result: "failed",
+                        detail: "\(playlist.name): \(error.localizedDescription)"
+                    )
                 }
             default:
                 result = try await catalog.search(keyword: query, source: .netease, count: 30)
