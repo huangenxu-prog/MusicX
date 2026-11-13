@@ -560,6 +560,15 @@ struct ContentView: View {
         }
     }
 
+    private var officialCollectionsGridHeight: CGFloat {
+        let columns = 3
+        let rows = (homeOfficialCollections.count + columns - 1) / columns
+        let cellWidth = max(0, (UIScreen.main.bounds.width - 28 - 24) / CGFloat(columns))
+        let rowSpacing = CGFloat(max(0, rows - 1)) * 14
+        let rowContentHeight = CGFloat(rows) * 44
+        return max(0, cellWidth * CGFloat(rows) + rowSpacing + rowContentHeight)
+    }
+
     private var featuredCollectionSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
@@ -604,12 +613,7 @@ struct ContentView: View {
                     .padding(.horizontal, 14)
                     .frame(maxWidth: .infinity, alignment: .top)
                 }
-                .frame(height: max(
-                    0,
-                    ((UIScreen.main.bounds.width - 28 - 24) / 3) * CGFloat((homeOfficialCollections.count + 2) / 3)
-                    + CGFloat(max(0, (homeOfficialCollections.count + 2) / 3 - 1)) * 14
-                    + CGFloat((homeOfficialCollections.count + 2) / 3) * 44
-                ))
+                .frame(height: officialCollectionsGridHeight)
             }
         }
     }
