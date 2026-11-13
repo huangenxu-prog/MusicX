@@ -569,35 +569,19 @@ struct ContentView: View {
         return max(0, cellWidth * CGFloat(rows) + rowSpacing + rowContentHeight)
     }
 
+    @ViewBuilder
     private var featuredCollectionSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
-                Capsule().fill(MusicXTheme.blue).frame(width: 3, height: 21)
-                Text("官方合集").font(.system(size: 20, weight: .bold)).foregroundStyle(.white)
-                Spacer()
-                Text("\(homeOfficialCollections.count)/24")
-                    .font(.system(size: 12, weight: .medium, design: .rounded))
-                    .foregroundStyle(MusicXTheme.muted)
-            }
-            .padding(.horizontal, 14)
-
-            if isLoadingOfficialCollections && homeOfficialCollections.isEmpty {
+        // Keep the section out of the interface until real platform playlists arrive.
+        // Loading state and backend/provider details are intentionally not exposed.
+        if !homeOfficialCollections.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 10) {
-                    ProgressView().tint(MusicXTheme.blue)
-                    Text("正在获取五大平台官方合集…")
-                        .font(.system(size: 13))
-                        .foregroundStyle(MusicXTheme.muted)
+                    Capsule().fill(MusicXTheme.blue).frame(width: 3, height: 21)
+                    Text("推荐歌单").font(.system(size: 20, weight: .bold)).foregroundStyle(.white)
+                    Spacer()
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 30)
-            } else if homeOfficialCollections.isEmpty {
-                emptyState(
-                    icon: "square.grid.2x2",
-                    title: "官方合集暂时不可用",
-                    detail: officialCollectionsError ?? "请稍后重试"
-                )
                 .padding(.horizontal, 14)
-            } else {
+
                 GeometryReader { proxy in
                     let gap: CGFloat = 12
                     let width = max(0, (proxy.size.width - 28 - gap * 2) / 3)
