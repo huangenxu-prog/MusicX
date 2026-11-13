@@ -100,3 +100,11 @@ The existing homepage visual design remains out of scope and must remain unchang
 Unofficial endpoints can change or impose access limits. Keep each source adapter isolated, use timeouts and caching, and degrade gracefully when a provider fails. Respect upstream terms, rights, regional restrictions, and any attribution requirements. Do not describe an unofficial endpoint as an official API.
 
 The `guohuiyuan/music-lib` project is a useful capability reference for the five platforms, but its repository declares AGPL-3.0 and an educational/non-commercial disclaimer. MusicX must not copy or link its implementation into the app without a deliberate license/compliance decision. Use it only to understand capability coverage and independently implement adapters against verified platform behavior. Its documented matrix also indicates that Migu has category and playlist-detail support but no recommended-playlist feed, so Migu must not be represented as having the same recommendation capability as the other four platforms.
+
+
+## Resource resolution and catalog freshness follow-up
+
+- Migu playlist tracks and search metadata retain the canonical content ID and copyright ID. The native H5 resolver decodes signed responses and returns a track-level miss for unavailable renditions so the resource engine can continue fallback without penalizing provider health.
+- YouTube audio provider registration covers both `youtubeMusic` and `youtube` source records. It still intentionally rejects cipher-only formats; no signature or `n` deciphering or PO-token generation is implemented.
+- Expired catalog snapshots now refresh before returning. If refresh fails, the last known-good snapshot is returned; this avoids a completed background refresh that never updates the currently displayed page.
+- The above changes are code-level only. Migu/YouTube endpoints, HLS playback, and iOS playback remain unverified on a physical device.
