@@ -1734,6 +1734,13 @@ struct ContentView: View {
         playbackTask?.cancel()
         playbackRequestID = UUID()
         let requestID = playbackRequestID
+        let retryStartedAt = Date()
+        let retryDiagnosticID = requestID.uuidString
+        MusicSourceDiagnostics.shared.record(
+            event: "playback-retry-click", source: onlineSong.source.rawValue,
+            provider: "playback-pipeline", duration: 0,
+            result: "started", detail: "playback_id=\(retryDiagnosticID)"
+        )
         playerStore.pauseForTrackChange()
         isResolvingSong = true
         playbackTask = Task {
@@ -1745,12 +1752,25 @@ struct ContentView: View {
                 let url = try await resolver.resolveFresh(song: onlineSong, quality: selectedMusicQuality)
                 try Task.checkCancellation()
                 guard playbackRequestID == requestID else { return }
+                MusicSourceDiagnostics.shared.record(
+                    event: "playback-retry-url-ready", source: onlineSong.source.rawValue,
+                    provider: "playback-pipeline", duration: Date().timeIntervalSince(retryStartedAt),
+                    result: "success", detail: "playback_id=\(retryDiagnosticID)"
+                )
                 playerStore.play(url: url, title: onlineSong.title, artist: onlineSong.artist,
-                                 album: onlineSong.album, artworkURL: onlineSong.artworkURL, artworkSong: onlineSong)
+                                 album: onlineSong.album, artworkURL: onlineSong.artworkURL,
+                                 artworkSong: onlineSong, diagnosticID: retryDiagnosticID,
+                                 requestedAt: retryStartedAt, diagnosticSource: onlineSong.source.rawValue)
                 prefetchUpcomingTracks(after: song)
             } catch is CancellationError {
                 return
             } catch {
+                MusicSourceDiagnostics.shared.record(
+                    event: "playback-retry-url-failed", source: onlineSong.source.rawValue,
+                    provider: "playback-pipeline", duration: Date().timeIntervalSince(retryStartedAt),
+                    result: "failed",
+                    detail: "playback_id=\(retryDiagnosticID); error=\(error.localizedDescription)"
+                )
                 guard playbackRequestID == requestID else { return }
                 searchError = "重新获取播放地址失败：\(error.localizedDescription)"
                 advanceAfterPlaybackFailure()
@@ -1936,14 +1956,14 @@ struct ContentView: View {
                 }
                 do {
                     let url = try await LXMusicURLResolver().resolve(song: onlineSong, quality: selectedMusicQuality)
+                    try Task.checkCancellation()
+                    guard playbackRequestID == requestID else { return }
                     let resolutionDuration = Date().timeIntervalSince(playbackStartedAt)
                     MusicSourceDiagnostics.shared.record(
                         event: "playback-url-ready", source: onlineSong.source.rawValue,
                         provider: "playback-pipeline", duration: resolutionDuration,
                         result: "success", detail: "playback_id=\(playbackDiagnosticID)"
                     )
-                    try Task.checkCancellation()
-                    guard playbackRequestID == requestID else { return }
                     currentSong = song
                     playerStore.play(url: url, title: onlineSong.title, artist: onlineSong.artist,
                                      album: onlineSong.album, artworkURL: onlineSong.artworkURL,

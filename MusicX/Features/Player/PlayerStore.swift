@@ -69,6 +69,15 @@ final class PlayerStore: ObservableObject {
                 guard let self, item === self.player.currentItem else { return }
                 self.recordDiagnostic("item-status=\(item.status.rawValue) \(error)")
                 if item.status == .failed {
+                    if let diagnosticID = self.activePlaybackDiagnosticID {
+                        let elapsed = self.activePlaybackRequestedAt.map { Date().timeIntervalSince($0) } ?? 0
+                        MusicSourceDiagnostics.shared.record(
+                            event: "playback-item-failed", source: self.activePlaybackDiagnosticSource,
+                            provider: "avplayer", duration: elapsed,
+                            result: "failed",
+                            detail: "playback_id=\(diagnosticID); error=\(error)"
+                        )
+                    }
                     let shouldAdvanceQueue = self.wantsPlayback
                     self.wantsPlayback = false
                     self.player.pause()
