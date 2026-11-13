@@ -39,6 +39,8 @@ private enum RecommendationTab {
 
 struct MusicDiscoveryPage: View {
     let route: MusicDiscoveryRoute
+    let selectedMainTab: String
+    let onSelectMainTab: (String) -> Void
     let onClose: (Bool) -> Void
     let onPlay: (MusicSong) -> Void
     let currentSong: MusicSong?
@@ -139,55 +141,72 @@ struct MusicDiscoveryPage: View {
 
     var body: some View {
         ZStack {
-            ZStack {
-                LinearGradient(colors: [Color(red: 0.018, green: 0.040, blue: 0.095), Color(red: 0.025, green: 0.055, blue: 0.115), Color(red: 0.014, green: 0.030, blue: 0.075)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                RadialGradient(colors: [Color(red: 0.48, green: 0.12, blue: 0.58).opacity(0.38), .clear], center: .top, startRadius: 12, endRadius: 520)
-                RadialGradient(colors: [Color(red: 1.0, green: 0.34, blue: 0.36).opacity(0.16), .clear], center: .topTrailing, startRadius: 10, endRadius: 420)
-            }.ignoresSafeArea()
+            Color(red: 10/255, green: 14/255, blue: 31/255).ignoresSafeArea()
             ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 24) {
-                    topBar
-                    switch route {
-                    case .daily, .featuredPick:
+                if isRecommendationRoute {
+                    VStack(spacing: 0) {
+                        topBar
+                            .padding(.top, 8)
+                        vinylRecord
+                            .padding(.top, 12)
                         recommendationTabs
-                        if selectedRecommendationTab == .daily { dailyHeader } else { featuredRecommendationHeader }
-                    case .playlists: playlistIntro
-                    case .featuredPlaylists: featuredPlaylistsIntro
-                    case .albums: albumsIntro
-                    case .charts, .chart: chartIntro
-                    case .newReleases: newReleasesHeader
-                    case .playlist(let name): detailBanner(name, subtitle: playlistSubtitle(for: name))
-                    case .playlistByID(let playlist): detailBanner(playlist.name, subtitle: playlistSubtitle(for: playlist.name))
-                    case .album(let title, let artist): albumBanner(title: title, artist: artist)
-                    case .musicCategory(let title, let subtitle, let artwork, _):
-                        musicCategoryAlbumHeader(title: title, subtitle: subtitle, artwork: artwork)
-                    }
-                    if isRecommendationRoute {
+                            .padding(.top, 18)
+                        recommendationSectionTitle
+                            .padding(.top, 20)
                         trackList
-                    } else if case .playlists = route {
-                        playlistGrid
-                    } else if case .featuredPlaylists = route {
-                        featuredPlaylistGrid
-                    } else if case .albums = route {
-                        albumGrid
-                    } else {
-                        if case .charts = route { chartTabs }
-                        if case .chart = route { chartTabs }
-                        if case .album = route {
-                            musicCategoryTrackList
-                        } else if case .musicCategory = route {
-                            musicCategoryTrackList
+                            .padding(.top, 10)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 18)
+                } else {
+                    VStack(alignment: .leading, spacing: 24) {
+                        topBar
+                        switch route {
+                        case .daily, .featuredPick:
+                            recommendationTabs
+                            if selectedRecommendationTab == .daily { dailyHeader } else { featuredRecommendationHeader }
+                        case .playlists: playlistIntro
+                        case .featuredPlaylists: featuredPlaylistsIntro
+                        case .albums: albumsIntro
+                        case .charts, .chart: chartIntro
+                        case .newReleases: newReleasesHeader
+                        case .playlist(let name): detailBanner(name, subtitle: playlistSubtitle(for: name))
+                        case .playlistByID(let playlist): detailBanner(playlist.name, subtitle: playlistSubtitle(for: playlist.name))
+                        case .album(let title, let artist): albumBanner(title: title, artist: artist)
+                        case .musicCategory(let title, let subtitle, let artwork, _):
+                            musicCategoryAlbumHeader(title: title, subtitle: subtitle, artwork: artwork)
+                        }
+                        if case .playlists = route {
+                            playlistGrid
+                        } else if case .featuredPlaylists = route {
+                            featuredPlaylistGrid
+                        } else if case .albums = route {
+                            albumGrid
                         } else {
-                            trackList
+                            if case .charts = route { chartTabs }
+                            if case .chart = route { chartTabs }
+                            if case .album = route {
+                                musicCategoryTrackList
+                            } else if case .musicCategory = route {
+                                musicCategoryTrackList
+                            } else {
+                                trackList
+                            }
                         }
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+                    .padding(.bottom, 24)
                 }
-                .padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 24)
             }
         }
         .preferredColorScheme(.dark)
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            miniPlayerBar(song: currentSong)
+            VStack(spacing: 0) {
+                miniPlayerBar(song: currentSong)
+                discoveryTabBar
+            }
+            .background(Color(red: 10/255, green: 14/255, blue: 31/255))
         }
         .simultaneousGesture(DragGesture(minimumDistance: 22, coordinateSpace: .global).onEnded { value in
             let horizontal = value.translation.width
@@ -207,17 +226,110 @@ struct MusicDiscoveryPage: View {
         }
     }
 
+    private var recommendationSectionTitle: some View {
+        HStack(spacing: 11) {
+            Capsule()
+                .fill(Color(red: 0.28, green: 0.55, blue: 0.98))
+                .frame(width: 4, height: 22)
+            Text("为你推荐")
+                .font(.system(size: 22, weight: .bold))
+                .foregroundStyle(.white)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var vinylRecord: some View {
+        ZStack {
+            Circle()
+                .fill(RadialGradient(colors: [Color(red: 0.20, green: 0.22, blue: 0.55).opacity(0.42), .clear],
+                                     center: .center, startRadius: 42, endRadius: 112))
+                .frame(width: 190, height: 190)
+            Circle().fill(Color(red: 0.055, green: 0.075, blue: 0.16))
+                .frame(width: 164, height: 164)
+                .overlay(Circle().stroke(Color(red: 0.18, green: 0.25, blue: 0.49).opacity(0.8), lineWidth: 1))
+            ForEach([142.0, 126.0, 110.0, 94.0], id: \.self) { diameter in
+                Circle().stroke(Color(red: 0.12, green: 0.18, blue: 0.36).opacity(0.82), lineWidth: 1)
+                    .frame(width: diameter, height: diameter)
+            }
+            Circle().stroke(Color(red: 0.25, green: 0.43, blue: 0.98), lineWidth: 2)
+                .frame(width: 148, height: 148)
+            Circle().trim(from: 0.58, to: 0.79)
+                .stroke(Color.white.opacity(0.20), style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                .frame(width: 126, height: 126)
+                .rotationEffect(.degrees(-90))
+            Circle().trim(from: 0.08, to: 0.29)
+                .stroke(Color.white.opacity(0.16), style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                .frame(width: 126, height: 126)
+                .rotationEffect(.degrees(-90))
+            Circle()
+                .fill(LinearGradient(colors: [
+                    Color(red: 0.40, green: 0.25, blue: 0.65),
+                    Color(red: 0.88, green: 0.36, blue: 0.58),
+                    Color(red: 0.98, green: 0.58, blue: 0.34)
+                ], startPoint: .top, endPoint: .bottom))
+                .frame(width: 60, height: 60)
+                .overlay(Circle().stroke(.white.opacity(0.24), lineWidth: 0.8))
+            Circle().fill(Color(red: 10/255, green: 14/255, blue: 31/255))
+                .frame(width: 11, height: 11)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 176)
+        .accessibilityHidden(true)
+    }
+
+    private var discoveryTabBar: some View {
+        HStack(spacing: 0) {
+            discoveryTab("首页", symbol: "house", selected: selectedMainTab == "首页")
+            discoveryTab("搜索", symbol: "magnifyingglass", selected: selectedMainTab == "搜索")
+            discoveryTab("音乐库", symbol: "music.note", selected: selectedMainTab == "音乐库")
+        }
+        .padding(.horizontal, 12)
+        .padding(.top, 5)
+        .padding(.bottom, 4)
+        .background {
+            Color(red: 0.035, green: 0.047, blue: 0.075)
+                .overlay(alignment: .top) {
+                    Rectangle().fill(.white.opacity(0.12)).frame(height: 0.8)
+                }
+        }
+    }
+
+    private func discoveryTab(_ title: String, symbol: String, selected: Bool) -> some View {
+        Button { onSelectMainTab(title) } label: {
+            VStack(spacing: 5) {
+                Image(systemName: symbol)
+                    .font(.system(size: 25, weight: .medium))
+                    .frame(height: 29)
+                Text(title).font(.system(size: 13, weight: .semibold))
+            }
+            .foregroundStyle(selected ? Color(red: 0.36, green: 0.66, blue: 1) : .white.opacity(0.78))
+            .frame(maxWidth: .infinity)
+            .frame(height: 62)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
     private var topBar: some View {
         HStack {
             Button { closePage() } label: {
-                Image(systemName: "chevron.left").font(.system(size: 20, weight: .semibold))
-                    .frame(width: 48, height: 46, alignment: .leading).contentShape(Rectangle())
-            }.buttonStyle(.plain).zIndex(10)
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 21, weight: .medium))
+                    .frame(width: 44, height: 44)
+                    .background(Color.white.opacity(0.055), in: Circle())
+                    .overlay(Circle().stroke(.white.opacity(0.20), lineWidth: 1))
+            }
+            .buttonStyle(.plain)
             Spacer()
-            Text(title).font(.system(size: 16, weight: .semibold))
+            Text(title)
+                .font(.system(size: 27, weight: .bold))
+                .tracking(5)
             Spacer()
-            Color.clear.frame(width: 48, height: 46)
-        }.foregroundStyle(.white).padding(.bottom, 4)
+            Color.clear.frame(width: 44, height: 44)
+        }
+        .foregroundStyle(.white)
+        .frame(height: 48)
+        .padding(.bottom, 2)
     }
 
     private var isRecommendationRoute: Bool {
@@ -227,7 +339,7 @@ struct MusicDiscoveryPage: View {
     }
 
     private var recommendationTabs: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 12) {
             recommendationTabButton("每日推荐", tab: .daily)
             recommendationTabButton("精选歌单", tab: .featured)
         }
@@ -241,12 +353,13 @@ struct MusicDiscoveryPage: View {
             Task { await loadRecommendationSongs(for: tab) }
         } label: {
             Text(title)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(selected ? Color(red: 0.035, green: 0.045, blue: 0.11) : MusicXTheme.muted)
+                .font(.system(size: 17, weight: .semibold))
+                .tracking(1.2)
+                .foregroundStyle(selected ? Color(red: 0.08, green: 0.10, blue: 0.25) : .white)
                 .frame(maxWidth: .infinity)
-                .frame(height: 44)
-                .background(selected ? MusicXTheme.blue : Color(red: 0.085, green: 0.105, blue: 0.20), in: Capsule())
-                .overlay(Capsule().stroke(selected ? .white.opacity(0.14) : Color(red: 0.16, green: 0.19, blue: 0.34), lineWidth: 1))
+                .frame(height: 48)
+                .background(selected ? Color(red: 0.87, green: 0.89, blue: 0.96) : Color.white.opacity(0.035), in: Capsule())
+                .overlay(Capsule().stroke(selected ? .white.opacity(0.18) : Color(red: 0.18, green: 0.24, blue: 0.46), lineWidth: 1))
         }
         .buttonStyle(.plain)
     }
@@ -655,16 +768,18 @@ struct MusicDiscoveryPage: View {
                     .frame(width: 40, height: 40)
                     VStack(alignment: .leading, spacing: 5) {
                         Text(song?.title ?? "尚未播放")
-                            .font(.system(size: 14, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
+                            .font(.system(size: isRecommendationRoute ? 17 : 14, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
                         Text(song?.artist ?? "选择一首歌曲开始聆听")
-                            .font(.system(size: 11)).foregroundStyle(.white.opacity(0.72)).lineLimit(1)
+                            .font(.system(size: isRecommendationRoute ? 13 : 11)).foregroundStyle(.white.opacity(0.72)).lineLimit(1)
                     }
                 }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
             }.buttonStyle(.plain)
-            Button(action: onPrevious) {
-                Image(systemName: "backward.end.fill").font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.92)).frame(width: 30, height: 46)
-            }.buttonStyle(.plain).disabled(song == nil)
+            if !isRecommendationRoute {
+                Button(action: onPrevious) {
+                    Image(systemName: "backward.end.fill").font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.92)).frame(width: 30, height: 46)
+                }.buttonStyle(.plain).disabled(song == nil)
+            }
             Button(action: onTogglePlayback) {
                 Image(systemName: isPlaying ? "pause.fill" : "play.fill").font(.system(size: 19, weight: .bold)).foregroundStyle(.white)
                     .frame(width: 44, height: 44).background(.white.opacity(0.22), in: Circle())
@@ -899,33 +1014,49 @@ struct MusicDiscoveryPage: View {
                         onQueueChanged(songs)
                         onPlay(song)
                     } label: {
-                        HStack(spacing: 12) {
-                            if isChartRoute {
-                                Text(String(index + 1)).font(.system(size: 16, weight: .bold, design: .rounded))
-                                    .foregroundStyle(isCurrent ? MusicXTheme.blue : (index < 3 ? MusicXTheme.blue : MusicXTheme.muted)).frame(width: 22)
-                            }
-                            songArtwork(song, index: index, isCurrent: isCurrent, size: 44)
-                                .frame(width: 44, height: 44)
-                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        HStack(spacing: 14) {
+                            songArtwork(song, index: index, isCurrent: isCurrent, size: isRecommendationRoute ? 56 : 44)
+                                .frame(width: isRecommendationRoute ? 56 : 44, height: isRecommendationRoute ? 56 : 44)
+                                .clipShape(RoundedRectangle(cornerRadius: isRecommendationRoute ? 15 : 10, style: .continuous))
                             VStack(alignment: .leading, spacing: 5) {
-                                Text(song.title).font(.system(size: 15, weight: .semibold)).foregroundStyle(isCurrent ? MusicXTheme.blue : .white).lineLimit(1)
-                                Text(song.artist).font(.system(size: 12)).foregroundStyle(isCurrent ? .white.opacity(0.78) : MusicXTheme.muted).lineLimit(1)
+                                Text(song.title)
+                                    .font(.system(size: isRecommendationRoute ? 17 : 15, weight: .semibold))
+                                    .foregroundStyle(isCurrent ? MusicXTheme.blue : .white)
+                                    .lineLimit(1)
+                                Text(song.artist)
+                                    .font(.system(size: isRecommendationRoute ? 14 : 12))
+                                    .foregroundStyle(isCurrent ? .white.opacity(0.78) : MusicXTheme.muted)
+                                    .lineLimit(1)
                             }
                             Spacer(minLength: 0)
-                            if isCurrent && isPlaying {
-                                Image(systemName: "waveform").font(.system(size: 13, weight: .semibold)).foregroundStyle(MusicXTheme.blue)
+                            if isRecommendationRoute {
+                                Text(song.duration.map { String(format: "%d:%02d", Int($0) / 60, Int($0) % 60) } ?? "")
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(MusicXTheme.muted)
+                            } else {
+                                if isCurrent && isPlaying {
+                                    Image(systemName: "waveform").font(.system(size: 13, weight: .semibold)).foregroundStyle(MusicXTheme.blue)
+                                }
+                                Image(systemName: isChartRoute ? "ellipsis" : "chevron.right").font(.system(size: 16, weight: .semibold)).foregroundStyle(MusicXTheme.muted.opacity(0.82))
                             }
-                            Image(systemName: isChartRoute ? "ellipsis" : "chevron.right").font(.system(size: 16, weight: .semibold)).foregroundStyle(MusicXTheme.muted.opacity(0.82))
                         }
-                         .padding(.horizontal, 12).padding(.vertical, 10)
-                        .frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
-                        .background(isCurrent ? MusicXTheme.blue.opacity(0.12) : Color.white.opacity(0.018), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(isCurrent ? MusicXTheme.blue.opacity(0.30) : Color.white.opacity(0.045), lineWidth: 1))
-                        .overlay(alignment: .leading) {
-                            if isCurrent { Capsule().fill(MusicXTheme.blue).frame(width: 3).padding(.vertical, 8) }
+                        .padding(.horizontal, isRecommendationRoute ? 0 : 12)
+                        .padding(.vertical, isRecommendationRoute ? 8 : 10)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                        .background(isRecommendationRoute ? Color.clear : (isCurrent ? MusicXTheme.blue.opacity(0.12) : Color.white.opacity(0.018), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .overlay {
+                            if !isRecommendationRoute {
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .stroke(isCurrent ? MusicXTheme.blue.opacity(0.30) : Color.white.opacity(0.045), lineWidth: 1)
+                            }
                         }
                     }
                     .buttonStyle(.plain)
+                    if isRecommendationRoute && index < songs.count - 1 {
+                        Rectangle().fill(.white.opacity(0.10)).frame(height: 0.7)
+                            .padding(.leading, 70)
+                    }
                 }
             }
         }
