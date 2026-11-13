@@ -2,7 +2,7 @@ import Foundation
 
 struct GDStudioMusicSearchService {
     private let session: URLSession
-    private let baseURL = "https://music-api.gdstudio.xyz/api.php"
+    private let baseURLs = ["https://music-api.gdstudio.xyz/api.php", "https://music-api.ucds.me/api.php"]
 
     init(session: URLSession = .shared) {
         self.session = session
@@ -41,19 +41,61 @@ struct GDStudioMusicSearchService {
         var request = URLRequest(url: url)
         request.timeoutInterval = 12
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        let (data, response) = try await session.data(for: request)
-        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-            throw MusicSourceError.invalidResponse("搜索 HTTP \((response as? HTTPURLResponse)?.statusCode ?? -1)")
+        var responseData: Data?
+        var lastRequestError: Error?
+        for endpoint in baseURLs {
+            guard var endpointComponents = URLComponents(string: endpoint) else { continue }
+            endpointComponents.queryItems = components.queryItems
+            guard let endpointURL = endpointComponents.url else { continue }
+            var endpointRequest = URLRequest(url: endpointURL)
+            endpointRequest.timeoutInterval = 12
+            endpointRequest.setValue("application/json", forHTTPHeaderField: "Accept")
+            do {
+                let (data, response) = try await session.data(for: endpointRequest)
+                guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+                    lastRequestError = MusicSourceError.invalidResponse("搜索 HTTP \((response as? HTTPURLResponse)?.statusCode ?? -1)")
+                    continue
+                }
+                responseData = data
+                break
+            } catch {
+                lastRequestError = error
+            }
         }
-        guard let rows = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
-            throw MusicSourceError.invalidResponse("搜索结果不是歌曲列表")
+        guard let data = responseData else {
+            throw lastRequestError ?? MusicSourceError.invalidResponse("所有搜索接口均不可用")
+        }
+        let payload = try JSONSerialization.jsonObject(with: data)
+        let rows: [[String: Any]]
+        if let array = payload as? [[String: Any]] {
+            rows = array
+        } else if let root = payload as? [String: Any] {
+            rows = (root["data"] as? [[String: Any]])
+                ?? (root["result"] as? [[String: Any]])
+                ?? ((root["result"] as? [String: Any])?["songs"] as? [[String: Any]])
+                ?? ((root["data"] as? [String: Any])?["songs"] as? [[String: Any]])
+                ?? ((root["data"] as? [String: Any])?["list"] as? [[String: Any]])
+                ?? []
+            if rows.isEmpty {
+                throw MusicSourceError.invalidResponse("搜索接口返回了非歌曲数据：\(root.keys.sorted().joined(separator: ","))")
+            }
+        } else {
+            throw MusicSourceError.invalidResponse("搜索结果格式无法识别")
         }
         let songs: [MusicSong] = rows.compactMap { (row: [String: Any]) -> MusicSong? in
             guard let id = row["id"] else { return nil }
             let artist: String
-            if let names = row["artist"] as? [String] { artist = names.joined(separator: " / ") }
-            else if let name = row["artist"] as? String { artist = name }
-            else { artist = "未知歌手" }
+            if let names = row["artist"] as? [String] {
+                artist = names.joined(separator: " / ")
+            } else if let objects = row["artist"] as? [[String: Any]] {
+                artist = objects.compactMap { ($0["name"] as? String) ?? ($0["title"] as? String) }.joined(separator: " / ")
+            } else if let name = row["artist"] as? String {
+                artist = name
+            } else if let singer = row["singer"] as? [[String: Any]] {
+                artist = singer.compactMap { $0["name"] as? String }.joined(separator: " / ")
+            } else {
+                artist = "未知歌手"
+            }
             let album = row["album"] as? String
             let rawDuration = row["interval"] ?? row["duration"] ?? row["dt"]
             let parsedDuration: TimeInterval? = {

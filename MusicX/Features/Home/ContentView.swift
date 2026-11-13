@@ -1892,10 +1892,19 @@ struct ContentView: View {
 
         let service = GDStudioMusicSearchService()
         var received: [[MusicSong]] = []
-        await withTaskGroup(of: [MusicSong].self) { group in
+        await withTaskGroup(of: (MusicSource, [MusicSong], String?).self) { group in
             for source in [MusicSource.netease, .qq, .kuwo, .kugou, .migu] {
                 group.addTask {
-                    (try? await service.search(keyword: query, source: source, count: 50)) ?? []
+                    do {
+                        let rows = try await service.search(keyword: query, source: source, count: 50)
+                        return (source, rows, Optional<String>.none)
+                    } catch {
+                        MusicSourceDiagnostics.shared.record(
+                            event: "search", source: source.rawValue, provider: "gdstudio-search",
+                            duration: 0, result: "failed", detail: error.localizedDescription
+                        )
+                        return (source, [MusicSong](), Optional(error.localizedDescription))
+                    }
                 }
             }
             for await result in group {
