@@ -1977,7 +1977,7 @@ struct ContentView: View {
             homeLoadError = nil
         case .failure(let error):
             songs = []
-            homeLoadError = "新歌榜暂时不可用：\\(error.localizedDescription)"
+            homeLoadError = "新歌榜暂时不可用：\(error.localizedDescription)"
         }
 
         var seenAlbums = Set<String>()
@@ -1985,7 +1985,7 @@ struct ContentView: View {
             let title = (item.album ?? item.title).trimmingCharacters(in: .whitespacesAndNewlines)
             let artist = item.artist.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !title.isEmpty, !artist.isEmpty, title != "未知专辑", artist != "未知歌手" else { return nil }
-            let key = "\\(title.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current))|\\(artist.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current))"
+            let key = "\(title.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current))|\(artist.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current))"
             guard seenAlbums.insert(key).inserted else { return nil }
             return AppSong(id: stableSongID(item), title: title, artist: artist, album: title,
                            tint: MusicXTheme.blue, onlineSong: item)
@@ -1994,7 +1994,7 @@ struct ContentView: View {
         // If album-specific endpoints return nothing, derive genuine album entries from the live chart tracks.
         let chartAlbumFallback = songs.compactMap { song -> AppSong? in
             guard !song.album.isEmpty, song.album != "未知专辑" else { return nil }
-            let key = "\\(song.album.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current))|\\(song.artist.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current))"
+            let key = "\(song.album.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current))|\(song.artist.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current))"
             guard seenAlbums.insert(key).inserted else { return nil }
             return AppSong(id: song.id, title: song.title, artist: song.artist, album: song.album,
                            tint: song.tint, onlineSong: song.onlineSong)
