@@ -1934,7 +1934,7 @@ struct ContentView: View {
             failedPlaybackSongIDs.removeAll()
             playbackRetryCounts.removeAll()
         }
-        if currentSong?.id == song.id {
+        if currentSong?.id == song.id && playerStore.errorMessage == nil {
             if playerStore.isPlaying { playerStore.pause() }
             else if isResolvingSong { return }
             else { playerStore.resume() }
