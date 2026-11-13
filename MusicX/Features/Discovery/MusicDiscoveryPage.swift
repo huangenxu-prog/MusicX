@@ -92,7 +92,7 @@ struct MusicDiscoveryPage: View {
 
     private func playlistSubtitle(for name: String) -> String {
         let moodNames: Set<String> = ["开心愉悦", "温柔治愈", "放松舒缓", "安静专注", "释放情绪", "夜晚助眠"]
-        let featuredNames: Set<String> = ["本周编辑精选", "华语流行精选", "经典金曲精选", "独立音乐精选", "影视原声精选", "通勤驾驶精选"]
+        let featuredNames: Set<String> = []
         if moodNames.contains(name) { return "心情歌单" }
         return featuredNames.contains(name) ? "精选歌单" : "歌单"
     }
@@ -1359,7 +1359,6 @@ struct MusicDiscoveryPage: View {
             if songsLoadToken == requestToken { isLoading = false }
         }
         do {
-            var playlistLoadError: String?
             var result: [MusicSong]
             switch route {
             case .charts, .chart:
@@ -1432,55 +1431,14 @@ struct MusicDiscoveryPage: View {
             guard !Task.isCancelled, songsLoadToken == requestToken else { return }
             songs = result
             if songs.isEmpty {
-                errorMessage = playlistLoadError ?? "音源没有返回匹配的歌曲，请稍后重试"
+                errorMessage = "内容暂时无法加载，请稍后重试"
             }
         } catch {
             guard !Task.isCancelled, songsLoadToken == requestToken else { return }
-            errorMessage = error.localizedDescription
+            errorMessage = "内容暂时无法加载，请稍后重试"
         }
     }
 
-    private func searchEditorialTracks(name: String) async -> [MusicSong] {
-        let normalizedName = name.lowercased()
-        var keywords = [name]
-        if name.contains("|") {
-            keywords.append(contentsOf: name.split(separator: "|").map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) })
-        }
-        if normalizedName.contains("indie") || name.contains("独立") {
-            keywords.append(contentsOf: ["独立音乐", "Indie", "独立乐队"])
-        }
-        if name.contains("通勤") || name.contains("驾驶") || name.contains("开车") {
-            keywords.append(contentsOf: ["通勤", "驾驶音乐", "开车音乐"])
-        }
-        if name.contains("治愈") { keywords.append(contentsOf: ["温柔治愈", "治愈系歌曲", "温柔华语"]) }
-        if name.contains("放松") || name.contains("舒缓") { keywords.append(contentsOf: ["放松音乐", "轻音乐", "舒缓歌曲"]) }
-        if name.contains("助眠") || name.contains("夜晚") { keywords.append(contentsOf: ["助眠音乐", "纯音乐", "轻音乐"]) }
-        if name.contains("经典") { keywords.append(contentsOf: ["经典老歌", "华语金曲"]) }
-        if name.contains("影视") { keywords.append(contentsOf: ["影视原声", "电影原声", "电视剧原声"]) }
-        if name.contains("华语") { keywords.append(contentsOf: ["华语流行", "华语歌曲"]) }
-        var seen = Set<String>()
-        var collected: [MusicSong] = []
-        for keyword in keywords where !keyword.isEmpty {
-            for source in [MusicSource.netease, .qq, .kuwo, .kugou, .migu] {
-                guard !Task.isCancelled else { return collected }
-                do {
-                    let found = try await catalog.search(keyword: keyword, source: source, count: 20)
-                    for song in found {
-                        let key = song.title.lowercased().filter { $0.isLetter || $0.isNumber }
-                            + "|" + song.artist.lowercased().filter { $0.isLetter || $0.isNumber }
-                        if seen.insert(key).inserted { collected.append(song) }
-                    }
-                } catch {
-                    if Task.isCancelled { return collected }
-                    MusicSourceDiagnostics.shared.record(event: "editorial-search", source: source.rawValue,
-                        provider: "gdstudio-search", duration: 0, result: "failed",
-                        detail: "\(keyword): \(error.localizedDescription)")
-                }
-            }
-            if collected.count >= 30 { break }
-        }
-        return Array(collected.prefix(50))
-    }
 
     private func searchAlbumTracks(title: String, artist: String) async -> [MusicSong] {
         func normalize(_ value: String) -> String {
