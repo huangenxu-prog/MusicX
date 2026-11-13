@@ -79,23 +79,25 @@ struct LXMusicURLResolver: MusicURLResolving {
     private func resolve(song: MusicSong, quality: MusicQuality, useCache: Bool) async throws -> URL {
         let cacheKey = "playback-url|\(song.source.rawValue)|\(song.sourceID)|\(quality.rawValue)"
         if useCache, let cached: URL = await MusicCache.shared.value(for: cacheKey) {
-            MusicSourceDiagnostics.shared.record(event: "resolve", source: song.source.rawValue,
-                                                  provider: "disk-cache", duration: 0, result: "cache_hit")
+            MusicSourceDiagnostics.shared.record(
+                event: "resolve", source: song.source.rawValue,
+                provider: "disk-cache", duration: 0, result: "cache_hit"
+            )
             return cached
         }
 
+        let url = try await MusicResourceEngine(session: session).resolve(song: song, quality: quality)
+        await MusicCache.shared.insert(url, for: cacheKey, ttl: 5 * 60)
+        return url
+    }
+
+    /// Entry point used only by the MusicX legacy supplier adapter. It bypasses
+    /// the public cache boundary and never calls the resource engine recursively.
+    func resolveFromLegacyLibrary(song: MusicSong, quality: MusicQuality) async throws -> URL? {
         if let nativeURL = try await resolveNative(song: song, quality: quality) {
-            await MusicCache.shared.insert(nativeURL, for: cacheKey, ttl: 5 * 60)
             return nativeURL
         }
-        if let alternateURL = try await resolveAlternativeSource(song: song, quality: quality) {
-            await MusicCache.shared.insert(alternateURL, for: cacheKey, ttl: 5 * 60)
-            return alternateURL
-        }
-        throw MusicSourceError.noPlayableURL(
-            source: song.source,
-            details: "原平台及其他平台均未找到可用播放地址"
-        )
+        return try await resolveAlternativeSource(song: song, quality: quality)
     }
 
     /// Resolve only the source-native ID. IDs are never passed between providers.
@@ -189,23 +191,14 @@ struct LXMusicURLResolver: MusicURLResolving {
     }
 
     private func matchScore(original: MusicSong, candidate: MusicSong) -> Int {
-        let originalTitle = normalizedMatchText(original.title)
-        let candidateTitle = normalizedMatchText(candidate.title)
-        guard !originalTitle.isEmpty, originalTitle == candidateTitle else { return 0 }
-
-        let originalArtists = normalizedArtists(original.artist)
-        let candidateArtists = normalizedArtists(candidate.artist)
-        guard !originalArtists.isEmpty, !candidateArtists.isEmpty,
-              originalArtists == candidateArtists else { return 0 }
-
-        if let lhs = original.duration, let rhs = candidate.duration,
-           abs(lhs - rhs) > 5 { return 0 }
-
-        // Do not silently substitute studio, live, remix, cover or instrumental
-        // recordings for one another, even when title and lead artist are identical.
-        let originalVersions = versionMarkers(in: "\(original.title) \(original.album ?? "")")
-        let candidateVersions = versionMarkers(in: "\(candidate.title) \(candidate.album ?? "")")
-        guard originalVersions == candidateVersions else { return 0 }
+        guard AudioSourceTrackMatcher.matches(
+            original: original,
+            candidateTitle: candidate.title,
+            candidateArtist: candidate.artist,
+            candidateDuration: candidate.duration,
+            candidateAlbum: candidate.album,
+            requireDuration: false
+        ) else { return 0 }
 
         var score = 100
         if let lhs = original.duration, let rhs = candidate.duration {
@@ -218,24 +211,6 @@ struct LXMusicURLResolver: MusicURLResolving {
             score += 10
         }
         return score
-    }
-
-    private func normalizedArtists(_ value: String) -> [String] {
-        value.split(whereSeparator: { $0 == "/" || $0 == "、" || $0 == "," || $0 == "，" })
-            .map { normalizedMatchText(String($0)) }
-            .filter { !$0.isEmpty }
-            .sorted()
-    }
-
-    private func versionMarkers(in value: String) -> Set<String> {
-        let text = value.lowercased()
-            .folding(options: [.diacriticInsensitive, .widthInsensitive], locale: .current)
-        let markers = [
-            "live", "remix", "instrumental", "伴奏", "纯音乐", "现场", "演唱会",
-            "翻唱", "cover", "acoustic", "不插电", "demo", "示范", "合唱",
-            "remaster", "重制", "sped up", "slowed", "加速", "降速", "dj"
-        ]
-        return Set(markers.filter { text.contains($0) })
     }
 
     private func sourceFallbackPriority(_ source: MusicSource) -> Int {
