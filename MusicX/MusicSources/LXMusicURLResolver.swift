@@ -161,11 +161,8 @@ struct LXMusicURLResolver: MusicURLResolving {
         async let migu = captureSearch { try await service.search(keyword: song.title, source: .migu, count: 12) }
         let results = await [netease, qq, kuwo, kugou, migu]
         try Task.checkCancellation()
-        let groups = results.map { (try? $0.get()) ?? [] }
-        let searchFailures = results.compactMap { result -> String? in
-            guard case .failure(let error) = result else { return nil }
-            return error.localizedDescription
-        }
+        let groups = results.map(\.0)
+        let searchFailures = results.compactMap(\.1)
 
         var seen = Set<String>()
         let candidates = groups.flatMap { $0 }
@@ -228,14 +225,14 @@ struct LXMusicURLResolver: MusicURLResolving {
 
     private func captureSearch(
         _ operation: () async throws -> [MusicSong]
-    ) async -> Result<[MusicSong], Error> {
+    ) async -> ([MusicSong], String?) {
         do {
-            return .success(try await operation())
+            return (try await operation(), nil)
         } catch {
             if Task.isCancelled || error is CancellationError || (error as? URLError)?.code == .cancelled {
-                return .failure(CancellationError())
+                return ([], "cancelled")
             }
-            return .failure(error)
+            return ([], error.localizedDescription)
         }
     }
 
