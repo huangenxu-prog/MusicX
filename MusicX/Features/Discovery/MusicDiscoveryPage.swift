@@ -402,12 +402,6 @@ struct MusicDiscoveryPage: View {
             isLoading = false
             return
         }
-        if let cached = recommendationSongCache[.daily], !cached.isEmpty {
-            songs = cached
-            errorMessage = nil
-            isLoading = false
-            return
-        }
         let requestToken = UUID()
         songsLoadToken = requestToken
         isLoading = songs.isEmpty
