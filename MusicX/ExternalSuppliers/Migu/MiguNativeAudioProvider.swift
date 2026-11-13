@@ -76,7 +76,9 @@ struct MiguNativeAudioProvider: MusicResourceProvider {
         if let code = root["code"] {
             let value = String(describing: code)
             if !value.isEmpty && value != "000000" && value != "0" {
-                throw MusicSourceError.invalidResponse("咪咕播放业务状态异常：\(value)")
+                // A valid API response with no licensed rendition is a
+                // track-level miss, not a provider outage. Let the engine fall back.
+                return nil
             }
         }
 
