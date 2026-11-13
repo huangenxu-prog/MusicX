@@ -107,6 +107,17 @@ private final class ResourceProviderCircuitBreaker {
         }
         states[identifier] = state
     }
+
+    /// A single song's URL may be expired, region-blocked, or unavailable even
+    /// while the provider itself is healthy. Release a half-open probe slot
+    /// without counting that resource-specific failure against the provider.
+    func recordResourceFailure(_ identifier: String) {
+        lock.lock()
+        defer { lock.unlock() }
+        guard var state = states[identifier], state.halfOpenProbeInFlight else { return }
+        state.halfOpenProbeInFlight = false
+        states[identifier] = state
+    }
 }
 
 /// The middle layer between the player-facing resolver and external supplier libraries.
@@ -206,7 +217,11 @@ struct MusicResourceEngine {
                 }
 
                 let elapsed = Date().timeIntervalSince(startedAt)
-                ResourceProviderCircuitBreaker.shared.recordFailure(provider.identifier)
+                if Self.shouldTripCircuitBreaker(for: error) {
+                    ResourceProviderCircuitBreaker.shared.recordFailure(provider.identifier)
+                } else {
+                    ResourceProviderCircuitBreaker.shared.recordResourceFailure(provider.identifier)
+                }
                 ResourceProviderPerformance.shared.record(
                     identifier: provider.identifier,
                     succeeded: false,
@@ -279,6 +294,40 @@ struct MusicResourceEngine {
             }
         }
     }
+
+
+    /// HTTP 4xx responses from a stream URL are usually song-, region-, or
+    /// entitlement-specific. They should trigger fallback for this track, but
+    /// must not disable the whole provider for unrelated tracks.
+    private static func shouldTripCircuitBreaker(for error: Error) -> Bool {
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .cancelled:
+                return false
+            case .timedOut, .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed,
+                 .networkConnectionLost, .notConnectedToInternet, .secureConnectionFailed,
+                 .cannotLoadFromNetwork:
+                return true
+            default:
+                break
+            }
+        }
+
+        let message = error.localizedDescription.lowercased()
+        if let marker = message.range(of: "http ") {
+            let statusText = message[marker.upperBound...].prefix(3)
+            if let status = Int(statusText), (400..<500).contains(status), status != 429 {
+                return false
+            }
+        }
+        if message.contains("播放地址返回了 html/json")
+            || message.contains("播放地址返回了非音频内容")
+            || message.contains("播放流响应为空") {
+            return false
+        }
+        return true
+    }
+
 
     private static func isValidStreamURL(_ url: URL) -> Bool {
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
