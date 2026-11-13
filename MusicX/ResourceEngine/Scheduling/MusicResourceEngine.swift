@@ -131,38 +131,41 @@ struct MusicResourceEngine {
     }
 
     func resolve(song: MusicSong, quality: MusicQuality) async throws -> URL {
-        var providers: [(any MusicResourceProvider, Int)] = [
-            (MusicXLegacySupplierLibrary(session: session), 30),
-            (KumoneKugouAudioSourceProvider(session: session), 20),
-            (KumoneKuwoAudioSourceProvider(session: session), 10)
+        // Resolve the catalog's own source before consulting cross-platform suppliers.
+        // The legacy adapter contains source-native routes for QQ/Kuwo/Kugou and
+        // only enters cross-platform matching after those routes fail.
+        let legacyTier = song.source == .netease || song.source == .migu
+            || song.source == .youtubeMusic || song.source == .youtube ? 1 : 0
+        var providers: [(provider: any MusicResourceProvider, tier: Int, baseline: Int)] = [
+            (MusicXLegacySupplierLibrary(session: session), legacyTier, 30),
+            (KumoneKugouAudioSourceProvider(session: session), 2, 20),
+            (KumoneKuwoAudioSourceProvider(session: session), 2, 10)
         ]
         if song.source == .netease {
-            providers.insert((NetEaseNativeAudioProvider(session: session), 1_000), at: 0)
+            providers.append((NetEaseNativeAudioProvider(session: session), 0, 1_000))
         }
         if song.source == .migu {
-            providers.insert((MiguNativeAudioProvider(session: session), 900), at: 0)
+            providers.append((MiguNativeAudioProvider(session: session), 0, 900))
         }
         if song.source == .youtubeMusic || song.source == .youtube {
-            // A YouTube video ID must be resolved by the native InnerTube adapter
-            // before the legacy resolver, whose generic fallback maps these sources
-            // to a different catalog and cannot interpret YouTube IDs.
-            providers.insert((YouTubeMusicAudioSourceProvider(session: session), 1_000), at: 0)
+            providers.append((YouTubeMusicAudioSourceProvider(session: session), 0, 1_000))
         }
 
         let ordered = providers.sorted {
+            if $0.tier != $1.tier { return $0.tier < $1.tier }
             let lhs = ResourceProviderPerformance.shared.score(
-                identifier: $0.0.identifier,
-                baseline: $0.1
+                identifier: $0.provider.identifier,
+                baseline: $0.baseline
             )
             let rhs = ResourceProviderPerformance.shared.score(
-                identifier: $1.0.identifier,
-                baseline: $1.1
+                identifier: $1.provider.identifier,
+                baseline: $1.baseline
             )
-            return lhs == rhs ? $0.1 > $1.1 : lhs > rhs
+            return lhs == rhs ? $0.baseline > $1.baseline : lhs > rhs
         }
 
         var failures: [String] = []
-        for (provider, _) in ordered {
+        for entry in ordered {\n            let provider = entry.provider
             try Task.checkCancellation()
             guard ResourceProviderCircuitBreaker.shared.shouldAttempt(provider.identifier) else {
                 MusicSourceDiagnostics.shared.record(
@@ -198,9 +201,6 @@ struct MusicResourceEngine {
                     throw MusicSourceError.invalidResponse("供应商返回了无效播放地址")
                 }
 
-                try await Self.probeStreamURL(resource.url, session: session)
-                try Task.checkCancellation()
-
                 let elapsed = Date().timeIntervalSince(startedAt)
                 ResourceProviderCircuitBreaker.shared.recordHealthy(provider.identifier)
                 ResourceProviderPerformance.shared.record(
@@ -213,7 +213,7 @@ struct MusicResourceEngine {
                     source: song.source.rawValue,
                     provider: resource.providerID,
                     duration: elapsed,
-                    result: "stream_probe_passed"
+                    result: "url_returned_direct"
                 )
                 return resource.url
             } catch {
@@ -253,56 +253,6 @@ struct MusicResourceEngine {
                 : failures.joined(separator: "；")
         )
     }
-
-    /// Validate the resolved endpoint with a tiny ranged GET. This catches expired
-    /// links, authorization errors and obvious HTML/JSON error pages without
-    /// intentionally downloading the complete audio file.
-    private static func probeStreamURL(_ url: URL, session: URLSession) async throws {
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.timeoutInterval = 8
-        request.cachePolicy = .reloadIgnoringLocalCacheData
-        request.setValue("bytes=0-31", forHTTPHeaderField: "Range")
-        request.setValue("audio/*, application/octet-stream;q=0.9, */*;q=0.1", forHTTPHeaderField: "Accept")
-
-        let (bytes, response) = try await session.bytes(for: request)
-        try Task.checkCancellation()
-
-        guard let http = response as? HTTPURLResponse else {
-            throw MusicSourceError.invalidResponse("播放地址没有返回 HTTP 响应")
-        }
-        guard http.statusCode == 200 || http.statusCode == 206 else {
-            throw MusicSourceError.invalidResponse("播放流 HTTP \(http.statusCode)")
-        }
-
-        var prefix = Data()
-        for try await byte in bytes {
-            prefix.append(byte)
-            if prefix.count >= 16 { break }
-        }
-        guard !prefix.isEmpty else {
-            throw MusicSourceError.invalidResponse("播放流响应为空")
-        }
-
-        let prefixText = String(data: prefix, encoding: .utf8)?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .lowercased()
-        if let prefixText,
-           prefixText.hasPrefix("<!doctype") || prefixText.hasPrefix("<html")
-            || prefixText.hasPrefix("{") || prefixText.hasPrefix("[") {
-            throw MusicSourceError.invalidResponse("播放地址返回了 HTML/JSON 错误内容")
-        }
-
-        if let mimeType = http.mimeType?.lowercased() {
-            let isHLSPlaylist = mimeType.contains("mpegurl")
-                || (prefixText?.hasPrefix("#extm3u") ?? false)
-            if mimeType == "text/html" || mimeType == "application/json"
-                || (mimeType.hasPrefix("text/") && !isHLSPlaylist) {
-                throw MusicSourceError.invalidResponse("播放地址返回了非音频内容（\(mimeType)）")
-            }
-        }
-    }
-
 
     /// HTTP 4xx responses from a stream URL are usually song-, region-, or
     /// entitlement-specific. They should trigger fallback for this track, but

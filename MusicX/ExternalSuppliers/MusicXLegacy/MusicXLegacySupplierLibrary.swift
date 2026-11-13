@@ -107,8 +107,8 @@ struct MusicXLegacySupplierLibrary: MusicResourceProvider, MusicCatalogSearchPro
         }
         guard !merged.isEmpty else {
             let failures = [
-                netease.error.map { "网易云：\\($0)" },
-                qq.error.map { "QQ音乐：\\($0)" }
+                netease.error.map { "网易云：\($0)" },
+                qq.error.map { "QQ音乐：\($0)" }
             ].compactMap { $0 }
             let detail = failures.isEmpty ? "" : "（" + failures.joined(separator: "；") + "）"
             throw MusicSourceError.invalidResponse("每日推荐暂时无法加载" + detail)
