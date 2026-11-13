@@ -1,6 +1,6 @@
 import Foundation
 
-struct MusicCatalogSearchResponse {
+struct MusicCatalogSearchResponse: Sendable {
     let source: MusicSource
     let songs: [MusicSong]
     let errorMessage: String?

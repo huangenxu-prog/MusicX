@@ -1,6 +1,6 @@
 import Foundation
 
-enum MusicSource: String, Codable, CaseIterable, Identifiable {
+enum MusicSource: String, Codable, CaseIterable, Identifiable, Sendable {
     case netease = "wy"
     case qq = "tx"
     case kuwo = "kw"
@@ -69,7 +69,7 @@ struct MusicPlaylist: Identifiable, Codable, Hashable {
 }
 
 /// IDs are source-specific. Never pass a QQ mid to a NetEase resolver.
-struct MusicSong: Identifiable, Codable, Hashable {
+struct MusicSong: Identifiable, Codable, Hashable, Sendable {
     var id: String { "\(source.rawValue):\(sourceID)" }
 
     let source: MusicSource

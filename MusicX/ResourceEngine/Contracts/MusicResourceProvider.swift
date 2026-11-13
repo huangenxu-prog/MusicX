@@ -1,7 +1,7 @@
 import Foundation
 
 /// A normalized playable resource returned by an external supplier library.
-struct ResolvedMusicResource {
+struct ResolvedMusicResource: Sendable {
     let url: URL
     let providerID: String
     let providerName: String
@@ -9,7 +9,7 @@ struct ResolvedMusicResource {
 
 /// Supplier libraries implement this contract. The resource engine owns ordering,
 /// fallback, diagnostics and provider health; suppliers own their HTTP/API details.
-protocol MusicResourceProvider {
+protocol MusicResourceProvider: Sendable {
     var identifier: String { get }
     var displayName: String { get }
 
@@ -19,7 +19,7 @@ protocol MusicResourceProvider {
 
 /// Search-capable external supplier. Search metadata is kept separate from stream
 /// resolution so catalog providers can be added without coupling them to playback.
-protocol MusicCatalogSearchProvider {
+protocol MusicCatalogSearchProvider: Sendable {
     var identifier: String { get }
     var displayName: String { get }
 
