@@ -667,11 +667,11 @@ struct ContentView: View {
                 platformCollections.filter { seen.insert($0.id).inserted }.prefix(24)
             )
             if homeOfficialCollections.isEmpty {
-                officialCollectionsError = "平台没有返回可确认来源的官方合集"
+                officialCollectionsError = "暂时没有可展示的推荐歌单"
             }
         } catch {
             guard !Task.isCancelled else { return }
-            officialCollectionsError = error.localizedDescription
+            officialCollectionsError = "推荐歌单暂时无法加载"
         }
     }
 
