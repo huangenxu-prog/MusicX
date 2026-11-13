@@ -107,7 +107,7 @@ struct MusicDiscoveryPage: View {
         case .charts, .chart: "排行榜"
         case .newReleases: "新歌速递"
         case .playlist(let name): name
-        case .playlistByID(let playlist): playlist.name
+        case .playlistByID: "推荐歌单"
         case .album: "专辑"
         case .musicCategory(let title, _, _, _): title
         }
@@ -174,7 +174,7 @@ struct MusicDiscoveryPage: View {
                         case .charts, .chart: chartIntro
                         case .newReleases: newReleasesHeader
                         case .playlist(let name): musicCategoryAlbumHeader(title: name, subtitle: playlistSubtitle(for: name), artwork: categoryArtworkName(for: name))
-                        case .playlistByID(let playlist): detailBanner(playlist.name, subtitle: playlistSubtitle(for: playlist.name))
+                        case .playlistByID(let playlist): recommendationPlaylistBanner(playlist)
                         case .album(let title, let artist): albumBanner(title: title, artist: artist)
                         case .musicCategory(let title, let subtitle, let artwork, _):
                             musicCategoryAlbumHeader(title: title, subtitle: subtitle, artwork: artwork)
@@ -713,6 +713,77 @@ struct MusicDiscoveryPage: View {
                     }
                     .buttonStyle(.plain)
                 }
+            }
+        }
+    }
+
+    private func recommendationPlaylistBanner(_ playlist: MusicPlaylist) -> some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(spacing: 16) {
+                AsyncImage(url: playlist.artworkURL) { phase in
+                    if let image = phase.image {
+                        image.resizable().scaledToFill()
+                    } else {
+                        ZStack {
+                            LinearGradient(
+                                colors: [Color(red: 0.24, green: 0.30, blue: 0.58), Color(red: 0.08, green: 0.10, blue: 0.20)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                            Image(systemName: "music.note.list")
+                                .font(.system(size: 42, weight: .light))
+                                .foregroundStyle(.white.opacity(0.65))
+                        }
+                    }
+                }
+                .frame(width: 134, height: 134)
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(.white.opacity(0.16), lineWidth: 1))
+
+                VStack(alignment: .leading, spacing: 9) {
+                    Text(playlist.name)
+                        .font(.system(size: 27, weight: .bold))
+                        .foregroundStyle(.white)
+                        .lineLimit(2)
+                    Text("共 \(songs.count) 首")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(Color(red: 0.69, green: 0.76, blue: 0.94))
+                }
+                Spacer(minLength: 0)
+            }
+
+            HStack(spacing: 10) {
+                Button {
+                    guard let first = songs.first else { return }
+                    onQueueChanged(songs)
+                    onPlay(first)
+                } label: {
+                    Label("播放全部", systemImage: "play.fill")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Color(red: 0.035, green: 0.045, blue: 0.11))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 48)
+                        .background(Color(red: 0.94, green: 0.95, blue: 0.99), in: Capsule())
+                }
+                .buttonStyle(.plain)
+                .disabled(songs.isEmpty)
+
+                Button {
+                    guard !songs.isEmpty else { return }
+                    let shuffledSongs = songs.shuffled()
+                    onQueueChanged(shuffledSongs)
+                    onPlay(shuffledSongs[0])
+                } label: {
+                    Label("随机播放", systemImage: "shuffle")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 48)
+                        .background(Color(red: 0.085, green: 0.105, blue: 0.20), in: Capsule())
+                        .overlay(Capsule().stroke(Color(red: 0.19, green: 0.23, blue: 0.43), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                .disabled(songs.isEmpty)
             }
         }
     }
