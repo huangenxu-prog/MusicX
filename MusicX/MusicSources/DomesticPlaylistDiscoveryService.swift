@@ -306,7 +306,6 @@ struct DomesticPlaylistDiscoveryService {
         let rows = data?["songList"] as? [[String: Any]] ?? []
         let songs: [MusicSong] = rows.compactMap { row in
             let contentID = (row["contentId"] as? String)
-                ?? (row["copyrightId"] as? String)
                 ?? (row["songId"] as? String)
                 ?? (row["id"] as? String)
             guard let contentID, !contentID.isEmpty else { return nil }
@@ -341,6 +340,8 @@ struct DomesticPlaylistDiscoveryService {
                 lyricID: contentID,
                 copyrightID: (row["copyrightId"] as? String)
                     ?? (row["copyrightId"] as? NSNumber)?.stringValue
+                    ?? (row["copyright_id"] as? String)
+                    ?? (row["copyright_id"] as? NSNumber)?.stringValue
             )
         }
         guard !songs.isEmpty else { throw MusicSourceError.invalidResponse("咪咕歌单没有返回有效歌曲") }
