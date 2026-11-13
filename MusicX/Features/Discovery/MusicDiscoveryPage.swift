@@ -156,8 +156,13 @@ struct MusicDiscoveryPage: View {
                             .padding(.top, 18)
                         recommendationSectionTitle
                             .padding(.top, 20)
-                        trackList
-                            .padding(.top, 10)
+                        if selectedRecommendationTab == .featured {
+                            featuredPlaylistGrid
+                                .padding(.top, 10)
+                        } else {
+                            trackList
+                                .padding(.top, 10)
+                        }
                     }
                     .padding(.horizontal, 20)
                     .padding(.bottom, 18)
@@ -393,7 +398,13 @@ struct MusicDiscoveryPage: View {
 
     @MainActor
     private func loadRecommendationSongs(for tab: RecommendationTab) async {
-        if tab != .daily, let cached = recommendationSongCache[tab], !cached.isEmpty {
+        if tab == .featured {
+            await loadFeaturedPlaylists()
+            songs = []
+            recommendationSongCache[.featured] = []
+            return
+        }
+        if let cached = recommendationSongCache[.daily], !cached.isEmpty {
             songs = cached
             errorMessage = nil
             isLoading = false
@@ -407,61 +418,14 @@ struct MusicDiscoveryPage: View {
             if songsLoadToken == requestToken { isLoading = false }
         }
         do {
-            let result: [MusicSong]
-            if tab == .daily {
-                result = try await catalog.dailyRecommendedSongs(count: 30)
-            } else {
-                await loadFeaturedPlaylists()
-                guard !Task.isCancelled, songsLoadToken == requestToken else { return }
-                guard !featuredPlaylistResults.isEmpty else {
-                    songs = []
-                    errorMessage = "暂未获取到平台推荐歌单"
-                    return
-                }
-                // Do not walk the entire 24-playlist collection serially.
-                // Try only the first few real platform collections concurrently and
-                // use the first usable track list, so one slow/broken provider cannot
-                // leave this screen spinning through every remaining playlist.
-                let candidates = Array(featuredPlaylistResults.prefix(3))
-                let resolvedTracks: [MusicSong]? = await withTaskGroup(
-                    of: [MusicSong]?.self,
-                    returning: [MusicSong]?.self
-                ) { group in
-                    for playlist in candidates {
-                        group.addTask {
-                            do {
-                                let tracks = try await catalog.playlistTracks(
-                                    playlistID: playlist.sourceID,
-                                    source: playlist.source,
-                                    count: 30
-                                )
-                                return tracks.isEmpty ? nil : tracks
-                            } catch {
-                                return nil
-                            }
-                        }
-                    }
-                    for await tracks in group {
-                        if let tracks, !tracks.isEmpty {
-                            group.cancelAll()
-                            return tracks
-                        }
-                    }
-                    return nil
-                }
-                guard !Task.isCancelled, let resolvedTracks else {
-                    if Task.isCancelled { return }
-                    throw MusicSourceError.invalidResponse("精选歌单暂时没有可加载的曲目，请稍后重试")
-                }
-                result = resolvedTracks
-            }
+            let result = try await catalog.dailyRecommendedSongs(count: 30)
             guard !Task.isCancelled, songsLoadToken == requestToken else { return }
-            if tab != .daily { recommendationSongCache[tab] = result }
+            recommendationSongCache[.daily] = result
             songs = result
-            if result.isEmpty { errorMessage = "音源没有返回匹配的歌曲，请稍后重试" }
+            if result.isEmpty { errorMessage = "暂时没有可展示的歌曲" }
         } catch {
             guard !Task.isCancelled, songsLoadToken == requestToken else { return }
-            errorMessage = "内容暂时无法加载，请稍后重试"
+            errorMessage = "每日推荐暂时无法加载，请稍后重试"
         }
     }
 
@@ -985,8 +949,21 @@ struct MusicDiscoveryPage: View {
     private func featuredPlaylistTile(_ playlist: MusicPlaylist, index: Int, width: CGFloat, imageHeight: CGFloat) -> some View {
         Button { onOpenPlaylist(playlist) } label: {
             VStack(alignment: .leading, spacing: 8) {
-                gradientCollectionCard(index: index, title: playlist.name)
-                    .frame(width: width, height: imageHeight)
+                Group {
+                    if let artworkURL = playlist.artworkURL {
+                        AsyncImage(url: artworkURL) { phase in
+                            if let image = phase.image {
+                                image.resizable().scaledToFill()
+                            } else {
+                                gradientCollectionCard(index: index, title: playlist.name)
+                            }
+                        }
+                    } else {
+                        gradientCollectionCard(index: index, title: playlist.name)
+                    }
+                }
+                .frame(width: width, height: imageHeight)
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                 Text(playlist.name)
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Color(red: 0.94, green: 0.95, blue: 0.99))
