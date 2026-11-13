@@ -250,19 +250,30 @@ struct MusicResourceEngine {
             throw MusicSourceError.invalidResponse("播放流 HTTP \(http.statusCode)")
         }
 
-        if let mimeType = http.mimeType?.lowercased(),
-           mimeType == "text/html" || mimeType == "application/json"
-            || mimeType.hasPrefix("text/") {
-            throw MusicSourceError.invalidResponse("播放地址返回了非音频内容（\(mimeType)）")
+        var prefix = Data()
+        for try await byte in bytes {
+            prefix.append(byte)
+            if prefix.count >= 16 { break }
+        }
+        guard !prefix.isEmpty else {
+            throw MusicSourceError.invalidResponse("播放流响应为空")
         }
 
-        var receivedBytes = 0
-        for try await _ in bytes {
-            receivedBytes += 1
-            if receivedBytes >= 2 { break }
+        let prefixText = String(data: prefix, encoding: .utf8)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        if let prefixText,
+           prefixText.hasPrefix("<!doctype") || prefixText.hasPrefix("<html")
+            || prefixText.hasPrefix("{") || prefixText.hasPrefix("[") {
+            throw MusicSourceError.invalidResponse("播放地址返回了 HTML/JSON 错误内容")
         }
-        guard receivedBytes > 0 else {
-            throw MusicSourceError.invalidResponse("播放流响应为空")
+
+        if let mimeType = http.mimeType?.lowercased() {
+            let isHLSPlaylist = mimeType == "text/plain" && (prefixText?.hasPrefix("#extm3u") ?? false)
+            if mimeType == "text/html" || mimeType == "application/json"
+                || (mimeType.hasPrefix("text/") && !isHLSPlaylist) {
+                throw MusicSourceError.invalidResponse("播放地址返回了非音频内容（\(mimeType)）")
+            }
         }
     }
 
