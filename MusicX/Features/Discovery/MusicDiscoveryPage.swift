@@ -32,7 +32,7 @@ private struct PlaylistCardItem {
     let artwork: String
 }
 
-private enum RecommendationTab {
+private enum RecommendationTab: Hashable {
     case daily
     case featured
 }
@@ -70,6 +70,7 @@ struct MusicDiscoveryPage: View {
     @State private var isPlaylistUnavailableAlertPresented = false
     @State private var playlistUnavailableMessage = ""
     @State private var selectedRecommendationTab: RecommendationTab = .daily
+    @State private var recommendationSongCache: [RecommendationTab: [MusicSong]] = [:]
     private var selectedChart: String {
         if let selectedChartOverride { return selectedChartOverride }
         if case .chart(let name) = route { return name }
@@ -383,9 +384,15 @@ struct MusicDiscoveryPage: View {
 
     @MainActor
     private func loadRecommendationSongs(for tab: RecommendationTab) async {
+        if let cached = recommendationSongCache[tab], !cached.isEmpty {
+            songs = cached
+            errorMessage = nil
+            isLoading = false
+            return
+        }
         let requestToken = UUID()
         songsLoadToken = requestToken
-        isLoading = true
+        isLoading = songs.isEmpty
         errorMessage = nil
         defer {
             if songsLoadToken == requestToken { isLoading = false }
@@ -405,6 +412,7 @@ struct MusicDiscoveryPage: View {
                 result = try await service.playlistTracks(playlistID: playlist.sourceID, count: 30)
             }
             guard !Task.isCancelled, songsLoadToken == requestToken else { return }
+            recommendationSongCache[tab] = result
             songs = result
             if result.isEmpty { errorMessage = "音源没有返回匹配的歌曲，请稍后重试" }
         } catch {
