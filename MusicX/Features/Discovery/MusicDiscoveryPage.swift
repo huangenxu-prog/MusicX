@@ -884,10 +884,10 @@ struct MusicDiscoveryPage: View {
                     Text(playlist.source.displayName)
                     Text("· " + {
                         switch playlist.provenance {
-                        case .officialEditorial: "官方精选"
-                        case .platformRecommended: "平台推荐"
-                        case .categoryFeatured: "分类推荐"
-                        case .searchResult, .none: "歌单"
+                        case .some(.officialEditorial): "官方精选"
+                        case .some(.platformRecommended): "平台推荐"
+                        case .some(.categoryFeatured): "分类推荐"
+                        case .some(.searchResult), .none: "歌单"
                         }
                     }())
                     if let trackCount = playlist.trackCount, trackCount > 0 {
