@@ -1151,11 +1151,25 @@ struct MusicDiscoveryPage: View {
 
     @MainActor
     private func loadFeaturedPlaylists() async {
-        isLoading = featuredPlaylistResults.isEmpty
+        if !featuredPlaylistResults.isEmpty { return }
+        isLoading = true
         errorMessage = nil
         defer { isLoading = false }
         do {
-            let results = try await catalog.featuredPlaylists(count: 25)
+            let results = try await withThrowingTaskGroup(of: [MusicPlaylist].self) { group in
+                group.addTask {
+                    try await catalog.featuredPlaylists(count: 25)
+                }
+                group.addTask {
+                    try await Task.sleep(nanoseconds: 18_000_000_000)
+                    throw MusicSourceError.invalidResponse("平台推荐歌单加载超时，请稍后重试")
+                }
+                guard let first = try await group.next() else {
+                    throw MusicSourceError.invalidResponse("平台暂时没有返回推荐歌单")
+                }
+                group.cancelAll()
+                return first
+            }
             guard !Task.isCancelled else { return }
             featuredPlaylistResults = results
             if results.isEmpty { errorMessage = "平台暂时没有返回可用歌单" }
