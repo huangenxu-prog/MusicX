@@ -380,52 +380,35 @@ struct ContentView: View {
         }
         .scrollBounceBehavior(.basedOnSize)
         .background {
-            GeometryReader { proxy in
-                let navy = Color(red: 0.039, green: 0.055, blue: 0.122)
-                ZStack(alignment: .top) {
-                    navy
-                    VStack(spacing: 0) {
-                        ZStack {
-                            LinearGradient(
-                                stops: [
-                                    .init(color: Color(red: 30.0 / 255.0, green: 42.0 / 255.0, blue: 107.0 / 255.0), location: 0.00),
-                                    .init(color: Color(red: 75.0 / 255.0, green: 52.0 / 255.0, blue: 144.0 / 255.0), location: 0.25),
-                                    .init(color: Color(red: 154.0 / 255.0, green: 79.0 / 255.0, blue: 143.0 / 255.0), location: 0.50),
-                                    .init(color: Color(red: 232.0 / 255.0, green: 128.0 / 255.0, blue: 106.0 / 255.0), location: 0.70),
-                                    .init(color: Color(red: 245.0 / 255.0, green: 165.0 / 255.0, blue: 90.0), location: 0.825),
-                                    .init(color: navy, location: 1.00)
-                                ],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                            RadialGradient(
-                                stops: [
-                                    .init(color: Color(red: 0.961, green: 0.647, blue: 0.353).opacity(0.92), location: 0.0),
-                                    .init(color: Color(red: 0.961, green: 0.545, blue: 0.365).opacity(0.52), location: 0.28),
-                                    .init(color: Color(red: 0.91, green: 0.38, blue: 0.48).opacity(0.12), location: 0.58),
-                                    .init(color: .clear, location: 1.0)
-                                ],
-                                center: UnitPoint(x: 0.54, y: 0.825),
-                                startRadius: 1,
-                                endRadius: proxy.size.width * 0.76
-                            )
-                            LinearGradient(
-                                stops: [
-                                    .init(color: .clear, location: 0.72),
-                                    .init(color: navy.opacity(0.42), location: 0.88),
-                                    .init(color: navy, location: 1.00)
-                                ],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        }
-                        .frame(height: 200)
-                        Spacer(minLength: 0)
-                    }
-                }
-                .frame(width: proxy.size.width, height: proxy.size.height, alignment: .top)
-                .ignoresSafeArea(edges: .top)
+            let navy = Color(red: 10.0 / 255.0, green: 14.0 / 255.0, blue: 31.0 / 255.0)
+            VStack(spacing: 0) {
+                LinearGradient(
+                    stops: [
+                        .init(color: Color(red: 30.0 / 255.0, green: 42.0 / 255.0, blue: 107.0 / 255.0), location: 0.0),
+                        .init(color: Color(red: 75.0 / 255.0, green: 52.0 / 255.0, blue: 144.0 / 255.0), location: 1.0 / 3.0),
+                        .init(color: Color(red: 154.0 / 255.0, green: 79.0 / 255.0, blue: 143.0 / 255.0), location: 2.0 / 3.0),
+                        .init(color: Color(red: 232.0 / 255.0, green: 128.0 / 255.0, blue: 106.0 / 255.0), location: 14.0 / 15.0),
+                        .init(color: Color(red: 232.0 / 255.0, green: 128.0 / 255.0, blue: 106.0), location: 1.0)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 150)
+
+                LinearGradient(
+                    colors: [
+                        Color(red: 232.0 / 255.0, green: 128.0 / 255.0, blue: 106.0 / 255.0),
+                        navy
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 50)
             }
+            .frame(maxWidth: .infinity)
+            .frame(height: 200, alignment: .top)
+            .background(navy)
+            .ignoresSafeArea(edges: .top)
             .allowsHitTesting(false)
         }
         .ignoresSafeArea(edges: .top)
