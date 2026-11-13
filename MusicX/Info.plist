@@ -14,5 +14,7 @@
     <array>
         <string>audio</string>
     </array>
+    <key>MusicXAPIBaseURL</key>
+    <string></string>
 </dict>
 </plist>
