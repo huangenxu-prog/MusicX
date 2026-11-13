@@ -90,6 +90,59 @@ struct NetEaseNativeAPIClient {
         return songs
     }
 
+    // MARK: - Platform recommendations
+
+    /// Loads NetEase's public personalized playlist feed. This is a platform
+    /// recommendation feed, not a search result or a claim of manual editorial.
+    func recommendedPlaylists(count: Int = 30) async throws -> [MusicPlaylist] {
+        let limit = min(max(count, 1), 100)
+        let cacheKey = "netease-recommended-playlists|\(limit)"
+        if let cached = await MusicCatalogStore.shared.snapshot(for: cacheKey, as: [MusicPlaylist].self) {
+            if cached.needsRefresh {
+                Task { _ = try? await self.refreshRecommendedPlaylists(count: limit, cacheKey: cacheKey) }
+            }
+            return cached.value
+        }
+        return try await refreshRecommendedPlaylists(count: limit, cacheKey: cacheKey)
+    }
+
+    private func refreshRecommendedPlaylists(count: Int, cacheKey: String) async throws -> [MusicPlaylist] {
+        let data = try await requestEAPI(
+            path: "/personalized/playlist",
+            payload: ["limit": count, "total": true, "n": 1000]
+        )
+        guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              (root["code"] as? Int ?? 200) == 200 else {
+            throw MusicSourceError.invalidResponse("网易云推荐歌单响应异常")
+        }
+        let rows = root["result"] as? [[String: Any]]
+            ?? (root["data"] as? [[String: Any]])
+            ?? []
+        let playlists: [MusicPlaylist] = rows.compactMap { row in
+            guard let rawID = row["id"], let name = row["name"] as? String, !name.isEmpty else { return nil }
+            let artwork = (row["picUrl"] as? String)
+                ?? (row["coverImgUrl"] as? String)
+                ?? (row["coverImgUrl_str"] as? String)
+            let countValue = (row["trackCount"] as? Int)
+                ?? (row["trackCount"] as? String).flatMap(Int.init)
+            return MusicPlaylist(
+                source: .netease,
+                sourceID: String(describing: rawID),
+                name: name,
+                creator: (row["copywriter"] as? String) ?? "网易云推荐",
+                description: (row["copywriter"] as? String) ?? (row["description"] as? String),
+                artworkURL: artwork.flatMap(URL.init(string:)),
+                trackCount: countValue,
+                provenance: .platformRecommended
+            )
+        }
+        guard !playlists.isEmpty else {
+            throw MusicSourceError.invalidResponse("网易云推荐接口没有返回有效歌单")
+        }
+        await MusicCatalogStore.shared.save(playlists, for: cacheKey, refreshAfter: 6 * 60 * 60)
+        return Array(playlists.prefix(count))
+    }
+
     // MARK: - Native playback URL
 
     /// Resolves a NetEase song ID through the native player URL endpoint.
