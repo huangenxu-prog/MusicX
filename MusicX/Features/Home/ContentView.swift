@@ -144,27 +144,35 @@ struct ContentView: View {
         Set(favoriteIDs.split(separator: ",").compactMap { Int($0) })
     }
 
+    private func isLibraryEligible(_ song: AppSong) -> Bool {
+        song.onlineSong?.source != .kuwo
+    }
+
     private var recentSongs: [AppSong] {
-        let stored = decodeLibrarySongs(recentSongsJSON).map { appSong(from: $0) }
+        let stored = decodeLibrarySongs(recentSongsJSON)
+            .filter { $0.source != .kuwo }
+            .map { appSong(from: $0) }
         var available = stored
         available.append(contentsOf: songs)
         available.append(contentsOf: onlineResults)
         available.append(contentsOf: playbackQueueSongs)
         if let currentSong { available.append(currentSong) }
-        available = uniqueLibrarySongs(available)
+        available = uniqueLibrarySongs(available).filter(isLibraryEligible)
         let ids = recentIDs.split(separator: ",").compactMap { Int($0) }
         let ordered = ids.compactMap { id in available.first { $0.id == id } }
         return ordered.isEmpty ? stored : ordered
     }
 
     private var favoriteSongs: [AppSong] {
-        let stored = decodeLibrarySongs(favoriteSongsJSON).map { appSong(from: $0) }
+        let stored = decodeLibrarySongs(favoriteSongsJSON)
+            .filter { $0.source != .kuwo }
+            .map { appSong(from: $0) }
         var available = stored
         available.append(contentsOf: songs)
         available.append(contentsOf: onlineResults)
         available.append(contentsOf: playbackQueueSongs)
         if let currentSong { available.append(currentSong) }
-        available = uniqueLibrarySongs(available)
+        available = uniqueLibrarySongs(available).filter(isLibraryEligible)
         let ids = favorites
         let current = available.filter { ids.contains($0.id) }
         return uniqueLibrarySongs(stored + current).filter { ids.contains($0.id) }
