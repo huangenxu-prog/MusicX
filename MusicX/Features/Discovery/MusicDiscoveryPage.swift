@@ -414,8 +414,7 @@ struct MusicDiscoveryPage: View {
             if tab == .daily {
                 // Temporary QQ-only test feed. Fetch the platform-native daily feed,
                 // request enough merged rows to retain the QQ batch, then display QQ tracks only.
-                let dailyFeed = try await catalog.dailyRecommendedSongs(count: 100)
-                result = Array(dailyFeed.filter { $0.source == .qq }.prefix(30))
+                result = try await catalog.qqDailyRecommendedSongs(count: 30)
                 guard !result.isEmpty else {
                     throw MusicSourceError.invalidResponse("QQ每日推荐没有返回歌曲，请检查QQ每日推荐接口")
                 }
@@ -645,7 +644,7 @@ struct MusicDiscoveryPage: View {
             if isLoading {
                 ProgressView().tint(MusicXTheme.blue).frame(maxWidth: .infinity).padding(.vertical, 28)
             } else if let errorMessage, songs.isEmpty {
-                Text("内容暂时无法加载，请稍后重试").font(.system(size: 13)).foregroundStyle(MusicXTheme.muted).frame(maxWidth: .infinity).padding(.vertical, 24)
+                Text(errorMessage).font(.system(size: 13)).foregroundStyle(MusicXTheme.muted).frame(maxWidth: .infinity).padding(.vertical, 24)
             } else if songs.isEmpty {
                 Text("暂时没有找到曲目").font(.system(size: 13)).foregroundStyle(MusicXTheme.muted).frame(maxWidth: .infinity).padding(.vertical, 24)
             } else {

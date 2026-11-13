@@ -58,6 +58,10 @@ struct MusicXLegacySupplierLibrary: MusicResourceProvider, MusicCatalogSearchPro
         )
     }
 
+    func qqDailyRecommendedSongs(count: Int) async throws -> [MusicSong] {
+        try await GDStudioMusicSearchService(session: session).dailyRecommendedSongs(count: min(max(count, 1), 30))
+    }
+
     func dailyRecommendedSongs(count: Int) async throws -> [MusicSong] {
         let limit = min(max(count, 1), 100)
         async let neteaseResult = Self.captureDailySource {

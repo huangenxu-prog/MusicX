@@ -98,6 +98,10 @@ struct MusicCatalogSearchEngine {
         try await provider.dailyRecommendedSongs(count: count)
     }
 
+    func qqDailyRecommendedSongs(count: Int = 30) async throws -> [MusicSong] {
+        try await provider.qqDailyRecommendedSongs(count: count)
+    }
+
     func playlistTracks(keyword: String, count: Int = 50) async throws -> [MusicSong] {
         try await provider.playlistTracks(keyword: keyword, count: count)
     }
