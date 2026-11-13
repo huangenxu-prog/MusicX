@@ -413,29 +413,37 @@ struct MusicDiscoveryPage: View {
                     errorMessage = "暂未获取到平台推荐歌单"
                     return
                 }
-                var resolvedTracks: [MusicSong]?
-                var lastPlaylistError: String?
-                for playlist in featuredPlaylistResults {
-                    guard !Task.isCancelled else { return }
-                    do {
-                        let tracks = try await catalog.playlistTracks(
-                            playlistID: playlist.sourceID,
-                            source: playlist.source,
-                            count: 30
-                        )
-                        if !tracks.isEmpty {
-                            resolvedTracks = tracks
-                            break
+                // Do not walk the entire 24-playlist collection serially.
+                // Try only the first few real platform collections concurrently and
+                // use the first usable track list, so one slow/broken provider cannot
+                // leave this screen spinning through every remaining playlist.
+                let candidates = Array(featuredPlaylistResults.prefix(3))
+                let resolvedTracks = await withTaskGroup(of: [MusicSong]?.self) { group in
+                    for playlist in candidates {
+                        group.addTask {
+                            do {
+                                let tracks = try await catalog.playlistTracks(
+                                    playlistID: playlist.sourceID,
+                                    source: playlist.source,
+                                    count: 30
+                                )
+                                return tracks.isEmpty ? nil : tracks
+                            } catch {
+                                return nil
+                            }
                         }
-                    } catch {
-                        if Task.isCancelled { return }
-                        lastPlaylistError = error.localizedDescription
                     }
+                    for await tracks in group {
+                        if let tracks, !tracks.isEmpty {
+                            group.cancelAll()
+                            return tracks
+                        }
+                    }
+                    return nil
                 }
-                guard let resolvedTracks else {
-                    throw MusicSourceError.invalidResponse(
-                        lastPlaylistError ?? "推荐歌单暂时没有可加载的曲目"
-                    )
+                guard !Task.isCancelled, let resolvedTracks else {
+                    if Task.isCancelled { return }
+                    throw MusicSourceError.invalidResponse("精选歌单暂时没有可加载的曲目，请稍后重试")
                 }
                 result = resolvedTracks
             }
