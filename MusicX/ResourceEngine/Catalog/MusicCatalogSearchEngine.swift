@@ -98,6 +98,10 @@ struct MusicCatalogSearchEngine {
         try await provider.playlistTracks(playlistID: playlistID, count: count)
     }
 
+    func playlistTracks(playlistID: String, source: MusicSource, count: Int = 50) async throws -> [MusicSong] {
+        try await provider.playlistTracks(playlistID: playlistID, source: source, count: count)
+    }
+
     func toplist(_ chartName: String, count: Int = 50) async throws -> [MusicSong] {
         try await provider.toplist(chartName, count: count)
     }
