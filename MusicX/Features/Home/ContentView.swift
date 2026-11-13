@@ -1905,7 +1905,8 @@ struct ContentView: View {
             else if isResolvingSong { return }
             else { playerStore.resume() }
         } else if let onlineSong = song.onlineSong {
-            // Cancel URL lookups for the previous selection and silence it immediately.
+            // Cancel both stale URL lookups and background prefetch for the previous queue position.
+            playbackPrefetchTask?.cancel()
             playbackTask?.cancel()
             playbackRequestID = UUID()
             let requestID = playbackRequestID
