@@ -48,26 +48,20 @@ struct KumoneKugouAudioSourceProvider: MusicResourceProvider {
         let candidates: [Candidate] = rows.prefix(20).compactMap { row in
             guard let hash = row["hash"] as? String, !hash.isEmpty,
                   let title = row["songname"] as? String,
-                  let artist = row["singername"] as? String,
-                  let duration = Self.integer(row["duration"]) else { return nil }
+                  let artist = row["singername"] as? String else { return nil }
 
-            let durationSeconds = TimeInterval(duration)
+            let durationSeconds = TimeInterval(Self.integer(row["duration"]) ?? 0)
             let album = row["album_name"] as? String
             guard AudioSourceTrackMatcher.matches(
                 original: song,
                 candidateTitle: title,
                 candidateArtist: artist,
                 candidateDuration: durationSeconds,
-                candidateAlbum: album,
-                requireDuration: true
+                candidateAlbum: album
             ) else { return nil }
 
             let albumID = row["album_id"].map { String(describing: $0) } ?? "0"
             return Candidate(hash: hash, albumID: albumID, duration: durationSeconds)
-        }
-        .sorted {
-            AudioSourceTrackMatcher.durationDifference(original: song, candidateDuration: $0.duration)
-                < AudioSourceTrackMatcher.durationDifference(original: song, candidateDuration: $1.duration)
         }
 
         // A search response can contain several exact metadata matches, while
