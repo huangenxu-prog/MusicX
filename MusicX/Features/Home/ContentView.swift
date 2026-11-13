@@ -150,6 +150,10 @@ struct ContentView: View {
     @State private var isResolvingSong = false
     @State private var failedPlaybackSongIDs: Set<Int> = []
     @State private var refreshedPlaybackSongIDs: Set<Int> = []
+    @State private var vpsResolvedSongID: Int?
+    @State private var vpsResolvedSource: String?
+    @State private var vpsResolvedTrackID: String?
+    @State private var vpsResolvedTrackMID: String?
     @AppStorage("musicx.favoriteIDs") private var favoriteIDs = "1,3"
     @AppStorage("musicx.recentIDs") private var recentIDs = ""
     @AppStorage("musicx.recentSongs") private var recentSongsJSON = "[]"
@@ -1504,8 +1508,8 @@ struct ContentView: View {
         select(queue[(index + offset + queue.count) % queue.count])
     }
 
-    /// A resolved stream URL can expire before playback starts. Invalidate the cached
-    /// URL and resolve the same track once before giving up and advancing the queue.
+    /// Retry the VPS-issued stream through its failure-report/refresh contract.
+    /// If the VPS is unavailable, retain the existing local fresh-resolution path.
     private func retryCurrentSongWithFreshURL() {
         guard let song = currentSong, let onlineSong = song.onlineSong,
               !refreshedPlaybackSongIDs.contains(song.id) else {
@@ -1524,7 +1528,38 @@ struct ContentView: View {
             }
             do {
                 let resolver = LXMusicURLResolver()
-                let url = try await resolver.resolveFresh(song: onlineSong, quality: selectedMusicQuality)
+                let url: URL
+                if vpsResolvedSongID == song.id, let failedSource = vpsResolvedSource {
+                    let api = MusicXPlaybackAPI()
+                    if failedSource == "netease" || failedSource == "qq" {
+                        try? await api.reportFailure(
+                            source: failedSource,
+                            trackID: vpsResolvedTrackID,
+                            trackMID: vpsResolvedTrackMID
+                        )
+                        do {
+                            let refreshed = try await api.refresh(
+                                song: onlineSong,
+                                failedSource: failedSource,
+                                failedTrackID: vpsResolvedTrackID,
+                                failedTrackMID: vpsResolvedTrackMID
+                            )
+                            guard let refreshedURL = refreshed.url else {
+                                throw MusicXPlaybackAPI.APIError.noPlayableURL
+                            }
+                            vpsResolvedSource = refreshed.resolvedSource
+                            vpsResolvedTrackID = refreshed.trackID
+                            vpsResolvedTrackMID = refreshed.trackMID
+                            url = refreshedURL
+                        } catch {
+                            url = try await resolver.resolveFresh(song: onlineSong, quality: selectedMusicQuality)
+                        }
+                    } else {
+                        url = try await resolver.resolveFresh(song: onlineSong, quality: selectedMusicQuality)
+                    }
+                } else {
+                    url = try await resolver.resolveFresh(song: onlineSong, quality: selectedMusicQuality)
+                }
                 try Task.checkCancellation()
                 guard playbackRequestID == requestID else { return }
                 playerStore.play(url: url, title: onlineSong.title, artist: onlineSong.artist,
@@ -1696,7 +1731,23 @@ struct ContentView: View {
                     if playbackRequestID == requestID { isResolvingSong = false }
                 }
                 do {
-                    let url = try await LXMusicURLResolver().resolve(song: onlineSong, quality: selectedMusicQuality)
+                    let url: URL
+                    do {
+                        url = try await LXMusicURLResolver().resolve(song: onlineSong, quality: selectedMusicQuality)
+                    } catch {
+                        try Task.checkCancellation()
+                        let api = MusicXPlaybackAPI()
+                        guard api.isConfigured else { throw error }
+                        let resolution = try await api.resolve(song: onlineSong)
+                        guard let vpsURL = resolution.url else {
+                            throw MusicXPlaybackAPI.APIError.noPlayableURL
+                        }
+                        vpsResolvedSongID = song.id
+                        vpsResolvedSource = resolution.resolvedSource
+                        vpsResolvedTrackID = resolution.trackID
+                        vpsResolvedTrackMID = resolution.trackMID
+                        url = vpsURL
+                    }
                     try Task.checkCancellation()
                     guard playbackRequestID == requestID else { return }
                     currentSong = song
