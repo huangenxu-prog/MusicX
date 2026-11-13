@@ -154,18 +154,17 @@ struct LXMusicURLResolver: MusicURLResolving {
     /// title + artist matches are eligible; duration mismatches are rejected.
     private func resolveAlternativeSource(song: MusicSong, quality: MusicQuality) async throws -> URL? {
         let service = GDStudioMusicSearchService(session: session)
-        async let netease = try? service.search(keyword: song.title, source: .netease, count: 12)
-        async let qq = try? service.search(keyword: song.title, source: .qq, count: 12)
-        async let kuwo = try? service.search(keyword: song.title, source: .kuwo, count: 12)
-        async let kugou = try? service.search(keyword: song.title, source: .kugou, count: 12)
-        async let migu = try? service.search(keyword: song.title, source: .migu, count: 12)
-        let groups = [
-            await netease ?? [],
-            await qq ?? [],
-            await kuwo ?? [],
-            await kugou ?? [],
-            await migu ?? []
-        ]
+        async let netease = captureSearch { try await service.search(keyword: song.title, source: .netease, count: 12) }
+        async let qq = captureSearch { try await service.search(keyword: song.title, source: .qq, count: 12) }
+        async let kuwo = captureSearch { try await service.search(keyword: song.title, source: .kuwo, count: 12) }
+        async let kugou = captureSearch { try await service.search(keyword: song.title, source: .kugou, count: 12) }
+        async let migu = captureSearch { try await service.search(keyword: song.title, source: .migu, count: 12) }
+        let results = await [netease, qq, kuwo, kugou, migu]
+        let groups = results.map { (try? $0.get()) ?? [] }
+        let searchFailures = results.compactMap { result -> String? in
+            guard case .failure(let error) = result else { return nil }
+            return error.localizedDescription
+        }
 
         var seen = Set<String>()
         let candidates = groups.flatMap { $0 }
@@ -218,7 +217,25 @@ struct LXMusicURLResolver: MusicURLResolving {
                 "跨平台备用解析异常：" + candidateFailures.joined(separator: "；")
             )
         }
+        if candidates.isEmpty && !searchFailures.isEmpty {
+            throw MusicSourceError.invalidResponse(
+                "跨平台搜索接口异常：" + searchFailures.joined(separator: "；")
+            )
+        }
         return nil
+    }
+
+    private func captureSearch(
+        _ operation: () async throws -> [MusicSong]
+    ) async -> Result<[MusicSong], Error> {
+        do {
+            return .success(try await operation())
+        } catch {
+            if Task.isCancelled || error is CancellationError || (error as? URLError)?.code == .cancelled {
+                return .failure(CancellationError())
+            }
+            return .failure(error)
+        }
     }
 
     private func matchScore(original: MusicSong, candidate: MusicSong) -> Int {
