@@ -122,6 +122,7 @@ struct ContentView: View {
     @State private var isPlayerPresented = false
     @State private var playbackRequestID = UUID()
     @State private var playbackTask: Task<Void, Never>?
+    @State private var playbackPrefetchTask: Task<Void, Never>?
     @State private var playbackQueueSongs: [AppSong] = []
     @State private var shuffleHistory: [Int] = []
     @State private var shuffleForwardHistory: [Int] = []
@@ -1694,6 +1695,25 @@ struct ContentView: View {
         select(next)
     }
 
+    /// Resolve the next two queue entries in the background so their URLs are
+    /// already cached when the user skips. Prefetch never blocks the active track.
+    private func prefetchUpcomingTracks(after song: AppSong) {
+        playbackPrefetchTask?.cancel()
+        guard !isShuffleEnabled else { return }
+        let queue = playbackQueue
+        guard let index = queue.firstIndex(where: { $0.id == song.id }) else { return }
+        let upcoming = Array(queue.dropFirst(index + 1).prefix(2)).compactMap(\\.onlineSong)
+        guard !upcoming.isEmpty else { return }
+        let quality = selectedMusicQuality
+        playbackPrefetchTask = Task {
+            let resolver = LXMusicURLResolver()
+            for nextSong in upcoming {
+                guard !Task.isCancelled else { return }
+                _ = try? await resolver.resolve(song: nextSong, quality: quality)
+            }
+        }
+    }
+
     /// A resolved stream URL can expire before playback starts. Invalidate the cached
     /// URL and resolve the same track once before giving up and advancing the queue.
     private func retryCurrentSongWithFreshURL() {
@@ -1719,6 +1739,7 @@ struct ContentView: View {
                 guard playbackRequestID == requestID else { return }
                 playerStore.play(url: url, title: onlineSong.title, artist: onlineSong.artist,
                                  album: onlineSong.album, artworkURL: onlineSong.artworkURL, artworkSong: onlineSong)
+                prefetchUpcomingTracks(after: song)
             } catch is CancellationError {
                 return
             } catch {
@@ -1904,6 +1925,7 @@ struct ContentView: View {
                     currentSong = song
                     playerStore.play(url: url, title: onlineSong.title, artist: onlineSong.artist,
                                      album: onlineSong.album, artworkURL: onlineSong.artworkURL, artworkSong: onlineSong)
+                    prefetchUpcomingTracks(after: song)
                 } catch is CancellationError {
                     return
                 } catch {
