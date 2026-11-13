@@ -299,7 +299,7 @@ struct LXMusicURLResolver: MusicURLResolving, @unchecked Sendable {
                 "跨平台备用解析异常：" + candidateFailures.joined(separator: "；")
             )
         }
-        if searchFailures.count == 3 && primaryResults.allSatisfy({ $0.0.isEmpty }) {
+        if primaryResults.allSatisfy({ $0.0.isEmpty }) && miguResult.0.isEmpty && !searchFailures.isEmpty {
             throw MusicSourceError.invalidResponse(
                 "跨平台搜索接口异常：" + searchFailures.joined(separator: "；")
             )
