@@ -191,33 +191,58 @@ struct GDStudioMusicSearchService {
             throw MusicSourceError.invalidResponse("QQ每日推荐信息流结构异常")
         }
 
-        var dailyCards: [[String: Any]] = []
-        for shelf in shelves {
-            guard let niches = shelf["v_niche"] as? [[String: Any]] else { continue }
-            for niche in niches {
-                guard let cards = niche["v_card"] as? [[String: Any]] else { continue }
-                dailyCards.append(contentsOf: cards.filter {
-                    let subtype = ($0["subtype"] as? Int) ?? ($0["subtype"] as? String).flatMap(Int.init)
-                    return subtype == 510
-                })
+        // QQ's feed has changed its nesting over time. Walk the complete payload
+        // instead of assuming every card lives at v_shelf/v_niche/v_card.
+        func collectDailyCards(from value: Any, into output: inout [[String: Any]]) {
+            if let rows = value as? [Any] {
+                for row in rows { collectDailyCards(from: row, into: &output) }
+                return
+            }
+            guard let object = value as? [String: Any] else { return }
+            let subtype = (object["subtype"] as? Int)
+                ?? (object["subtype"] as? String).flatMap(Int.init)
+            if subtype == 510 { output.append(object) }
+            for nested in object.values {
+                collectDailyCards(from: nested, into: &output)
             }
         }
-        guard dailyCards.count == 1, let card = dailyCards.first,
-              let rawID = card["id"] else {
-            throw MusicSourceError.invalidResponse("QQ今日推荐歌单卡片缺失或不唯一")
-        }
-        let playlistID = String(describing: rawID)
-        let timestamp: TimeInterval? = {
-            if let value = card["time"] as? NSNumber { return value.doubleValue }
-            if let value = card["time"] as? String { return Double(value) }
+
+        var dailyCards: [[String: Any]] = []
+        collectDailyCards(from: feed, into: &dailyCards)
+
+        func cardID(_ card: [String: Any]) -> String? {
+            for key in ["id", "dissid", "content_id", "contentId"] {
+                if let value = card[key] {
+                    let id = String(describing: value)
+                    if !id.isEmpty && id != "0" { return id }
+                }
+            }
             return nil
-        }()
-        guard let numericID = Int64(playlistID), String(numericID) == playlistID,
-              let timestamp,
-              timestamp >= 1_000_000_000, timestamp <= 9_999_999_999,
-              calendar.isDate(Date(timeIntervalSince1970: timestamp), inSameDayAs: Date()) else {
-            throw MusicSourceError.invalidResponse("QQ今日推荐歌单已过期或编号无效")
         }
+        func cardTimestamp(_ card: [String: Any]) -> TimeInterval? {
+            for key in ["time", "timestamp", "update_time", "updateTime"] {
+                if let value = card[key] as? NSNumber { return value.doubleValue }
+                if let value = card[key] as? String, let parsed = Double(value) { return parsed }
+            }
+            return nil
+        }
+
+        // A feed can contain duplicated copies of the same card in nested shelves.
+        // Select the unique current-day playlist rather than failing on duplicate nodes.
+        var seenDailyIDs = Set<String>()
+        let todayCards = dailyCards.compactMap { card -> (id: String, timestamp: TimeInterval)? in
+            guard let id = cardID(card), seenDailyIDs.insert(id).inserted,
+                  let timestamp = cardTimestamp(card),
+                  timestamp >= 1_000_000_000, timestamp <= 9_999_999_999,
+                  calendar.isDate(Date(timeIntervalSince1970: timestamp), inSameDayAs: Date()) else {
+                return nil
+            }
+            return (id, timestamp)
+        }
+        guard let selectedCard = todayCards.max(by: { $0.timestamp < $1.timestamp }) else {
+            throw MusicSourceError.invalidResponse("QQ 今日推荐暂未返回当天有效歌单，请稍后重试")
+        }
+        let playlistID = selectedCard.id
 
         let songs = try await playlistTracks(playlistID: playlistID, count: limit)
         guard !songs.isEmpty else {
