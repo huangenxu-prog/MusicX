@@ -379,53 +379,54 @@ struct ContentView: View {
             .padding(.bottom, 8)
         }
         .scrollBounceBehavior(.basedOnSize)
-        .background(Color(red: 0.039, green: 0.055, blue: 0.122))
-        .background(alignment: .top) {
+        .background {
             GeometryReader { proxy in
-                ZStack {
-                    LinearGradient(
-                        stops: [
-                            .init(color: Color(red: 0.15, green: 0.21, blue: 0.47), location: 0.00),
-                            .init(color: Color(red: 0.32, green: 0.22, blue: 0.57), location: 0.34),
-                            .init(color: Color(red: 0.66, green: 0.32, blue: 0.59), location: 0.59),
-                            .init(color: Color(red: 1.00, green: 0.65, blue: 0.36), location: 0.79),
-                            .init(color: Color(red: 1.00, green: 0.56, blue: 0.39).opacity(0.30), location: 0.89),
-                            .init(color: Color(red: 0.039, green: 0.055, blue: 0.122).opacity(0.0), location: 1.00)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    RadialGradient(
-                        colors: [
-                            Color(red: 1.00, green: 0.72, blue: 0.39).opacity(0.96),
-                            Color(red: 1.00, green: 0.53, blue: 0.38).opacity(0.58),
-                            Color(red: 1.00, green: 0.43, blue: 0.48).opacity(0.12),
-                            .clear
-                        ],
-                        center: UnitPoint(x: 0.58, y: 0.79),
-                        startRadius: 1,
-                        endRadius: proxy.size.width * 0.70
-                    )
-                    RadialGradient(
-                        colors: [Color(red: 0.76, green: 0.34, blue: 0.68).opacity(0.38), .clear],
-                        center: UnitPoint(x: 0.28, y: 0.38),
-                        startRadius: 1,
-                        endRadius: proxy.size.width * 0.78
-                    )
-                    LinearGradient(
-                        stops: [
-                            .init(color: .clear, location: 0.70),
-                            .init(color: Color(red: 0.039, green: 0.055, blue: 0.122).opacity(0.68), location: 0.88),
-                            .init(color: Color(red: 0.039, green: 0.055, blue: 0.122), location: 1.00)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
+                let navy = Color(red: 0.039, green: 0.055, blue: 0.122)
+                ZStack(alignment: .top) {
+                    navy
+                    VStack(spacing: 0) {
+                        ZStack {
+                            LinearGradient(
+                                stops: [
+                                    .init(color: Color(red: 0.118, green: 0.165, blue: 0.420), location: 0.00),
+                                    .init(color: Color(red: 0.357, green: 0.227, blue: 0.620), location: 0.30),
+                                    .init(color: Color(red: 0.690, green: 0.333, blue: 0.541), location: 0.55),
+                                    .init(color: Color(red: 0.910, green: 0.502, blue: 0.416), location: 0.75),
+                                    .init(color: Color(red: 0.961, green: 0.647, blue: 0.353).opacity(0.96), location: 0.825),
+                                    .init(color: Color(red: 0.910, green: 0.475, blue: 0.380).opacity(0.62), location: 0.90),
+                                    .init(color: navy.opacity(0.0), location: 1.00)
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                            RadialGradient(
+                                stops: [
+                                    .init(color: Color(red: 0.961, green: 0.647, blue: 0.353).opacity(0.92), location: 0.0),
+                                    .init(color: Color(red: 0.961, green: 0.545, blue: 0.365).opacity(0.52), location: 0.28),
+                                    .init(color: Color(red: 0.91, green: 0.38, blue: 0.48).opacity(0.12), location: 0.58),
+                                    .init(color: .clear, location: 1.0)
+                                ],
+                                center: UnitPoint(x: 0.54, y: 0.825),
+                                startRadius: 1,
+                                endRadius: proxy.size.width * 0.76
+                            )
+                            LinearGradient(
+                                stops: [
+                                    .init(color: .clear, location: 0.72),
+                                    .init(color: navy.opacity(0.42), location: 0.88),
+                                    .init(color: navy, location: 1.00)
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        }
+                        .frame(height: 200)
+                        Spacer(minLength: 0)
+                    }
                 }
-                .frame(width: proxy.size.width, height: 190)
+                .frame(width: proxy.size.width, height: proxy.size.height, alignment: .top)
+                .ignoresSafeArea(edges: .top)
             }
-            .frame(height: 190)
-            .ignoresSafeArea(edges: .top)
             .allowsHitTesting(false)
         }
         .ignoresSafeArea(edges: .top)
