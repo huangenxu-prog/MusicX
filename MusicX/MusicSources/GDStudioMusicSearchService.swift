@@ -25,6 +25,14 @@ struct GDStudioMusicSearchService {
                 detail: "count=\(diagnosticCount)"
             )
         }
+        if source == .migu {
+            let songs = try await searchMigu(keyword: query, page: page, count: count)
+            diagnosticCount = songs.count
+            diagnosticResult = "success"
+            await MusicCache.shared.insert(songs, for: cacheKey, ttl: 5 * 60)
+            return songs
+        }
+
         let queryItems = [
             URLQueryItem(name: "types", value: "search"),
             URLQueryItem(name: "source", value: gdSource(source) + (albumOnly ? "_album" : "")),
@@ -516,6 +524,105 @@ struct GDStudioMusicSearchService {
             }
         }
         throw lastError ?? MusicSourceError.invalidResponse("网易云榜单接口暂时不可用")
+    }
+
+    /// Use Migu's native search response for Migu tracks so both contentId
+    /// and copyrightId survive into the playback resolver.
+    private func searchMigu(keyword: String, page: Int, count: Int) async throws -> [MusicSong] {
+        var components = URLComponents(string: "https://c.musicapp.migu.cn/v1.0/content/search_all.do")
+        let searchSwitch = #"{"song":1,"album":0,"singer":0,"tagSong":1,"mvSong":0,"bestShow":1}"#
+        components?.queryItems = [
+            URLQueryItem(name: "text", value: keyword),
+            URLQueryItem(name: "pageNo", value: String(max(page, 1))),
+            URLQueryItem(name: "pageSize", value: String(min(max(count, 1), 50))),
+            URLQueryItem(name: "isCopyright", value: "1"),
+            URLQueryItem(name: "sort", value: "1"),
+            URLQueryItem(name: "searchSwitch", value: searchSwitch)
+        ]
+        guard let url = components?.url else {
+            throw MusicSourceError.invalidResponse("咪咕搜索地址无效")
+        }
+
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 12
+        request.setValue("application/json, text/plain, */*", forHTTPHeaderField: "Accept")
+        request.setValue("https://h5.nf.migu.cn", forHTTPHeaderField: "Origin")
+        request.setValue("https://h5.nf.migu.cn/", forHTTPHeaderField: "Referer")
+        request.setValue("Android_migu", forHTTPHeaderField: "ua")
+        request.setValue("6.8.8", forHTTPHeaderField: "version")
+        request.setValue("014021I", forHTTPHeaderField: "channel")
+        request.setValue("014021I", forHTTPHeaderField: "subchannel")
+        request.setValue(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+            forHTTPHeaderField: "User-Agent"
+        )
+
+        let (data, response) = try await session.data(for: request)
+        try Task.checkCancellation()
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            throw MusicSourceError.invalidResponse("咪咕搜索 HTTP \\((response as? HTTPURLResponse)?.statusCode ?? -1)")
+        }
+
+        let payload = try MiguNativeAudioProvider.decodePayload(
+            data,
+            signature: http.value(forHTTPHeaderField: "signature")
+        )
+        guard let root = try JSONSerialization.jsonObject(with: payload) as? [String: Any] else {
+            throw MusicSourceError.invalidResponse("咪咕搜索响应格式错误")
+        }
+        if let code = root["code"] {
+            let value = String(describing: code)
+            if !value.isEmpty && value != "000000" && value != "0" {
+                throw MusicSourceError.invalidResponse("咪咕搜索业务状态异常：\\(value)")
+            }
+        }
+
+        let resultData = root["songResultData"] as? [String: Any]
+        let rows = resultData?["result"] as? [[String: Any]] ?? []
+        return rows.compactMap { row in
+            func stringValue(_ value: Any?) -> String? {
+                if let value = value as? String, !value.isEmpty { return value }
+                if let value = value as? NSNumber { return value.stringValue }
+                return nil
+            }
+
+            guard let contentID = stringValue(row["contentId"]) else { return nil }
+            let copyrightID = stringValue(row["copyrightId"])
+            let singers = (row["singers"] as? [[String: Any]])
+                ?? (row["singerList"] as? [[String: Any]])
+                ?? []
+            let artistNames = singers.compactMap { $0["name"] as? String }
+            let artist = artistNames.isEmpty
+                ? ((row["singer"] as? String) ?? "未知歌手")
+                : artistNames.joined(separator: " / ")
+            let albums = row["albums"] as? [[String: Any]] ?? []
+            let album = (albums.first?["name"] as? String) ?? (row["album"] as? String)
+            let images = row["imgItems"] as? [[String: Any]] ?? []
+            let artwork = images.compactMap { $0["img"] as? String }.last
+                ?? (row["img3"] as? String)
+                ?? (row["img2"] as? String)
+                ?? (row["img1"] as? String)
+            let duration: TimeInterval? = {
+                if let value = row["duration"] as? NSNumber { return value.doubleValue }
+                if let value = row["duration"] as? String { return Double(value) }
+                return nil
+            }()
+
+            return MusicSong(
+                source: .migu,
+                sourceID: contentID,
+                title: (row["name"] as? String) ?? (row["songName"] as? String) ?? "未知歌曲",
+                artist: artist,
+                album: album,
+                artworkURL: artwork.flatMap(URL.init(string:)),
+                duration: duration,
+                hash: nil,
+                albumID: stringValue(row["albumId"]) ?? albums.first.flatMap { stringValue($0["id"]) },
+                pictureID: nil,
+                lyricID: copyrightID ?? contentID,
+                copyrightID: copyrightID
+            )
+        }
     }
 
     private func gdSource(_ source: MusicSource) -> String {
