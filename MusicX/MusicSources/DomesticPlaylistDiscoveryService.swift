@@ -338,7 +338,8 @@ struct DomesticPlaylistDiscoveryService {
                 hash: nil,
                 albumID: row["albumId"] as? String,
                 pictureID: nil,
-                lyricID: contentID
+                lyricID: contentID,
+                copyrightID: row["copyrightId"] as? String
             )
         }
         guard !songs.isEmpty else { throw MusicSourceError.invalidResponse("咪咕歌单没有返回有效歌曲") }
