@@ -129,7 +129,7 @@ struct ContentView: View {
     @State private var hasCustomPlaybackQueue = false
     @State private var isResolvingSong = false
     @State private var failedPlaybackSongIDs: Set<Int> = []
-    @State private var refreshedPlaybackSongIDs: Set<Int> = []
+    @State private var playbackRetryCounts: [Int: Int] = [:]
     @AppStorage("musicx.favoriteIDs") private var favoriteIDs = "1,3"
     @AppStorage("musicx.recentIDs") private var recentIDs = ""
     @AppStorage("musicx.recentSongs") private var recentSongsJSON = "[]"
@@ -1725,12 +1725,18 @@ struct ContentView: View {
     /// A resolved stream URL can expire before playback starts. Invalidate the cached
     /// URL and resolve the same track once before giving up and advancing the queue.
     private func retryCurrentSongWithFreshURL() {
-        guard let song = currentSong, let onlineSong = song.onlineSong,
-              !refreshedPlaybackSongIDs.contains(song.id) else {
+        guard let song = currentSong, let onlineSong = song.onlineSong else {
             advanceAfterPlaybackFailure()
             return
         }
-        refreshedPlaybackSongIDs.insert(song.id)
+        let retryCount = playbackRetryCounts[song.id, default: 0]
+        // Four providers are registered in the resource engine, so allow up to
+        // three same-track retries after the initial provider has failed.
+        guard retryCount < 3 else {
+            advanceAfterPlaybackFailure()
+            return
+        }
+        playbackRetryCounts[song.id] = retryCount + 1
         playbackTask?.cancel()
         playbackRequestID = UUID()
         let requestID = playbackRequestID
@@ -1926,7 +1932,7 @@ struct ContentView: View {
     private func select(_ song: AppSong, isFailureFallback: Bool = false) {
         if !isFailureFallback {
             failedPlaybackSongIDs.removeAll()
-            refreshedPlaybackSongIDs.removeAll()
+            playbackRetryCounts.removeAll()
         }
         if currentSong?.id == song.id {
             if playerStore.isPlaying { playerStore.pause() }
