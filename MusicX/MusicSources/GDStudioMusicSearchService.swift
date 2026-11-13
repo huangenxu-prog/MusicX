@@ -8,11 +8,6 @@ struct GDStudioMusicSearchService {
         self.session = session
     }
 
-    /// Compatibility entry point. Native NetEase requests live in their own client.
-    func searchNetEase(keyword: String, count: Int = 100, offset: Int = 0) async throws -> [MusicSong] {
-        try await NetEaseNativeAPIClient(session: session).search(keyword: keyword, count: count, offset: offset)
-    }
-
     func search(keyword: String, source: MusicSource, page: Int = 1, count: Int = 20, albumOnly: Bool = false) async throws -> [MusicSong] {
         let query = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return [] }
