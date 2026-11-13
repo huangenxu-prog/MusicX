@@ -417,7 +417,7 @@ struct ContentView: View {
                 recommendationTile(
                     title: "精选歌单", subtitle: "遇见更好的自己", icon: "text.alignleft",
                     colors: [Color(red: 0.52, green: 0.36, blue: 0.91), Color(red: 0.22, green: 0.12, blue: 0.55)],
-                    route: .featuredPlaylists, width: width
+                    route: .featuredPick, width: width
                 )
             }
         }
@@ -576,7 +576,7 @@ struct ContentView: View {
                     ForEach(items, id: \.title) { item in
                         Button {
                             if item.title == "本周编辑精选" {
-                                discoveryRoute = .featuredPick
+                                discoveryRoute = .featuredPlaylists
                             } else {
                                 discoveryRoute = .playlist(item.title)
                             }
