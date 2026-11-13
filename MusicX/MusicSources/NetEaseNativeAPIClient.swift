@@ -99,7 +99,7 @@ struct NetEaseNativeAPIClient {
         let cacheKey = "netease-recommended-playlists|\(limit)"
         if let cached = await MusicCatalogStore.shared.snapshot(for: cacheKey, as: [MusicPlaylist].self) {
             if cached.needsRefresh {
-                Task { _ = try? await self.refreshRecommendedPlaylists(count: limit, cacheKey: cacheKey) }
+                return (try? await refreshRecommendedPlaylists(count: limit, cacheKey: cacheKey)) ?? cached.value
             }
             return cached.value
         }
@@ -440,7 +440,7 @@ struct NetEaseNativeAPIClient {
         let cacheKey = "netease-native-chart|\(normalizedChart)|\(limit)"
         if let cached = await MusicCatalogStore.shared.snapshot(for: cacheKey, as: [MusicSong].self) {
             if cached.needsRefresh {
-                Task { _ = try? await self.refreshToplist(normalizedChart, count: limit, cacheKey: cacheKey) }
+                return (try? await refreshToplist(normalizedChart, count: limit, cacheKey: cacheKey)) ?? cached.value
             }
             return cached.value
         }
