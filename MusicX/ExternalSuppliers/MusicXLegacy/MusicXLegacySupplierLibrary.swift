@@ -7,7 +7,7 @@ import Foundation
 /// Kumone's pyncmd implementation calls the same GDStudio URL endpoint already
 /// present in the legacy library. It is therefore represented by that existing
 /// route rather than registered twice and issuing duplicate network requests.
-struct MusicXLegacySupplierLibrary: MusicResourceProvider {
+struct MusicXLegacySupplierLibrary: MusicResourceProvider, MusicCatalogSearchProvider {
     let identifier = "musicx-legacy-library"
     let displayName = "MusicX 原有音源库"
 
@@ -15,6 +15,14 @@ struct MusicXLegacySupplierLibrary: MusicResourceProvider {
 
     init(session: URLSession = .shared) {
         self.session = session
+    }
+
+    func search(keyword: String, source: MusicSource, count: Int) async throws -> [MusicSong] {
+        let service = GDStudioMusicSearchService(session: session)
+        if source == .netease {
+            return try await service.searchNetEase(keyword: keyword, count: count)
+        }
+        return try await service.search(keyword: keyword, source: source, count: count)
     }
 
     func resolve(song: MusicSong, quality: MusicQuality) async throws -> ResolvedMusicResource? {

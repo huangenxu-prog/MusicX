@@ -1935,51 +1935,42 @@ struct ContentView: View {
             if searchRequestID == requestID { isSearching = false }
         }
 
-        let service = GDStudioMusicSearchService()
         var received: [[MusicSong]] = []
         var failedSources: [String] = []
-        await withTaskGroup(of: (MusicSource, [MusicSong], String?).self) { group in
-            for source in [MusicSource.netease, .qq, .kuwo, .kugou, .migu] {
-                group.addTask {
-                    do {
-                        let rows = source == .netease ? try await service.searchNetEase(keyword: query, count: 100) : try await service.search(keyword: query, source: source, count: 50)
-                        return (source, rows, Optional<String>.none)
-                    } catch {
-                        MusicSourceDiagnostics.shared.record(
-                            event: "search", source: source.rawValue, provider: "gdstudio-search",
-                            duration: 0, result: "failed", detail: error.localizedDescription
-                        )
-                        return (source, [MusicSong](), Optional(error.localizedDescription))
+        let searchStream = MusicCatalogSearchEngine().search(
+            keyword: query,
+            sources: [.netease, .qq, .kuwo, .kugou, .migu]
+        )
+        for await response in searchStream {
+            let source = response.source
+            let rows = response.songs
+            if let errorMessage = response.errorMessage {
+                failedSources.append("\(source.displayName)：\(errorMessage)")
+            }
+            guard !Task.isCancelled,
+                  searchRequestID == requestID,
+                  searchText.trimmingCharacters(in: .whitespacesAndNewlines) == query else { continue }
+            if !rows.isEmpty {
+                received.append(rows)
+                var merged: [MusicSong] = []
+                let maxCount = received.map(\.count).max() ?? 0
+                for index in 0..<maxCount {
+                    for sourceResults in received where sourceResults.indices.contains(index) {
+                        merged.append(sourceResults[index])
                     }
                 }
-            }
-            for await (source, rows, errorMessage) in group {
-                if let errorMessage { failedSources.append("\(source.displayName)：\(errorMessage)") }
-                guard !Task.isCancelled,
-                      searchRequestID == requestID,
-                      searchText.trimmingCharacters(in: .whitespacesAndNewlines) == query else { continue }
-                if !rows.isEmpty {
-                    received.append(rows)
-                    var merged: [MusicSong] = []
-                    let maxCount = received.map(\.count).max() ?? 0
-                    for index in 0..<maxCount {
-                        for sourceResults in received where sourceResults.indices.contains(index) {
-                            merged.append(sourceResults[index])
-                        }
-                    }
-                    var seen = Set<String>()
-                    let uniqueResults = merged.filter { item in
-                        let title = normalizedSearchKey(item.title)
-                        let artist = normalizedArtistSearchKey(item.artist)
-                        guard !title.isEmpty, !artist.isEmpty else { return true }
-                        let version = searchVersionMarkers(item)
-                        let durationKey = item.duration.map { String(Int($0.rounded())) } ?? "unknown"
-                        return seen.insert("\(title)|\(artist)|\(version)|\(durationKey)").inserted
-                    }
-                    onlineResults = Array(uniqueResults.prefix(100)).map { item in
-                        AppSong(id: stableSongID(item), title: item.title, artist: item.artist,
-                                album: item.album ?? "", tint: searchTint(for: item.source), onlineSong: item)
-                    }
+                var seen = Set<String>()
+                let uniqueResults = merged.filter { item in
+                    let title = normalizedSearchKey(item.title)
+                    let artist = normalizedArtistSearchKey(item.artist)
+                    guard !title.isEmpty, !artist.isEmpty else { return true }
+                    let version = searchVersionMarkers(item)
+                    let durationKey = item.duration.map { String(Int($0.rounded())) } ?? "unknown"
+                    return seen.insert("\(title)|\(artist)|\(version)|\(durationKey)").inserted
+                }
+                onlineResults = Array(uniqueResults.prefix(100)).map { item in
+                    AppSong(id: stableSongID(item), title: item.title, artist: item.artist,
+                            album: item.album ?? "", tint: searchTint(for: item.source), onlineSong: item)
                 }
             }
         }
