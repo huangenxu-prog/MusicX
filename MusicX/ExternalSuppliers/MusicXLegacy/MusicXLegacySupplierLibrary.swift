@@ -58,6 +58,41 @@ struct MusicXLegacySupplierLibrary: MusicResourceProvider, MusicCatalogSearchPro
         )
     }
 
+    func featuredPlaylists(count: Int) async throws -> [MusicPlaylist] {
+        let limit = min(max(count, 1), 60)
+        async let netease: [MusicPlaylist]? = try? await NetEaseNativeAPIClient(session: session).recommendedPlaylists(count: limit)
+        async let qq: [MusicPlaylist]? = try? await GDStudioMusicSearchService(session: session).recommendedPlaylists(count: limit)
+        async let other: [MusicPlaylist]? = try? await DomesticPlaylistDiscoveryService(session: session).featuredPlaylists(count: limit)
+        let groups = await [netease ?? [], qq ?? [], other ?? []]
+        try Task.checkCancellation()
+
+        let bySource = Dictionary(grouping: groups.flatMap { $0 }, by: \\.source)
+        let sourceOrder: [MusicSource] = [.netease, .qq, .kugou, .kuwo, .migu]
+        var merged: [MusicPlaylist] = []
+        var seenIDs = Set<String>()
+        var seenNames = Set<String>()
+        let maximumPerSource = max(1, Int(ceil(Double(limit) / Double(sourceOrder.count))))
+        for source in sourceOrder {
+            let candidates = Array((bySource[source] ?? []).prefix(maximumPerSource * 3))
+            var added = 0
+            for playlist in candidates {
+                let normalizedName = playlist.name
+                    .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+                    .filter { $0.isLetter || $0.isNumber }
+                guard !normalizedName.isEmpty,
+                      seenIDs.insert(playlist.id).inserted,
+                      seenNames.insert(normalizedName).inserted else { continue }
+                merged.append(playlist)
+                added += 1
+                if added >= maximumPerSource { break }
+            }
+        }
+        guard !merged.isEmpty else {
+            throw MusicSourceError.invalidResponse("五个平台均未返回可用推荐或分类歌单")
+        }
+        return Array(merged.prefix(limit))
+    }
+
     func searchPlaylists(keyword: String, count: Int) async throws -> [MusicPlaylist] {
         async let qqResults: [MusicPlaylist]? = try? await GDStudioMusicSearchService(session: session)
             .searchPlaylists(keyword: keyword, count: count)
