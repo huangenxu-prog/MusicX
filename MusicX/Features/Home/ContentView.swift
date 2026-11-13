@@ -1953,6 +1953,13 @@ struct ContentView: View {
                 } catch is CancellationError {
                     return
                 } catch {
+                    MusicSourceDiagnostics.shared.record(
+                        event: "playback-url-failed", source: onlineSong.source.rawValue,
+                        provider: "playback-pipeline",
+                        duration: Date().timeIntervalSince(playbackStartedAt),
+                        result: "failed",
+                        detail: "playback_id=\(playbackDiagnosticID); error=\(error.localizedDescription)"
+                    )
                     guard playbackRequestID == requestID else { return }
                     isResolvingSong = false
                     searchError = error.localizedDescription
