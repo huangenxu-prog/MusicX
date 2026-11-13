@@ -1044,7 +1044,12 @@ struct MusicDiscoveryPage: View {
                         .padding(.vertical, isRecommendationRoute ? 8 : 10)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .contentShape(Rectangle())
-                        .background(isRecommendationRoute ? Color.clear : (isCurrent ? MusicXTheme.blue.opacity(0.12) : Color.white.opacity(0.018), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .background {
+                            if !isRecommendationRoute {
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .fill(isCurrent ? MusicXTheme.blue.opacity(0.12) : Color.white.opacity(0.018))
+                            }
+                        }
                         .overlay {
                             if !isRecommendationRoute {
                                 RoundedRectangle(cornerRadius: 18, style: .continuous)
