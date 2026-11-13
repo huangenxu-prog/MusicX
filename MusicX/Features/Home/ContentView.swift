@@ -1722,8 +1722,8 @@ struct ContentView: View {
         }
     }
 
-    /// A resolved stream URL can expire before playback starts. Invalidate the cached
-    /// URL and resolve the same track once before giving up and advancing the queue.
+    /// If AVPlayer rejects a resolved stream, invalidate it and continue through
+    /// providers not yet tried for this track before advancing the queue.
     private func retryCurrentSongWithFreshURL() {
         guard let song = currentSong, let onlineSong = song.onlineSong else {
             advanceAfterPlaybackFailure()
