@@ -117,19 +117,32 @@ struct MusicXLegacySupplierLibrary: MusicResourceProvider, MusicCatalogSearchPro
     }
 
     func searchPlaylists(keyword: String, count: Int) async throws -> [MusicPlaylist] {
-        async let qqResults: [MusicPlaylist]? = try? await GDStudioMusicSearchService(session: session)
+        async let qq: [MusicPlaylist]? = try? await GDStudioMusicSearchService(session: session)
             .searchPlaylists(keyword: keyword, count: count)
-        async let neteaseResults: [MusicPlaylist]? = try? await NetEaseNativeAPIClient(session: session)
+        async let netease: [MusicPlaylist]? = try? await NetEaseNativeAPIClient(session: session)
             .searchPlaylists(keyword: keyword, count: count)
-        let groups = await [qqResults ?? [], neteaseResults ?? []]
+        async let domestic: [MusicPlaylist]? = try? await DomesticPlaylistDiscoveryService(session: session)
+            .searchPlaylists(keyword: keyword, count: count)
+
+        let qqResults = await qq
+        let neteaseResults = await netease
+        let domesticResults = await domestic
+        let groups = [qqResults ?? [], neteaseResults ?? [], domesticResults ?? []]
         try Task.checkCancellation()
 
-        var seen = Set<String>()
-        let merged = groups.flatMap { $0 }.filter { seen.insert($0.id).inserted }
-        guard !merged.isEmpty else {
-            throw MusicSourceError.invalidResponse("网易云和 QQ 音乐均未返回可用歌单")
+        let sourceGroups = Dictionary(grouping: groups.flatMap { $0 }, by: \.source)
+        let sourceOrder: [MusicSource] = [.netease, .qq, .kugou, .kuwo, .migu]
+        var merged: [MusicPlaylist] = []
+        var seenIDs = Set<String>()
+        for source in sourceOrder {
+            for playlist in sourceGroups[source] ?? [] where seenIDs.insert(playlist.id).inserted {
+                merged.append(playlist)
+            }
         }
-        return merged
+        guard !merged.isEmpty else {
+            throw MusicSourceError.invalidResponse("五个平台均未返回匹配歌单")
+        }
+        return Array(merged.prefix(max(count, 1)))
     }
 
     func playlistTracks(keyword: String, count: Int) async throws -> [MusicSong] {
