@@ -6,30 +6,20 @@ enum AudioSourceTrackMatcher {
         original: MusicSong,
         candidateTitle: String,
         candidateArtist: String,
-        candidateDuration: TimeInterval?,
+        candidateDuration: TimeInterval? = nil,
         candidateAlbum: String? = nil,
         requireDuration: Bool = false
     ) -> Bool {
+        // Cross-source identity is intentionally based only on normalized title
+        // and artist. Duration, album, and release/version metadata are not
+        // reliable across catalog providers and must not reject a valid match.
         let expectedTitle = normalized(original.title)
         let actualTitle = normalized(candidateTitle)
         guard !expectedTitle.isEmpty, expectedTitle == actualTitle else { return false }
 
-        let expectedArtist = artistParts(original.artist).first
+        let expectedArtists = Set(artistParts(original.artist))
         let actualArtists = Set(artistParts(candidateArtist))
-        guard let expectedArtist, !expectedArtist.isEmpty,
-              actualArtists.contains(expectedArtist) else { return false }
-
-        if let expectedDuration = original.duration,
-           let actualDuration = candidateDuration {
-            guard expectedDuration > 0, actualDuration > 0,
-                  abs(expectedDuration - actualDuration) <= 5 else { return false }
-        } else if requireDuration {
-            return false
-        }
-
-        let expectedVersions = versionMarkers(in: "\(original.title) \(original.album ?? "")")
-        let actualVersions = versionMarkers(in: "\(candidateTitle) \(candidateAlbum ?? "")")
-        return expectedVersions == actualVersions
+        return !expectedArtists.isDisjoint(with: actualArtists)
     }
 
     static func durationDifference(original: MusicSong, candidateDuration: TimeInterval?) -> TimeInterval {
