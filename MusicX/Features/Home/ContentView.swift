@@ -194,6 +194,7 @@ struct ContentView: View {
     @State private var songs: [AppSong] = []
     @State private var recommendationSongs: [AppSong] = []
     @State private var homeAlbums: [AppSong] = []
+    @State private var homeAlbumPool: [AppSong] = []
     @State private var isLoadingHomeSongs = false
     @State private var homeLoadError: String?
     @State private var discoveryRoute: MusicDiscoveryRoute?
@@ -519,23 +520,66 @@ struct ContentView: View {
             ("影视原声精选", "影视原声与经典配乐", "album_11"),
             ("通勤驾驶精选", "通勤路上｜有前行感的节奏", "album_12")
         ]
-        return VStack(alignment: .leading, spacing: 10) {
-            homeSectionTitle("精选歌单", action: { discoveryRoute = .featuredPlaylists }).padding(.horizontal, 14)
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Capsule().fill(MusicXTheme.blue).frame(width: 3, height: 21)
+                Text("精选歌单").font(.system(size: 20, weight: .bold)).foregroundStyle(.white)
+                Spacer()
+                Button(action: refreshFeaturedAlbums) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.clockwise").font(.system(size: 11, weight: .semibold))
+                        Text("换一批").font(.system(size: 12, weight: .medium))
+                    }
+                    .foregroundStyle(MusicXTheme.muted)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .disabled(homeAlbumPool.count <= 6)
+                .opacity(homeAlbumPool.count <= 6 ? 0.45 : 1)
+            }
+            .padding(.horizontal, 14)
+
             GeometryReader { proxy in
                 let gap: CGFloat = 12
-                let width = max(112, (proxy.size.width - 28 - gap * 2) / 3)
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(alignment: .top, spacing: gap) {
-                        ForEach(Array(homeAlbums.prefix(6).enumerated()), id: \.element.id) { _, album in
-                            dynamicAlbumTile(album: album, width: width)
+                let width = max(0, (proxy.size.width - 28 - gap * 2) / 3)
+                VStack(spacing: 14) {
+                    ForEach(0..<4, id: \.self) { row in
+                        HStack(alignment: .top, spacing: gap) {
+                            ForEach(0..<3, id: \.self) { column in
+                                let index = row * 3 + column
+                                if index < 6 {
+                                    if index < homeAlbums.count {
+                                        dynamicAlbumTile(album: homeAlbums[index], width: width)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    } else {
+                                        Color.clear.frame(maxWidth: .infinity)
+                                    }
+                                } else {
+                                    editorialCollectionTile(item: editorialItems[index - 6], width: width)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                            }
                         }
-                        ForEach(editorialItems, id: \.title) { item in
-                            editorialCollectionTile(item: item, width: width)
-                        }
-                    }.padding(.horizontal, 14)
+                    }
                 }
-            }.frame(height: 150)
+                .padding(.horizontal, 14)
+            }
+            .frame(height: max(0, ((UIScreen.main.bounds.width - 28 - 24) / 3) * 4 + 4 * 37 + 3 * 14))
         }
+    }
+
+    private func refreshFeaturedAlbums() {
+        guard homeAlbumPool.count > 6 else { return }
+        let currentIDs = Set(homeAlbums.map(\.id))
+        var nextBatch = Array(homeAlbumPool.shuffled().prefix(6))
+        if nextBatch.allSatisfy({ currentIDs.contains($0.id) }) {
+            nextBatch = Array(homeAlbumPool.filter { !currentIDs.contains($0.id) }.shuffled().prefix(6))
+        }
+        if nextBatch.count < 6 {
+            let remaining = homeAlbumPool.filter { !nextBatch.contains(where: { $0.id == $0.id }) }
+            nextBatch.append(contentsOf: remaining.shuffled().prefix(6 - nextBatch.count))
+        }
+        homeAlbums = nextBatch
     }
 
     private func dynamicAlbumTile(album: AppSong, width: CGFloat) -> some View {
@@ -1914,7 +1958,7 @@ struct ContentView: View {
                         album: item.album ?? "", tint: MusicXTheme.blue, onlineSong: item)
             }
             var seenAlbums = Set<String>()
-            homeAlbums = albumRows.flatMap { $0 }.compactMap { item in
+            homeAlbumPool = albumRows.flatMap { $0 }.compactMap { item in
                 let title = (item.album ?? item.title).trimmingCharacters(in: .whitespacesAndNewlines)
                 let artist = item.artist.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !title.isEmpty, !artist.isEmpty, title != "未知专辑", artist != "未知歌手" else { return nil }
@@ -1922,7 +1966,8 @@ struct ContentView: View {
                 guard seenAlbums.insert(key).inserted else { return nil }
                 return AppSong(id: stableSongID(item), title: title, artist: artist, album: title,
                                tint: MusicXTheme.blue, onlineSong: item)
-            }.prefix(6).map { $0 }
+            }
+            homeAlbums = Array(homeAlbumPool.shuffled().prefix(6))
             recommendationSongs = Array(songs.shuffled().prefix(6))
             if songs.isEmpty {
                 homeLoadError = "网易云新歌榜暂时没有返回歌曲，请稍后重试"
