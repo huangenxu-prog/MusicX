@@ -116,7 +116,7 @@ struct LXMusicURLResolver: MusicURLResolving {
             }
             if let nativeFailure {
                 throw MusicSourceError.invalidResponse(
-                    "原生音源失败：\\(nativeFailure.localizedDescription)；跨平台回退失败：\\(error.localizedDescription)"
+                    "原生音源失败：\(nativeFailure.localizedDescription)；跨平台回退失败：\(error.localizedDescription)"
                 )
             }
             throw error
