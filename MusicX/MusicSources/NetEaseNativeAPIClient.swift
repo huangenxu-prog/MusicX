@@ -196,6 +196,125 @@ struct NetEaseNativeAPIClient {
         return albums
     }
 
+    // MARK: - Native playlists
+
+    func searchPlaylists(keyword: String, count: Int = 20, offset: Int = 0) async throws -> [MusicPlaylist] {
+        let query = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return [] }
+        let limit = min(max(count, 1), 100)
+        let normalizedOffset = max(0, offset)
+        let cacheKey = "netease-native-playlist-search|\(query.lowercased())|\(limit)|\(normalizedOffset)"
+        if let cached: [MusicPlaylist] = await MusicCache.shared.value(for: cacheKey) {
+            return cached
+        }
+
+        let data = try await requestEAPI(
+            path: "/cloudsearch/pc",
+            payload: [
+                "s": query,
+                "type": 1_000,
+                "limit": limit,
+                "offset": normalizedOffset,
+                "total": true
+            ]
+        )
+        guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              (root["code"] as? Int ?? 200) == 200,
+              let result = root["result"] as? [String: Any],
+              let rows = result["playlists"] as? [[String: Any]] else {
+            throw MusicSourceError.invalidResponse("网易云歌单搜索响应格式异常")
+        }
+
+        let playlists: [MusicPlaylist] = rows.compactMap { row in
+            guard let rawID = row["id"] else { return nil }
+            let name = (row["name"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty else { return nil }
+            let creatorObject = row["creator"] as? [String: Any]
+            let creator = creatorObject?["nickname"] as? String
+                ?? creatorObject?["name"] as? String
+                ?? row["creator"] as? String
+            let artwork = (row["coverImgUrl"] as? String
+                ?? row["coverImgUrl_str"] as? String
+                ?? row["picUrl"] as? String).flatMap(URL.init(string:))
+            return MusicPlaylist(
+                source: .netease,
+                sourceID: String(describing: rawID),
+                name: name,
+                creator: creator,
+                description: row["description"] as? String,
+                artworkURL: artwork,
+                trackCount: (row["trackCount"] as? Int) ?? (row["trackCount"] as? String).flatMap(Int.init)
+            )
+        }
+
+        guard !playlists.isEmpty else {
+            throw MusicSourceError.invalidResponse("网易云没有返回匹配歌单")
+        }
+        await MusicCache.shared.insert(playlists, for: cacheKey, ttl: 5 * 60)
+        return playlists
+    }
+
+    func playlistTracks(playlistID: String, count: Int = 50) async throws -> [MusicSong] {
+        guard let id = Int(playlistID), id > 0, count > 0 else {
+            throw MusicSourceError.invalidResponse("网易云歌单 ID 无效")
+        }
+        let cacheKey = "netease-native-playlist-tracks|\(id)|\(count)"
+        if let cached: [MusicSong] = await MusicCache.shared.value(for: cacheKey) {
+            return cached
+        }
+
+        let data = try await requestEAPI(
+            path: "/v6/playlist/detail",
+            payload: ["id": id, "n": 100_000, "s": 8]
+        )
+        guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              (root["code"] as? Int ?? 200) == 200,
+              let playlist = root["playlist"] as? [String: Any],
+              let rows = playlist["tracks"] as? [[String: Any]] else {
+            throw MusicSourceError.invalidResponse("网易云歌单详情响应格式异常")
+        }
+
+        let songs = rows.prefix(count).compactMap { Self.makeSong(from: $0) }
+        guard !songs.isEmpty else {
+            throw MusicSourceError.invalidResponse("网易云歌单暂时没有可用歌曲")
+        }
+        await MusicCache.shared.insert(songs, for: cacheKey, ttl: 10 * 60)
+        return songs
+    }
+
+    private static func makeSong(from row: [String: Any]) -> MusicSong? {
+        guard let rawID = row["id"] else { return nil }
+        let artists = (row["ar"] as? [[String: Any]]
+            ?? row["artists"] as? [[String: Any]] ?? [])
+            .compactMap { $0["name"] as? String }
+            .joined(separator: " / ")
+        let album = row["al"] as? [String: Any]
+            ?? row["album"] as? [String: Any] ?? [:]
+        let rawDuration = row["dt"] ?? row["duration"]
+        let duration: TimeInterval? = {
+            if let value = rawDuration as? Double {
+                return value > 1_000 ? value / 1_000 : value
+            }
+            if let value = rawDuration as? Int {
+                return value > 1_000 ? Double(value) / 1_000 : Double(value)
+            }
+            return nil
+        }()
+        return MusicSong(
+            source: .netease,
+            sourceID: String(describing: rawID),
+            title: row["name"] as? String ?? "未知歌曲",
+            artist: artists.isEmpty ? "未知歌手" : artists,
+            album: album["name"] as? String,
+            artworkURL: (album["picUrl"] as? String).flatMap(URL.init(string:)),
+            duration: duration,
+            hash: nil,
+            albumID: album["id"].map { String(describing: $0) },
+            pictureID: (album["pic_str"] ?? album["pic"]).map { String(describing: $0) },
+            lyricID: String(describing: rawID)
+        )
+    }
+
     // MARK: - Native lyrics
 
     func lyrics(songID: String) async throws -> (original: String, translated: String?)? {
