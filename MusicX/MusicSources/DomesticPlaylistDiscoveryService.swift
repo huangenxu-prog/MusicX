@@ -10,6 +10,144 @@ struct DomesticPlaylistDiscoveryService {
         self.session = session
     }
 
+    func searchPlaylists(keyword: String, count: Int) async throws -> [MusicPlaylist] {
+        let query = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty, count > 0 else { return [] }
+        let limit = min(max(count, 1), 50)
+        let cacheKey = "domestic-playlist-search|\(query.lowercased())|\(limit)"
+        if let cached = await MusicCatalogStore.shared.snapshot(for: cacheKey, as: [MusicPlaylist].self) {
+            if cached.needsRefresh {
+                Task { _ = try? await self.refreshPlaylistSearch(keyword: query, count: limit, cacheKey: cacheKey) }
+            }
+            return cached.value
+        }
+        return try await refreshPlaylistSearch(keyword: query, count: limit, cacheKey: cacheKey)
+    }
+
+    private func refreshPlaylistSearch(keyword: String, count: Int, cacheKey: String) async throws -> [MusicPlaylist] {
+        async let kugou = try? searchKugouPlaylists(keyword: keyword, count: count)
+        async let kuwo = try? searchKuwoPlaylists(keyword: keyword, count: count)
+        async let migu = try? searchMiguPlaylists(keyword: keyword, count: count)
+        let groups = await [kugou, kuwo, migu]
+        try Task.checkCancellation()
+        let sources: [MusicSource] = [.kugou, .kuwo, .migu]
+        for (index, result) in groups.enumerated() where result == nil {
+            MusicSourceDiagnostics.shared.record(
+                event: "playlist-search",
+                source: sources[index].rawValue,
+                provider: "\(sources[index].rawValue)-playlist-search",
+                duration: 0,
+                result: "failed",
+                detail: "关键词歌单搜索接口不可用"
+            )
+        }
+        let results = groups.compactMap { $0 }.flatMap { $0 }
+        guard !results.isEmpty else {
+            throw MusicSourceError.invalidResponse("酷狗、酷我和咪咕均未返回匹配歌单")
+        }
+        await MusicCatalogStore.shared.save(results, for: cacheKey, refreshAfter: 24 * 60 * 60)
+        return Array(results.prefix(count))
+    }
+
+    private func searchKugouPlaylists(keyword: String, count: Int) async throws -> [MusicPlaylist] {
+        var components = URLComponents(string: "https://mobilecdn.kugou.com/api/v3/search/special")
+        components?.queryItems = [
+            URLQueryItem(name: "keyword", value: keyword),
+            URLQueryItem(name: "platform", value: "WebFilter"),
+            URLQueryItem(name: "format", value: "json"),
+            URLQueryItem(name: "page", value: "1"),
+            URLQueryItem(name: "pagesize", value: String(min(count, 30))),
+            URLQueryItem(name: "filter", value: "0")
+        ]
+        guard let url = components?.url else { throw MusicSourceError.invalidResponse("酷狗歌单搜索地址无效") }
+        let root = try await getJSON(url, referer: "https://www.kugou.com/")
+        let data = root["data"] as? [String: Any]
+        let rows = data?["info"] as? [[String: Any]] ?? []
+        return rows.compactMap { row in
+            guard let rawID = row["specialid"], let name = row["specialname"] as? String, !name.isEmpty else { return nil }
+            let cover = (row["imgurl"] as? String)?.replacingOccurrences(of: "{size}", with: "480")
+            return MusicPlaylist(
+                source: .kugou,
+                sourceID: String(describing: rawID),
+                name: name,
+                creator: (row["nickname"] as? String) ?? (row["username"] as? String),
+                description: row["intro"] as? String,
+                artworkURL: cover.flatMap(URL.init(string:)),
+                trackCount: integer(row["songcount"]),
+                provenance: .searchResult
+            )
+        }
+    }
+
+    private func searchKuwoPlaylists(keyword: String, count: Int) async throws -> [MusicPlaylist] {
+        var components = URLComponents(string: "https://search.kuwo.cn/r.s")
+        components?.queryItems = [
+            URLQueryItem(name: "all", value: keyword),
+            URLQueryItem(name: "ft", value: "playlist"),
+            URLQueryItem(name: "itemset", value: "web_2013"),
+            URLQueryItem(name: "client", value: "kt"),
+            URLQueryItem(name: "pcmp4", value: "1"),
+            URLQueryItem(name: "geo", value: "c"),
+            URLQueryItem(name: "vipver", value: "1"),
+            URLQueryItem(name: "pn", value: "0"),
+            URLQueryItem(name: "rn", value: String(min(count, 30))),
+            URLQueryItem(name: "rformat", value: "json"),
+            URLQueryItem(name: "encoding", value: "utf8")
+        ]
+        guard let url = components?.url else { throw MusicSourceError.invalidResponse("酷我歌单搜索地址无效") }
+        let root = try await getJSON(url, referer: "https://www.kuwo.cn/")
+        let rows = root["abslist"] as? [[String: Any]] ?? []
+        return rows.compactMap { row in
+            guard let rawID = row["playlistid"] as? String, !rawID.isEmpty,
+                  let name = row["name"] as? String, !name.isEmpty else { return nil }
+            let rawCover = row["pic"] as? String
+            let cover = rawCover?.replacingOccurrences(of: "_150.", with: "_700.")
+                .map { $0.hasPrefix("http") ? $0 : "https://" + $0 }
+            return MusicPlaylist(
+                source: .kuwo,
+                sourceID: rawID,
+                name: name,
+                creator: row["nickname"] as? String,
+                description: row["intro"] as? String,
+                artworkURL: cover.flatMap(URL.init(string:)),
+                trackCount: integer(row["songnum"]),
+                provenance: .searchResult
+            )
+        }
+    }
+
+    private func searchMiguPlaylists(keyword: String, count: Int) async throws -> [MusicPlaylist] {
+        var components = URLComponents(string: "https://pd.musicapp.migu.cn/MIGUM2.0/v1.0/content/search_all.do")
+        components?.queryItems = [
+            URLQueryItem(name: "ua", value: "Android_migu"),
+            URLQueryItem(name: "version", value: "5.0.1"),
+            URLQueryItem(name: "text", value: keyword),
+            URLQueryItem(name: "pageNo", value: "1"),
+            URLQueryItem(name: "pageSize", value: String(min(count, 30))),
+            URLQueryItem(name: "searchSwitch", value: #"{"song":0,"album":0,"singer":0,"tagSong":0,"mvSong":0,"songlist":1,"bestShow":1}"#)
+        ]
+        guard let url = components?.url else { throw MusicSourceError.invalidResponse("咪咕歌单搜索地址无效") }
+        let root = try await getJSON(url, referer: "https://music.migu.cn/")
+        let resultData = root["songListResultData"] as? [String: Any]
+        let rows = resultData?["result"] as? [[String: Any]] ?? []
+        return rows.compactMap { row in
+            guard let rawID = row["id"] as? String, !rawID.isEmpty,
+                  let name = row["name"] as? String, !name.isEmpty else { return nil }
+            let artwork = (row["musicListPicUrl"] as? String)
+                ?? ((row["imgItems"] as? [[String: Any]])?.compactMap { $0["img"] as? String }.first)
+            return MusicPlaylist(
+                source: .migu,
+                sourceID: rawID,
+                name: name,
+                creator: (row["userName"] as? String) ?? (row["ownerName"] as? String),
+                description: row["description"] as? String,
+                artworkURL: artwork.flatMap(URL.init(string:)),
+                trackCount: integer(row["musicNum"]),
+                provenance: .searchResult
+            )
+        }
+    }
+
     func featuredPlaylists(count: Int = 30) async throws -> [MusicPlaylist] {
         let limit = min(max(count, 1), 60)
         async let kugou = recommendedKugou(count: limit)
