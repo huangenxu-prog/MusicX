@@ -20,11 +20,26 @@ struct MusicXLegacySupplierLibrary: MusicResourceProvider, MusicCatalogSearchPro
     func search(keyword: String, source: MusicSource, page: Int, count: Int, albumOnly: Bool, useNativeNetEase: Bool) async throws -> [MusicSong] {
         let service = GDStudioMusicSearchService(session: session)
         if useNativeNetEase && source == .netease && !albumOnly {
-            return try await NetEaseNativeAPIClient(session: session).search(
-                keyword: keyword,
-                count: count,
-                offset: max(0, page - 1) * count
-            )
+            do {
+                return try await NetEaseNativeAPIClient(session: session).search(
+                    keyword: keyword,
+                    count: count,
+                    offset: max(0, page - 1) * count
+                )
+            } catch {
+                if Task.isCancelled || error is CancellationError
+                    || (error as? URLError)?.code == .cancelled {
+                    throw CancellationError()
+                }
+                MusicSourceDiagnostics.shared.record(
+                    event: "search-fallback",
+                    source: source.rawValue,
+                    provider: "netease-native-eapi",
+                    duration: 0,
+                    result: "fallback_to_gdstudio",
+                    detail: error.localizedDescription
+                )
+            }
         }
         return try await service.search(
             keyword: keyword,
@@ -48,7 +63,23 @@ struct MusicXLegacySupplierLibrary: MusicResourceProvider, MusicCatalogSearchPro
     }
 
     func toplist(_ chartName: String, count: Int) async throws -> [MusicSong] {
-        try await NetEaseNativeAPIClient(session: session).toplist(chartName, count: count)
+        do {
+            return try await NetEaseNativeAPIClient(session: session).toplist(chartName, count: count)
+        } catch {
+            if Task.isCancelled || error is CancellationError
+                || (error as? URLError)?.code == .cancelled {
+                throw CancellationError()
+            }
+            MusicSourceDiagnostics.shared.record(
+                event: "catalog-fallback",
+                source: MusicSource.netease.rawValue,
+                provider: "netease-native-eapi",
+                duration: 0,
+                result: "fallback_to_gdstudio",
+                detail: error.localizedDescription
+            )
+            return try await GDStudioMusicSearchService(session: session).toplist(chartName, count: count)
+        }
     }
 
     func resolve(song: MusicSong, quality: MusicQuality) async throws -> ResolvedMusicResource? {
