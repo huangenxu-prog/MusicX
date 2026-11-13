@@ -237,7 +237,7 @@ struct MusicResourceEngine {
         request.httpMethod = "GET"
         request.timeoutInterval = 8
         request.cachePolicy = .reloadIgnoringLocalCacheData
-        request.setValue("bytes=0-1", forHTTPHeaderField: "Range")
+        request.setValue("bytes=0-31", forHTTPHeaderField: "Range")
         request.setValue("audio/*, application/octet-stream;q=0.9, */*;q=0.1", forHTTPHeaderField: "Accept")
 
         let (bytes, response) = try await session.bytes(for: request)
