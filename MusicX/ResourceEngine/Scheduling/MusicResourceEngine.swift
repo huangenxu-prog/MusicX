@@ -131,58 +131,24 @@ struct MusicResourceEngine {
     }
 
     func resolve(song: MusicSong, quality: MusicQuality) async throws -> URL {
-        // Resolve the catalog's own source before consulting cross-platform suppliers.
-        // The legacy adapter contains source-native routes for QQ/Kugou and
-        // only enters cross-platform matching after those routes fail.
-        let legacyTier = song.source == .netease
-            ? 2
-            : (song.source == .qq
-                ? 3
-                : (song.source == .kugou
-                    ? 1
-                    : (song.source == .migu || song.source == .youtubeMusic || song.source == .youtube ? 1 : 0)))
-        let kumoneFallbackTier = song.source == .kugou ? 0 : (song.source == .netease ? 3 : 2)
-        var providers: [(provider: any MusicResourceProvider, tier: Int, baseline: Int)] = [
-            (MusicXLegacySupplierLibrary(session: session), legacyTier, 30),
-            (KumoneKugouAudioSourceProvider(session: session), kumoneFallbackTier, 20),
-            (KumoneKuwoAudioSourceProvider(), kumoneFallbackTier, 20)
-        ]
-        // QQ endpoints are independent providers so each has its own health,
-        // latency score, circuit breaker and diagnostic record.
-        if song.source == .qq {
-            providers.append((QQGDStudioAudioProvider(session: session), 0, 100))
-            providers.append((QQChkszAudioProvider(session: session), 1, 90))
-        }
-        // Kumone's pyncmd endpoint resolves a NetEase-native song ID directly.
-        // It must never receive QQ/Kugou/Kuwo IDs, which belong to other catalogs.
-        if song.source == .netease {
-            providers.append((KumonePyncmdAudioSourceProvider(), 1, 45))
-        }
-        if song.source == .netease {
-            providers.append((NetEaseNativeAudioProvider(session: session), 0, 1_000))
-        }
-        if song.source == .migu {
-            providers.append((MiguNativeAudioProvider(session: session), 0, 900))
-        }
-        if song.source == .youtubeMusic || song.source == .youtube {
-            providers.append((YouTubeMusicAudioSourceProvider(session: session), 0, 1_000))
+        // Temporary source policy: NetEase only.
+        // 1) Official NetEase playback URL (free/original resource).
+        // 2) Kumone pyncmd for tracks whose official URL is unavailable (e.g. VIP).
+        // 3) Strictly matched Kugou, then Kuwo fallback.
+        // All other catalogs and the legacy cross-platform resolver are disabled.
+        guard song.source == .netease else {
+            throw MusicSourceError.unsupportedSource(song.source)
         }
 
-        let ordered = providers.sorted {
-            if $0.tier != $1.tier { return $0.tier < $1.tier }
-            let lhs = ResourceProviderPerformance.shared.score(
-                identifier: $0.provider.identifier,
-                baseline: $0.baseline
-            )
-            let rhs = ResourceProviderPerformance.shared.score(
-                identifier: $1.provider.identifier,
-                baseline: $1.baseline
-            )
-            return lhs == rhs ? $0.baseline > $1.baseline : lhs > rhs
-        }
+        let providers: [(provider: any MusicResourceProvider, tier: Int, baseline: Int)] = [
+            (NetEaseNativeAudioProvider(session: session), 0, 1_000),
+            (KumonePyncmdAudioSourceProvider(), 1, 100),
+            (KumoneKugouAudioSourceProvider(session: session), 2, 80),
+            (KumoneKuwoAudioSourceProvider(), 3, 70)
+        ]
 
         var failures: [String] = []
-        for entry in ordered {
+        for entry in providers {
             let provider = entry.provider
             try Task.checkCancellation()
             guard ResourceProviderCircuitBreaker.shared.shouldAttempt(provider.identifier) else {
@@ -210,7 +176,7 @@ struct MusicResourceEngine {
                         duration: elapsed,
                         result: "no_match"
                     )
-                    failures.append("\(provider.displayName)：没有匹配资源")
+                    failures.append("\(provider.displayName)：没有可用资源")
                     continue
                 }
 
@@ -267,7 +233,7 @@ struct MusicResourceEngine {
         throw MusicSourceError.noPlayableURL(
             source: song.source,
             details: failures.isEmpty
-                ? "所有供应商均未返回可用播放地址"
+                ? "网易云原始地址及 pyncmd、酷狗、酷我均未返回可用地址"
                 : failures.joined(separator: "；")
         )
     }
