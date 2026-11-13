@@ -117,7 +117,10 @@ struct GDStudioMusicSearchService {
                 albumID: row["album_id"].map { String(describing: $0) },
                 pictureID: row["pic_id"].map { String(describing: $0) },
                 lyricID: row["lyric_id"].map { String(describing: $0) },
-                copyrightID: row["copyrightId"] as? String ?? row["copyright_id"] as? String
+                copyrightID: (row["copyrightId"] as? String)
+                    ?? (row["copyrightId"] as? NSNumber)?.stringValue
+                    ?? (row["copyright_id"] as? String)
+                    ?? (row["copyright_id"] as? NSNumber)?.stringValue
             )
         }
         diagnosticCount = songs.count
