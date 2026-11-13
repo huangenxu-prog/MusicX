@@ -26,11 +26,36 @@ struct GDStudioMusicSearchService {
             )
         }
         if source == .migu && !albumOnly {
-            let songs = try await searchMigu(keyword: query, page: page, count: count)
-            diagnosticCount = songs.count
-            diagnosticResult = "success"
-            await MusicCache.shared.insert(songs, for: cacheKey, ttl: 5 * 60)
-            return songs
+            do {
+                let songs = try await searchMigu(keyword: query, page: page, count: count)
+                if !songs.isEmpty {
+                    diagnosticCount = songs.count
+                    diagnosticResult = "success"
+                    await MusicCache.shared.insert(songs, for: cacheKey, ttl: 5 * 60)
+                    return songs
+                }
+                MusicSourceDiagnostics.shared.record(
+                    event: "search-fallback",
+                    source: source.rawValue,
+                    provider: "migu-native-search",
+                    duration: Date().timeIntervalSince(startedAt),
+                    result: "fallback_to_gdstudio",
+                    detail: "咪咕原生搜索没有匹配结果"
+                )
+            } catch {
+                if Task.isCancelled || error is CancellationError
+                    || (error as? URLError)?.code == .cancelled {
+                    throw CancellationError()
+                }
+                MusicSourceDiagnostics.shared.record(
+                    event: "search-fallback",
+                    source: source.rawValue,
+                    provider: "migu-native-search",
+                    duration: Date().timeIntervalSince(startedAt),
+                    result: "fallback_to_gdstudio",
+                    detail: error.localizedDescription
+                )
+            }
         }
 
         let queryItems = [
