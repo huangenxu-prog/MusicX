@@ -290,6 +290,7 @@ struct ContentView: View {
         .overlay {
             if let route = discoveryRoute {
                 MusicDiscoveryPage(route: route,
+                    featuredAlbums: homeAlbums.compactMap(\.onlineSong),
                     selectedMainTab: selectedTab.rawValue,
                     onSelectMainTab: { title in
                         withAnimation(.easeInOut(duration: 0.20)) {

@@ -39,6 +39,7 @@ private enum RecommendationTab: Hashable {
 
 struct MusicDiscoveryPage: View {
     let route: MusicDiscoveryRoute
+    let featuredAlbums: [MusicSong]
     let selectedMainTab: String
     let onSelectMainTab: (String) -> Void
     let onClose: (Bool) -> Void
@@ -900,28 +901,18 @@ struct MusicDiscoveryPage: View {
     }
 
     private var albumGrid: some View {
-        let items: [(String, String)] = [
-            ("DUO", "陈奕迅"),
-            ("最伟大的作品", "周杰伦"),
-            ("宇宙的有趣", "告五人"),
-            ("LINK", "A-Lin"),
-            ("幼鸟指南", "毛不易")
-        ]
+        let items = Array(featuredAlbums.prefix(6))
         let cardWidth = max((UIScreen.main.bounds.width - 32 - 12) / 2, 0)
         return LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 20) {
-            ForEach(items.indices, id: \.self) { index in
-                let item = items[index]
-                Button { onOpenAlbum(item.0, item.1) } label: {
+            ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                Button { onOpenAlbum(item.album ?? item.title, item.artist) } label: {
                     VStack(alignment: .leading, spacing: 8) {
-                        Image(albumArtworkName(title: item.0, artist: item.1))
-                            .resizable()
-                            .scaledToFill()
+                        SongArtworkView(song: item, tint: MusicXTheme.blue, size: cardWidth)
                             .frame(width: cardWidth, height: cardWidth)
-                            .clipped()
                             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                             .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(.white.opacity(0.16), lineWidth: 1))
-                        Text(item.0).font(.system(size: 16, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
-                        Text(item.1).font(.system(size: 13)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
+                        Text(item.album ?? item.title).font(.system(size: 16, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
+                        Text(item.artist).font(.system(size: 13)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
                     }
                 }.buttonStyle(.plain)
             }
