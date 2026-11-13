@@ -132,7 +132,7 @@ struct MusicResourceEngine {
 
     func resolve(song: MusicSong, quality: MusicQuality) async throws -> URL {
         // Resolve the catalog's own source before consulting cross-platform suppliers.
-        // The legacy adapter contains source-native routes for QQ/Kuwo/Kugou and
+        // The legacy adapter contains source-native routes for QQ/Kugou and
         // only enters cross-platform matching after those routes fail.
         let legacyTier = song.source == .netease || song.source == .migu
             || song.source == .youtubeMusic || song.source == .youtube ? 1 : 0

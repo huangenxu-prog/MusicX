@@ -116,7 +116,7 @@ struct DomesticPlaylistDiscoveryService {
         async let migu = categoryFeaturedMigu(count: min(limit, 18))
         let groups = await [try? kugou, try? migu]
         try Task.checkCancellation()
-        let sources: [MusicSource] = [.kugou, .kuwo, .migu]
+        let sources: [MusicSource] = [.kugou, .migu]
         for (index, result) in groups.enumerated() where result == nil {
             MusicSourceDiagnostics.shared.record(
                 event: "playlist-discovery",
