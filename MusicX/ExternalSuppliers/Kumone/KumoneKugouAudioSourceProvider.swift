@@ -21,7 +21,7 @@ struct KumoneKugouAudioSourceProvider: MusicResourceProvider {
             URLQueryItem(name: "format", value: "json"),
             URLQueryItem(name: "keyword", value: "\(song.title) \(song.artist)"),
             URLQueryItem(name: "page", value: "1"),
-            URLQueryItem(name: "pagesize", value: "10")
+            URLQueryItem(name: "pagesize", value: "20")
         ]
         guard let searchURL = searchComponents?.url else {
             throw MusicSourceError.invalidResponse("酷狗搜索地址无效")
@@ -45,7 +45,7 @@ struct KumoneKugouAudioSourceProvider: MusicResourceProvider {
             throw MusicSourceError.invalidResponse("酷狗搜索响应格式错误")
         }
 
-        let candidates: [Candidate] = rows.prefix(10).compactMap { row in
+        let candidates: [Candidate] = rows.prefix(20).compactMap { row in
             guard let hash = row["hash"] as? String, !hash.isEmpty,
                   let title = row["songname"] as? String,
                   let artist = row["singername"] as? String,
@@ -70,49 +70,60 @@ struct KumoneKugouAudioSourceProvider: MusicResourceProvider {
                 < AudioSourceTrackMatcher.durationDifference(original: song, candidateDuration: $1.duration)
         }
 
-        guard let candidate = candidates.first else { return nil }
-        try Task.checkCancellation()
+        // A search response can contain several exact metadata matches, while
+        // some hashes may no longer have a licensed stream. Try a small ranked
+        // set instead of abandoning Kugou after the first unavailable hash.
+        for candidate in candidates.prefix(3) {
+            try Task.checkCancellation()
 
-        let key = Insecure.MD5.hash(data: Data("\(candidate.hash)kgcloudv2".utf8))
-            .map { String(format: "%02x", $0) }
-            .joined()
-        var streamComponents = URLComponents(string: "https://trackercdn.kugou.com/i/v2/")
-        streamComponents?.queryItems = [
-            URLQueryItem(name: "key", value: key),
-            URLQueryItem(name: "hash", value: candidate.hash),
-            URLQueryItem(name: "appid", value: "1005"),
-            URLQueryItem(name: "pid", value: "2"),
-            URLQueryItem(name: "cmd", value: "25"),
-            URLQueryItem(name: "behavior", value: "play"),
-            URLQueryItem(name: "album_id", value: candidate.albumID)
-        ]
-        guard let streamURL = streamComponents?.url else {
-            throw MusicSourceError.invalidResponse("酷狗播放地址请求无效")
+            let key = Insecure.MD5.hash(data: Data("\(candidate.hash)kgcloudv2".utf8))
+                .map { String(format: "%02x", $0) }
+                .joined()
+            var streamComponents = URLComponents(string: "https://trackercdn.kugou.com/i/v2/")
+            streamComponents?.queryItems = [
+                URLQueryItem(name: "key", value: key),
+                URLQueryItem(name: "hash", value: candidate.hash),
+                URLQueryItem(name: "appid", value: "1005"),
+                URLQueryItem(name: "pid", value: "2"),
+                URLQueryItem(name: "cmd", value: "25"),
+                URLQueryItem(name: "behavior", value: "play"),
+                URLQueryItem(name: "album_id", value: candidate.albumID)
+            ]
+            guard let streamURL = streamComponents?.url else { continue }
+
+            var streamRequest = URLRequest(url: streamURL)
+            streamRequest.timeoutInterval = 10
+            streamRequest.setValue("application/json", forHTTPHeaderField: "Accept")
+            let (streamData, streamResponse) = try await session.data(for: streamRequest)
+            try Task.checkCancellation()
+            guard let streamHTTP = streamResponse as? HTTPURLResponse else {
+                continue
+            }
+            if (500..<600).contains(streamHTTP.statusCode) || streamHTTP.statusCode == 429 {
+                throw MusicSourceError.invalidResponse("Kugou stream HTTP \\(streamHTTP.statusCode)")
+            }
+            guard (200..<300).contains(streamHTTP.statusCode) else { continue }
+
+            guard let object = try? JSONSerialization.jsonObject(with: streamData) as? [String: Any] else {
+                continue
+            }
+            let rawURLs: [String]
+            if let values = object["url"] as? [String] {
+                rawURLs = values
+            } else if let value = object["url"] as? String {
+                rawURLs = [value]
+            } else {
+                rawURLs = []
+            }
+
+            if let url = rawURLs
+                .compactMap({ URL(string: $0.trimmingCharacters(in: .whitespacesAndNewlines)) })
+                .first(where: Self.isHTTPURL) {
+                return ResolvedMusicResource(url: url, providerID: identifier, providerName: displayName)
+            }
         }
 
-        var streamRequest = URLRequest(url: streamURL)
-        streamRequest.timeoutInterval = 10
-        streamRequest.setValue("application/json", forHTTPHeaderField: "Accept")
-        let (streamData, streamResponse) = try await session.data(for: streamRequest)
-        try Task.checkCancellation()
-        guard let streamHTTP = streamResponse as? HTTPURLResponse,
-              (200..<300).contains(streamHTTP.statusCode) else {
-            throw MusicSourceError.invalidResponse(
-                "Kugou stream HTTP \((streamResponse as? HTTPURLResponse)?.statusCode ?? -1)"
-            )
-        }
-
-        guard let object = try JSONSerialization.jsonObject(with: streamData) as? [String: Any] else {
-            throw MusicSourceError.invalidResponse("酷狗播放响应格式错误")
-        }
-        let rawURL = (object["url"] as? [String])?.first ?? object["url"] as? String
-        guard let rawURL,
-              let url = URL(string: rawURL),
-              Self.isHTTPURL(url) else {
-            throw MusicSourceError.invalidResponse("酷狗没有返回有效播放地址")
-        }
-
-        return ResolvedMusicResource(url: url, providerID: identifier, providerName: displayName)
+        return nil
     }
 
     private struct Candidate {
