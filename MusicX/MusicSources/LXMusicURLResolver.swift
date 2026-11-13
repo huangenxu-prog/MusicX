@@ -102,6 +102,7 @@ struct LXMusicURLResolver: MusicURLResolving {
 
     /// Resolve only the source-native ID. IDs are never passed between providers.
     private func resolveNative(song: MusicSong, quality: MusicQuality) async throws -> URL? {
+        var backendFailures: [String] = []
         for backend in backends(for: song.source) {
             try Task.checkCancellation()
             let startedAt = Date()
@@ -121,7 +122,7 @@ struct LXMusicURLResolver: MusicURLResolving {
                 MusicSourcePerformance.shared.record(source: song.source, succeeded: false, duration: elapsed)
                 MusicSourceDiagnostics.shared.record(
                     event: "resolve", source: song.source.rawValue,
-                    provider: backend.name, duration: elapsed, result: "empty_url"
+                    provider: backend.name, duration: elapsed, result: "no_match"
                 )
             } catch {
                 if Task.isCancelled || error is CancellationError || (error as? URLError)?.code == .cancelled {
@@ -134,7 +135,17 @@ struct LXMusicURLResolver: MusicURLResolving {
                     provider: backend.name, duration: elapsed,
                     result: "failed", detail: error.localizedDescription
                 )
+                backendFailures.append("\(backend.name): \(error.localizedDescription)")
             }
+        }
+
+        // A clean nil from every backend means no matching resource. If one or
+        // more endpoints errored, propagate that fact so the outer provider
+        // circuit breaker does not mistake an outage for a healthy no-match.
+        if !backendFailures.isEmpty {
+            throw MusicSourceError.invalidResponse(
+                "原生解析接口异常：" + backendFailures.joined(separator: "；")
+            )
         }
         return nil
     }
