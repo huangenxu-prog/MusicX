@@ -143,7 +143,10 @@ struct MusicResourceEngine {
             providers.insert((MiguNativeAudioProvider(session: session), 900), at: 0)
         }
         if song.source == .youtubeMusic || song.source == .youtube {
-            providers.insert((YouTubeMusicAudioSourceProvider(session: session), 40), at: 0)
+            // A YouTube video ID must be resolved by the native InnerTube adapter
+            // before the legacy resolver, whose generic fallback maps these sources
+            // to a different catalog and cannot interpret YouTube IDs.
+            providers.insert((YouTubeMusicAudioSourceProvider(session: session), 1_000), at: 0)
         }
 
         let ordered = providers.sorted {
