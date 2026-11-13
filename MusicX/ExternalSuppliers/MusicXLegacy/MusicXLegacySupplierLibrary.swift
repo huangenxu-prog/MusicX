@@ -65,6 +65,20 @@ struct MusicXLegacySupplierLibrary: MusicResourceProvider, MusicCatalogSearchPro
         async let other: [MusicPlaylist]? = try? await DomesticPlaylistDiscoveryService(session: session).featuredPlaylists(count: limit)
         let groups = await [netease ?? [], qq ?? [], other ?? []]
         try Task.checkCancellation()
+        if netease == nil {
+            MusicSourceDiagnostics.shared.record(
+                event: "playlist-discovery", source: MusicSource.netease.rawValue,
+                provider: "netease-recommendations", duration: 0, result: "failed",
+                detail: "网易云推荐歌单接口未返回有效结果"
+            )
+        }
+        if qq == nil {
+            MusicSourceDiagnostics.shared.record(
+                event: "playlist-discovery", source: MusicSource.qq.rawValue,
+                provider: "qq-recommendations", duration: 0, result: "failed",
+                detail: "QQ音乐推荐歌单接口未返回有效结果"
+            )
+        }
 
         let bySource = Dictionary(grouping: groups.flatMap { $0 }, by: \\.source)
         let sourceOrder: [MusicSource] = [.netease, .qq, .kugou, .kuwo, .migu]
