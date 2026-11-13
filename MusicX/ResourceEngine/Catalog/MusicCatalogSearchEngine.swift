@@ -90,6 +90,10 @@ struct MusicCatalogSearchEngine {
         try await provider.searchPlaylists(keyword: keyword, count: count)
     }
 
+    func featuredPlaylists(count: Int = 30) async throws -> [MusicPlaylist] {
+        try await provider.featuredPlaylists(count: count)
+    }
+
     func playlistTracks(keyword: String, count: Int = 50) async throws -> [MusicSong] {
         try await provider.playlistTracks(keyword: keyword, count: count)
     }
