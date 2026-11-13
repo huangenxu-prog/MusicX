@@ -718,7 +718,7 @@ struct MusicDiscoveryPage: View {
                 VStack(alignment: .leading, spacing: 9) {
                     Text(title).font(.system(size: 27, weight: .bold)).foregroundStyle(.white)
                     Text(artist).font(.system(size: 15, weight: .medium)).foregroundStyle(MusicXTheme.blue)
-                    Text("专辑 · 共 \\(songs.count) 首").font(.system(size: 13)).foregroundStyle(MusicXTheme.muted)
+                    Text("专辑 · 共 \(songs.count) 首").font(.system(size: 13)).foregroundStyle(MusicXTheme.muted)
                 }
                 Spacer(minLength: 0)
             }
