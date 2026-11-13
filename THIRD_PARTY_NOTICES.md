@@ -12,4 +12,4 @@
 
 The provider request flow and cross-source track-matching approach are adapted from the corresponding Kumone Swift providers. MusicX's resource-engine contracts, catalog integration, diagnostics, provider scheduling, and fallback behavior are maintained independently.
 
-The applicable license text is included at `LICENSES/Kumone-LGPL-3.0.txt`. This notice does not imply endorsement or affiliation with the upstream project.
+The applicable LGPL-3.0-only text is included at `LICENSES/Kumone-LGPL-3.0.txt`; the accompanying GPL-3.0 text distributed by upstream is included at `LICENSES/Kumone-GPL-3.0.txt`. This notice does not imply endorsement or affiliation with the upstream project.
