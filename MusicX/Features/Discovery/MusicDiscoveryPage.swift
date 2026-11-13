@@ -412,7 +412,9 @@ struct MusicDiscoveryPage: View {
         do {
             let result: [MusicSong]
             if tab == .daily {
-                result = try await catalog.dailyRecommendedSongs(count: 30)
+                // Temporary QQ-only test feed: every displayed track keeps its QQ source identity,
+                // so playback exercises the QQ-native resolver chain rather than cross-platform lookup.
+                result = try await catalog.search(keyword: "陈奕迅", source: .qq, count: 30)
             } else {
                 // 精选歌曲独立于每日推荐：从平台热歌榜提取真实歌曲条目。
                 result = Array((try await catalog.toplist("热歌榜", count: 100)).shuffled().prefix(50))
