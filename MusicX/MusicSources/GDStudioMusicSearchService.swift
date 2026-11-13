@@ -379,7 +379,7 @@ struct GDStudioMusicSearchService {
         if let cached: [MusicSong] = await MusicCache.shared.value(for: cacheKey) { return cached }
         var songs: [MusicSong] = []
         var begin = 0
-        let pageSize = 30
+        let pageSize = min(count, 50)
         var hasMore = true
         while songs.count < count && hasMore {
             try Task.checkCancellation()
