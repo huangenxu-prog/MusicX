@@ -136,9 +136,11 @@ struct MusicResourceEngine {
         // only enters cross-platform matching after those routes fail.
         let legacyTier = song.source == .netease
             ? 2
-            : (song.source == .kugou
-                ? 1
-                : (song.source == .migu || song.source == .youtubeMusic || song.source == .youtube ? 1 : 0))
+            : (song.source == .qq
+                ? 3
+                : (song.source == .kugou
+                    ? 1
+                    : (song.source == .migu || song.source == .youtubeMusic || song.source == .youtube ? 1 : 0)))
         let kumoneFallbackTier = song.source == .kugou ? 0 : (song.source == .netease ? 3 : 2)
         var providers: [(provider: any MusicResourceProvider, tier: Int, baseline: Int)] = [
             (MusicXLegacySupplierLibrary(session: session), legacyTier, 30),
