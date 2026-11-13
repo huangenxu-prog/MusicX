@@ -16,6 +16,11 @@ enum AudioSourceTrackMatcher {
         let expectedTitle = normalized(original.title)
         let actualTitle = normalized(candidateTitle)
         guard !expectedTitle.isEmpty, expectedTitle == actualTitle else { return false }
+        // Avoid cross-matching studio, live, remix, instrumental and other
+        // alternate editions that happen to share the same normalized title.
+        guard versionMarkers(in: original.title) == versionMarkers(in: candidateTitle) else {
+            return false
+        }
 
         let expectedArtists = Set(artistParts(original.artist))
         let actualArtists = Set(artistParts(candidateArtist))

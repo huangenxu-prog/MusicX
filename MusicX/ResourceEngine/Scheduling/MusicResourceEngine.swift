@@ -134,11 +134,14 @@ struct MusicResourceEngine {
         // Resolve the catalog's own source before consulting cross-platform suppliers.
         // The legacy adapter contains source-native routes for QQ/Kugou and
         // only enters cross-platform matching after those routes fail.
-        let legacyTier = song.source == .netease || song.source == .migu
-            || song.source == .youtubeMusic || song.source == .youtube ? 1 : 0
+        let legacyTier = song.source == .kugou
+            ? 1
+            : (song.source == .netease || song.source == .migu
+                || song.source == .youtubeMusic || song.source == .youtube ? 1 : 0)
+        let kumoneTier = song.source == .kugou ? 0 : 2
         var providers: [(provider: any MusicResourceProvider, tier: Int, baseline: Int)] = [
             (MusicXLegacySupplierLibrary(session: session), legacyTier, 30),
-            (KumoneKugouAudioSourceProvider(session: session), 2, 20)
+            (KumoneKugouAudioSourceProvider(session: session), kumoneTier, 20)
         ]
         if song.source == .netease {
             providers.append((NetEaseNativeAudioProvider(session: session), 0, 1_000))

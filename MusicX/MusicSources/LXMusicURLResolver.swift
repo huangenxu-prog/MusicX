@@ -65,7 +65,7 @@ private final class MusicSourcePerformance {
 /// Native Swift implementation of the URL-resolution paths found in the supplied
 /// 洛雪音源3.js. Search is intentionally separate: the LX plugin contract receives
 /// an already identified song and only resolves its playable URL.
-struct LXMusicURLResolver: MusicURLResolving {
+struct LXMusicURLResolver: MusicURLResolving, @unchecked Sendable {
     private let session: URLSession
 
     init(session: URLSession = .shared) {
@@ -127,51 +127,83 @@ struct LXMusicURLResolver: MusicURLResolving {
     }
 
     /// Resolve only the source-native ID. IDs are never passed between providers.
+    private struct BackendAttempt: Sendable {
+        let name: String
+        let url: URL?
+        let duration: TimeInterval
+        let error: String?
+    }
+
+    /// Query independent native URL backends concurrently. The first valid
+    /// playable URL wins; slow or unavailable mirrors no longer delay playback.
     private func resolveNative(song: MusicSong, quality: MusicQuality) async throws -> URL? {
-        var backendFailures: [String] = []
-        for backend in backends(for: song.source) {
-            try Task.checkCancellation()
-            let startedAt = Date()
-            do {
-                if let url = try await resolveWithRetry(backend, song: song, quality: quality),
-                   isPlayableURL(url) {
-                    try Task.checkCancellation()
-                    let elapsed = Date().timeIntervalSince(startedAt)
-                    MusicSourcePerformance.shared.record(source: song.source, succeeded: true, duration: elapsed)
-                    MusicSourceDiagnostics.shared.record(
-                        event: "resolve", source: song.source.rawValue,
-                        provider: backend.name, duration: elapsed, result: "url_returned"
-                    )
-                    return url
+        let candidates = backends(for: song.source)
+        guard !candidates.isEmpty else { return nil }
+
+        let attempts = await withTaskGroup(
+            of: BackendAttempt.self,
+            returning: (BackendAttempt?, [String]).self
+        ) { group in
+            for backend in candidates {
+                group.addTask {
+                    let startedAt = Date()
+                    do {
+                        guard let url = try await resolveWithRetry(backend, song: song, quality: quality),
+                              isPlayableURL(url) else {
+                            return BackendAttempt(
+                                name: backend.name, url: nil,
+                                duration: Date().timeIntervalSince(startedAt), error: nil
+                            )
+                        }
+                        return BackendAttempt(
+                            name: backend.name, url: url,
+                            duration: Date().timeIntervalSince(startedAt), error: nil
+                        )
+                    } catch {
+                        if Task.isCancelled || error is CancellationError
+                            || (error as? URLError)?.code == .cancelled {
+                            return BackendAttempt(
+                                name: backend.name, url: nil,
+                                duration: Date().timeIntervalSince(startedAt), error: "cancelled"
+                            )
+                        }
+                        return BackendAttempt(
+                            name: backend.name, url: nil,
+                            duration: Date().timeIntervalSince(startedAt),
+                            error: error.localizedDescription
+                        )
+                    }
                 }
-                let elapsed = Date().timeIntervalSince(startedAt)
-                MusicSourcePerformance.shared.record(source: song.source, succeeded: false, duration: elapsed)
-                MusicSourceDiagnostics.shared.record(
-                    event: "resolve", source: song.source.rawValue,
-                    provider: backend.name, duration: elapsed, result: "no_match"
-                )
-            } catch {
-                if Task.isCancelled || error is CancellationError || (error as? URLError)?.code == .cancelled {
-                    throw CancellationError()
-                }
-                let elapsed = Date().timeIntervalSince(startedAt)
-                MusicSourcePerformance.shared.record(source: song.source, succeeded: false, duration: elapsed)
-                MusicSourceDiagnostics.shared.record(
-                    event: "resolve", source: song.source.rawValue,
-                    provider: backend.name, duration: elapsed,
-                    result: "failed", detail: error.localizedDescription
-                )
-                backendFailures.append("\(backend.name): \(error.localizedDescription)")
             }
+
+            var failures: [String] = []
+            while let result = await group.next() {
+                if result.error == "cancelled" { continue }
+                if let url = result.url {
+                    group.cancelAll()
+                    return (result, failures)
+                }
+                if let error = result.error {
+                    failures.append("\(result.name): \(error)")
+                }
+            }
+            return (nil, failures)
         }
 
-        // A clean nil from every backend means no matching resource. If one or
-        // more endpoints errored, propagate that fact so the outer provider
-        // circuit breaker does not mistake an outage for a healthy no-match.
-        if !backendFailures.isEmpty {
-            throw MusicSourceError.invalidResponse(
-                "原生解析接口异常：" + backendFailures.joined(separator: "；")
+        try Task.checkCancellation()
+        if let winner = attempts.0, let url = winner.url {
+            MusicSourcePerformance.shared.record(
+                source: song.source, succeeded: true, duration: winner.duration
             )
+            MusicSourceDiagnostics.shared.record(
+                event: "resolve", source: song.source.rawValue,
+                provider: winner.name, duration: winner.duration,
+                result: "url_returned"
+            )
+            return url
+        }
+        if !attempts.1.isEmpty {
+            throw MusicSourceError.invalidResponse("原生解析接口异常：" + attempts.1.joined(separator: "；"))
         }
         return nil
     }
@@ -324,9 +356,9 @@ struct LXMusicURLResolver: MusicURLResolving {
         return false
     }
 
-    private struct Backend {
+    private struct Backend: Sendable {
         let name: String
-        let resolve: (MusicSong, MusicQuality) async throws -> URL?
+        let resolve: @Sendable (MusicSong, MusicQuality) async throws -> URL?
     }
 
     private func backends(for source: MusicSource) -> [Backend] {
