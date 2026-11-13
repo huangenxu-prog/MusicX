@@ -126,6 +126,51 @@ struct GDStudioMusicSearchService {
     }
 
     
+    /// QQ Music homepage hot recommendations. These are platform-recommended
+    /// collections, not manually curated editorial playlists.
+    func recommendedPlaylists(count: Int = 30) async throws -> [MusicPlaylist] {
+        let limit = min(max(count, 1), 60)
+        let cacheKey = "qq-recommended-playlists|\(limit)"
+        if let cached = await MusicCatalogStore.shared.snapshot(for: cacheKey, as: [MusicPlaylist].self) {
+            if cached.needsRefresh {
+                Task { _ = try? await self.refreshRecommendedPlaylists(count: limit, cacheKey: cacheKey) }
+            }
+            return cached.value
+        }
+        return try await refreshRecommendedPlaylists(count: limit, cacheKey: cacheKey)
+    }
+
+    private func refreshRecommendedPlaylists(count: Int, cacheKey: String) async throws -> [MusicPlaylist] {
+        let data = try await requestQQMusicU(
+            module: "playlist.HotRecommendServer",
+            method: "get_hot_recommend",
+            parameters: ["async": 1, "cmd": 2]
+        )
+        let rows = ((data["v_hot"] as? [[String: Any]]) ?? [])
+        let playlists: [MusicPlaylist] = rows.compactMap { row in
+            guard let rawID = row["content_id"] ?? row["dissid"],
+                  let name = (row["title"] as? String) ?? (row["dissname"] as? String),
+                  !name.isEmpty else { return nil }
+            let artwork = (row["cover"] as? String) ?? (row["imgurl"] as? String)
+            let trackCount = (row["song_cnt"] as? Int) ?? (row["song_count"] as? Int)
+            return MusicPlaylist(
+                source: .qq,
+                sourceID: String(describing: rawID),
+                name: name,
+                creator: row["username"] as? String,
+                description: row["intro"] as? String,
+                artworkURL: artwork.flatMap { URL(string: $0.replacingOccurrences(of: "http://", with: "https://")) },
+                trackCount: trackCount,
+                provenance: .platformRecommended
+            )
+        }
+        guard !playlists.isEmpty else {
+            throw MusicSourceError.invalidResponse("QQ音乐推荐接口没有返回有效歌单")
+        }
+        await MusicCatalogStore.shared.save(playlists, for: cacheKey, refreshAfter: 6 * 60 * 60)
+        return Array(playlists.prefix(count))
+    }
+
     /// Searches QQ Music's real playlist index and returns provider-native playlist metadata.
     func searchPlaylists(keyword: String, count: Int = 10) async throws -> [MusicPlaylist] {
         let query = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
