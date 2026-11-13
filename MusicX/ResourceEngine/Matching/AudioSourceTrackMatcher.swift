@@ -10,25 +10,42 @@ enum AudioSourceTrackMatcher {
         candidateAlbum: String? = nil,
         requireDuration: Bool = false
     ) -> Bool {
-        // Cross-source identity is intentionally based only on normalized title
-        // and artist. Duration, album, and release/version metadata are not
-        // reliable across catalog providers and must not reject a valid match.
         let expectedTitle = normalized(original.title)
         let actualTitle = normalized(candidateTitle)
         guard !expectedTitle.isEmpty, expectedTitle == actualTitle else { return false }
-        // Avoid cross-matching studio, live, remix, instrumental and other
-        // alternate editions that happen to share the same normalized title.
+
+        // Prevent studio/live/remix/instrumental editions from being mixed.
         guard versionMarkers(in: original.title) == versionMarkers(in: candidateTitle) else {
             return false
         }
 
         let expectedArtists = Set(artistParts(original.artist))
         let actualArtists = Set(artistParts(candidateArtist))
-        return !expectedArtists.isDisjoint(with: actualArtists)
+        guard !expectedArtists.isDisjoint(with: actualArtists) else { return false }
+
+        // Duration is a useful identity signal when both catalogs provide it.
+        // Catalogs can differ slightly due to silence/encoding, so allow a small
+        // tolerance instead of requiring byte-for-byte metadata equality.
+        let expectedDuration = original.duration.flatMap { $0 > 0 ? $0 : nil }
+        let actualDuration = candidateDuration.flatMap { $0 > 0 ? $0 : nil }
+
+        if requireDuration && (expectedDuration == nil || actualDuration == nil) {
+            return false
+        }
+
+        if let expectedDuration, let actualDuration {
+            let tolerance = min(10, max(5, expectedDuration * 0.03))
+            guard abs(expectedDuration - actualDuration) <= tolerance else {
+                return false
+            }
+        }
+
+        return true
     }
 
     static func durationDifference(original: MusicSong, candidateDuration: TimeInterval?) -> TimeInterval {
-        guard let expected = original.duration, let actual = candidateDuration else {
+        guard let expected = original.duration, let actual = candidateDuration,
+              expected > 0, actual > 0 else {
             return .greatestFiniteMagnitude
         }
         return abs(expected - actual)
@@ -36,7 +53,7 @@ enum AudioSourceTrackMatcher {
 
     private static func artistParts(_ value: String) -> [String] {
         let withoutFeaturedCredits = value.replacingOccurrences(
-            of: #"(?i)\s+(?:feat\.?|ft\.?|featuring|with)\s+"#,
+            of: #"(?i)\\s+(?:feat\\.?|ft\\.?|featuring|with)\\s+"#,
             with: ";",
             options: .regularExpression
         )
@@ -61,9 +78,6 @@ enum AudioSourceTrackMatcher {
         let text = value.lowercased()
             .folding(options: [.diacriticInsensitive, .widthInsensitive], locale: Locale(identifier: "en_US_POSIX"))
 
-        // English version labels must be complete tokens. Substring matching
-        // incorrectly classifies ordinary titles such as "Believe" as "Live"
-        // and "Discover" as "Cover".
         let tokens = text.split(whereSeparator: { !$0.isLetter && !$0.isNumber }).map(String.init)
         let tokenSet = Set(tokens)
         var markers = Set<String>()
@@ -81,8 +95,6 @@ enum AudioSourceTrackMatcher {
             }
         }
 
-        // Chinese labels do not have whitespace-delimited word boundaries,
-        // so retain substring matching for these explicit version terms.
         let chineseMarkers = [
             "伴奏", "纯音乐", "现场", "演唱会", "翻唱", "不插电",
             "示范", "合唱", "重制", "加速", "降速"
