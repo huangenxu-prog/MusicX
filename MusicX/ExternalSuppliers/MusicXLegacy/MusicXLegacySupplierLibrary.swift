@@ -87,7 +87,7 @@ struct MusicXLegacySupplierLibrary: MusicResourceProvider, MusicCatalogSearchPro
         let sourceOrder: [MusicSource] = [.netease, .qq, .kugou, .kuwo, .migu]
         var merged: [MusicPlaylist] = []
         var seenIDs = Set<String>()
-        var seenNames = Set<String>()
+        var seenContentKeys = Set<String>()
         let maximumPerSource = max(1, Int(ceil(Double(limit) / Double(sourceOrder.count))))
         for source in sourceOrder {
             let candidates = Array((bySource[source] ?? []).prefix(maximumPerSource * 3))
@@ -96,9 +96,15 @@ struct MusicXLegacySupplierLibrary: MusicResourceProvider, MusicCatalogSearchPro
                 let normalizedName = playlist.name
                     .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
                     .filter { $0.isLetter || $0.isNumber }
+                let normalizedCreator = (playlist.creator ?? "")
+                    .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+                    .filter { $0.isLetter || $0.isNumber }
+                let contentKey = normalizedCreator.isEmpty
+                    ? "\(source.rawValue)|\(normalizedName)"
+                    : "\(normalizedName)|\(normalizedCreator)"
                 guard !normalizedName.isEmpty,
                       seenIDs.insert(playlist.id).inserted,
-                      seenNames.insert(normalizedName).inserted else { continue }
+                      seenContentKeys.insert(contentKey).inserted else { continue }
                 merged.append(playlist)
                 added += 1
                 if added >= maximumPerSource { break }
