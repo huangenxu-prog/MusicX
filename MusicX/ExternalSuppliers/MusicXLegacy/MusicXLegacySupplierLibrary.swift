@@ -129,6 +129,12 @@ struct MusicXLegacySupplierLibrary: MusicResourceProvider, MusicCatalogSearchPro
                 playlistID: playlistID,
                 count: count
             )
+        case .kugou, .kuwo, .migu:
+            return try await DomesticPlaylistDiscoveryService(session: session).playlistTracks(
+                playlistID: playlistID,
+                source: source,
+                count: count
+            )
         default:
             throw MusicSourceError.unsupportedSource(source)
         }
