@@ -176,8 +176,8 @@ struct LXMusicURLResolver: MusicURLResolving {
         return nil
     }
 
-    /// Search other platforms after native resolution fails. Only exact normalized
-    /// title + artist matches are eligible; duration mismatches are rejected.
+    /// Search other platforms after native resolution fails. A normalized title
+    /// and artist match is sufficient; duration and album metadata are ignored.
     private func resolveAlternativeSource(song: MusicSong, quality: MusicQuality) async throws -> URL? {
         let service = GDStudioMusicSearchService(session: session)
         async let netease = captureSearch { try await service.search(keyword: song.title, source: .netease, count: 12) }
@@ -263,26 +263,11 @@ struct LXMusicURLResolver: MusicURLResolving {
     }
 
     private func matchScore(original: MusicSong, candidate: MusicSong) -> Int {
-        guard AudioSourceTrackMatcher.matches(
+        AudioSourceTrackMatcher.matches(
             original: original,
             candidateTitle: candidate.title,
-            candidateArtist: candidate.artist,
-            candidateDuration: candidate.duration,
-            candidateAlbum: candidate.album,
-            requireDuration: false
-        ) else { return 0 }
-
-        var score = 100
-        if let lhs = original.duration, let rhs = candidate.duration {
-            score += max(0, 20 - Int(abs(lhs - rhs) * 4))
-        } else {
-            score -= 12
-        }
-        if let lhs = original.album, let rhs = candidate.album,
-           normalizedMatchText(lhs) == normalizedMatchText(rhs) {
-            score += 10
-        }
-        return score
+            candidateArtist: candidate.artist
+        ) ? 100 : 0
     }
 
     private func sourceFallbackPriority(_ source: MusicSource) -> Int {
