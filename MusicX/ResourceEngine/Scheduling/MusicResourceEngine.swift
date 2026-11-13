@@ -139,6 +139,9 @@ struct MusicResourceEngine {
         if song.source == .netease {
             providers.insert((NetEaseNativeAudioProvider(session: session), 1_000), at: 0)
         }
+        if song.source == .migu {
+            providers.insert((MiguNativeAudioProvider(session: session), 900), at: 0)
+        }
         if song.source == .youtubeMusic {
             providers.insert((YouTubeMusicAudioSourceProvider(session: session), 40), at: 0)
         }
