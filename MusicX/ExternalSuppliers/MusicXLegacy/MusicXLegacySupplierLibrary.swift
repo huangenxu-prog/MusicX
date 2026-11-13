@@ -59,7 +59,19 @@ struct MusicXLegacySupplierLibrary: MusicResourceProvider, MusicCatalogSearchPro
     }
 
     func searchPlaylists(keyword: String, count: Int) async throws -> [MusicPlaylist] {
-        try await GDStudioMusicSearchService(session: session).searchPlaylists(keyword: keyword, count: count)
+        async let qqResults: [MusicPlaylist]? = try? await GDStudioMusicSearchService(session: session)
+            .searchPlaylists(keyword: keyword, count: count)
+        async let neteaseResults: [MusicPlaylist]? = try? await NetEaseNativeAPIClient(session: session)
+            .searchPlaylists(keyword: keyword, count: count)
+        let groups = await [qqResults ?? [], neteaseResults ?? []]
+        try Task.checkCancellation()
+
+        var seen = Set<String>()
+        let merged = groups.flatMap { $0 }.filter { seen.insert($0.id).inserted }
+        guard !merged.isEmpty else {
+            throw MusicSourceError.invalidResponse("网易云和 QQ 音乐均未返回可用歌单")
+        }
+        return merged
     }
 
     func playlistTracks(keyword: String, count: Int) async throws -> [MusicSong] {
@@ -68,6 +80,23 @@ struct MusicXLegacySupplierLibrary: MusicResourceProvider, MusicCatalogSearchPro
 
     func playlistTracks(playlistID: String, count: Int) async throws -> [MusicSong] {
         try await GDStudioMusicSearchService(session: session).playlistTracks(playlistID: playlistID, count: count)
+    }
+
+    func playlistTracks(playlistID: String, source: MusicSource, count: Int) async throws -> [MusicSong] {
+        switch source {
+        case .netease:
+            return try await NetEaseNativeAPIClient(session: session).playlistTracks(
+                playlistID: playlistID,
+                count: count
+            )
+        case .qq:
+            return try await GDStudioMusicSearchService(session: session).playlistTracks(
+                playlistID: playlistID,
+                count: count
+            )
+        default:
+            throw MusicSourceError.unsupportedSource(source)
+        }
     }
 
     func toplist(_ chartName: String, count: Int) async throws -> [MusicSong] {
