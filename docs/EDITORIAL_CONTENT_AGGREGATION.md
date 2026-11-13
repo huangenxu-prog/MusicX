@@ -72,6 +72,7 @@ Implemented in source:
 - The featured-playlist page now renders a live catalog of up to 25 collections instead of selecting six results from fixed keyword buckets.
 - Keyword playlist search now queries all five domestic platforms; mood-category discovery can use the full five-platform result set.
 - The daily-recommendation tab now uses QQ Music's dated subtype-510 daily playlist feed and loads the actual playlist tracks; it no longer searches a hard-coded artist as a substitute. The feed is validated against the current Shanghai calendar day and is allowed to fail closed if the upstream daily card is missing or stale.
+- Migu playback now has a native H5 listen-url provider. It retains both content ID and copyright ID, decodes the signed response format, and falls back to the platform's direct listenSong URL before the existing GDStudio route. This endpoint path is based on public Migu client implementations and still requires live-device validation.
 - Source-aware collection-track loading has adapters for all five domestic platforms.
 - Collection tracks retain their original platform IDs and are handed to the Resource Engine for playback resolution and cross-source fallback.
 - Partial source failures are isolated and recorded in diagnostics; a single platform failure does not discard successful results from other platforms.
