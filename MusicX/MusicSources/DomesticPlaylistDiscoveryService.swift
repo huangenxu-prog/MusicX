@@ -85,7 +85,7 @@ struct DomesticPlaylistDiscoveryService {
                 title: title.isEmpty ? "未知歌曲" : title,
                 artist: artist.isEmpty ? "未知歌手" : artist,
                 album: row["album_name"] as? String,
-                artworkURL: cover?.replacingOccurrences(of: "{size}", with: "480").flatMap(URL.init(string:)),
+                artworkURL: cover.flatMap { URL(string: $0.replacingOccurrences(of: "{size}", with: "480")) },
                 duration: (row["duration"] as? Double) ?? (row["duration"] as? Int).map(Double.init),
                 hash: hash,
                 albumID: row["AlbumID"] as? String,
