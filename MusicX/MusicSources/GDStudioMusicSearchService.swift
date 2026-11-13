@@ -126,6 +126,62 @@ struct GDStudioMusicSearchService {
     }
 
     
+    /// QQ Music's daily 30-song feed is a dated dynamic playlist card.
+    /// It is intentionally not replaced with a keyword search when unavailable.
+    func dailyRecommendedSongs(count: Int = 30) async throws -> [MusicSong] {
+        let limit = min(max(count, 1), 30)
+        var calendar = Calendar(identifier: .gregorian)
+        guard let shanghai = TimeZone(identifier: "Asia/Shanghai") else {
+            throw MusicSourceError.invalidResponse("上海时区不可用")
+        }
+        calendar.timeZone = shanghai
+        let parts = calendar.dateComponents([.year, .month, .day], from: Date())
+        let dayKey = String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
+        let cacheKey = "qq-daily-recommendations|\(dayKey)|\(limit)"
+        if let cached: [MusicSong] = await MusicCache.shared.value(for: cacheKey) {
+            return cached
+        }
+
+        let feed = try await requestQQMusicU(
+            module: "music.recommend.RecommendFeed",
+            method: "get_recommend_feed",
+            parameters: ["direction": 0, "page": 1, "v_cache": [], "v_uniq": [], "s_num": 0]
+        )
+        guard let shelves = feed["v_shelf"] as? [[String: Any]] else {
+            throw MusicSourceError.invalidResponse("QQ每日推荐信息流结构异常")
+        }
+
+        var dailyCards: [[String: Any]] = []
+        for shelf in shelves {
+            guard let niches = shelf["v_niche"] as? [[String: Any]] else { continue }
+            for niche in niches {
+                guard let cards = niche["v_card"] as? [[String: Any]] else { continue }
+                dailyCards.append(contentsOf: cards.filter {
+                    let subtype = ($0["subtype"] as? Int) ?? ($0["subtype"] as? String).flatMap(Int.init)
+                    return subtype == 510
+                })
+            }
+        }
+        guard dailyCards.count == 1, let card = dailyCards.first,
+              let rawID = card["id"] else {
+            throw MusicSourceError.invalidResponse("QQ今日推荐歌单卡片缺失或不唯一")
+        }
+        let playlistID = String(describing: rawID)
+        guard let numericID = Int64(playlistID), String(numericID) == playlistID,
+              let timestamp = (card["time"] as? NSNumber)?.doubleValue,
+              timestamp >= 1_000_000_000, timestamp <= 9_999_999_999,
+              calendar.isDate(Date(timeIntervalSince1970: timestamp), inSameDayAs: Date()) else {
+            throw MusicSourceError.invalidResponse("QQ今日推荐歌单已过期或编号无效")
+        }
+
+        let songs = try await playlistTracks(playlistID: playlistID, count: limit)
+        guard !songs.isEmpty else {
+            throw MusicSourceError.invalidResponse("QQ今日推荐歌单没有返回歌曲")
+        }
+        await MusicCache.shared.insert(songs, for: cacheKey, ttl: 60 * 60)
+        return Array(songs.prefix(limit))
+    }
+
     /// QQ Music homepage hot recommendations. These are platform-recommended
     /// collections, not manually curated editorial playlists.
     func recommendedPlaylists(count: Int = 30) async throws -> [MusicPlaylist] {
