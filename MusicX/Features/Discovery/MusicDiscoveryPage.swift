@@ -404,7 +404,7 @@ struct MusicDiscoveryPage: View {
         do {
             let result: [MusicSong]
             if tab == .daily {
-                result = try await catalog.search(keyword: "陈奕迅", source: .netease, count: 30)
+                result = try await catalog.dailyRecommendedSongs(count: 30)
             } else {
                 await loadFeaturedPlaylists()
                 guard !Task.isCancelled, songsLoadToken == requestToken else { return }
