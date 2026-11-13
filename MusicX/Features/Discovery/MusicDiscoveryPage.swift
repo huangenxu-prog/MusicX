@@ -415,7 +415,7 @@ struct MusicDiscoveryPage: View {
                 result = try await catalog.dailyRecommendedSongs(count: 30)
             } else {
                 // 精选歌曲独立于每日推荐：从平台热歌榜提取真实歌曲条目。
-                result = try await catalog.toplist("热歌榜", count: 30)
+                result = Array((try await catalog.toplist("热歌榜", count: 100)).shuffled().prefix(50))
             }
             guard !Task.isCancelled, songsLoadToken == requestToken else { return }
             recommendationSongCache[tab] = result
