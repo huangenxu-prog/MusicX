@@ -180,22 +180,42 @@ struct LXMusicURLResolver: MusicURLResolving {
                 return sourceFallbackPriority(lhs.0.source) > sourceFallbackPriority(rhs.0.source)
             }
 
+        var candidateFailures: [String] = []
         for (candidate, score) in candidates {
             try Task.checkCancellation()
-            if let url = try await resolveNative(song: candidate, quality: quality) {
+            do {
+                if let url = try await resolveNative(song: candidate, quality: quality) {
+                    MusicSourceDiagnostics.shared.record(
+                        event: "resolve-fallback", source: song.source.rawValue,
+                        provider: candidate.source.rawValue, duration: 0,
+                        result: "url_returned",
+                        detail: "matched=\(candidate.title) · \(candidate.artist) · score=\(score)"
+                    )
+                    return url
+                }
                 MusicSourceDiagnostics.shared.record(
                     event: "resolve-fallback", source: song.source.rawValue,
                     provider: candidate.source.rawValue, duration: 0,
-                    result: "url_returned",
-                    detail: "matched=\(candidate.title) · \(candidate.artist) · score=\(score)"
+                    result: "candidate_unavailable",
+                    detail: "matched=\(candidate.title) · score=\(score)"
                 )
-                return url
+            } catch {
+                if Task.isCancelled || error is CancellationError || (error as? URLError)?.code == .cancelled {
+                    throw CancellationError()
+                }
+                candidateFailures.append("\(candidate.source.displayName): \(error.localizedDescription)")
+                MusicSourceDiagnostics.shared.record(
+                    event: "resolve-fallback", source: song.source.rawValue,
+                    provider: candidate.source.rawValue, duration: 0,
+                    result: "candidate_error",
+                    detail: error.localizedDescription
+                )
             }
-            MusicSourceDiagnostics.shared.record(
-                event: "resolve-fallback", source: song.source.rawValue,
-                provider: candidate.source.rawValue, duration: 0,
-                result: "candidate_unavailable",
-                detail: "matched=\(candidate.title) · score=\(score)"
+        }
+
+        if !candidateFailures.isEmpty {
+            throw MusicSourceError.invalidResponse(
+                "跨平台备用解析异常：" + candidateFailures.joined(separator: "；")
             )
         }
         return nil
