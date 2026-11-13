@@ -59,25 +59,19 @@ struct KumoneKuwoAudioSourceProvider: MusicResourceProvider {
             guard let musicRID = row["MUSICRID"] as? String,
                   let rid = musicRID.split(separator: "_").last.map(String.init),
                   let title = row["SONGNAME"] as? String,
-                  let artist = row["ARTIST"] as? String,
-                  let rawDuration = row["DURATION"],
-                  let duration = Self.durationSeconds(rawDuration) else { return nil }
+                  let artist = row["ARTIST"] as? String else { return nil }
 
+            let duration = row["DURATION"].flatMap(Self.durationSeconds) ?? 0
             let album = row["ALBUM"] as? String ?? row["ALBUMNAME"] as? String
             guard AudioSourceTrackMatcher.matches(
                 original: song,
                 candidateTitle: title,
                 candidateArtist: artist,
                 candidateDuration: duration,
-                candidateAlbum: album,
-                requireDuration: true
+                candidateAlbum: album
             ) else { return nil }
 
             return Candidate(rid: rid, duration: duration)
-        }
-        .sorted {
-            AudioSourceTrackMatcher.durationDifference(original: song, candidateDuration: $0.duration)
-                < AudioSourceTrackMatcher.durationDifference(original: song, candidateDuration: $1.duration)
         }
 
         guard let candidate = candidates.first else { return nil }
