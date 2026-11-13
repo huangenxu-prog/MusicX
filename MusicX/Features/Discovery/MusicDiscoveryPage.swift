@@ -461,7 +461,7 @@ struct MusicDiscoveryPage: View {
             if result.isEmpty { errorMessage = "音源没有返回匹配的歌曲，请稍后重试" }
         } catch {
             guard !Task.isCancelled, songsLoadToken == requestToken else { return }
-            errorMessage = error.localizedDescription
+            errorMessage = "内容暂时无法加载，请稍后重试"
         }
     }
 
@@ -673,7 +673,7 @@ struct MusicDiscoveryPage: View {
             if isLoading {
                 ProgressView().tint(MusicXTheme.blue).frame(maxWidth: .infinity).padding(.vertical, 28)
             } else if let errorMessage, songs.isEmpty {
-                Text(errorMessage).font(.system(size: 13)).foregroundStyle(MusicXTheme.muted).frame(maxWidth: .infinity).padding(.vertical, 24)
+                Text("内容暂时无法加载，请稍后重试").font(.system(size: 13)).foregroundStyle(MusicXTheme.muted).frame(maxWidth: .infinity).padding(.vertical, 24)
             } else if songs.isEmpty {
                 Text("暂时没有找到曲目").font(.system(size: 13)).foregroundStyle(MusicXTheme.muted).frame(maxWidth: .infinity).padding(.vertical, 24)
             } else {
@@ -969,7 +969,7 @@ struct MusicDiscoveryPage: View {
                 if isLoading {
                     ProgressView().tint(MusicXTheme.blue).frame(maxWidth: .infinity).padding(.vertical, 28).gridCellColumns(2)
                 } else {
-                    Text(errorMessage ?? "暂时没有获取到平台推荐歌单")
+                    Text("暂时没有可展示的歌单")
                         .font(.system(size: 13))
                         .foregroundStyle(MusicXTheme.muted)
                         .frame(maxWidth: .infinity).padding(.vertical, 28).gridCellColumns(2)
@@ -1282,7 +1282,7 @@ struct MusicDiscoveryPage: View {
             if results.isEmpty { errorMessage = "平台暂时没有返回可用歌单" }
         } catch {
             guard !Task.isCancelled else { return }
-            errorMessage = error.localizedDescription
+            errorMessage = "推荐内容暂时无法加载，请稍后重试"
         }
     }
 
@@ -1406,15 +1406,44 @@ struct MusicDiscoveryPage: View {
                     )
                 } catch {
                     if Task.isCancelled { return }
-                    playlistLoadError = "真实歌单曲目加载失败：\(error.localizedDescription)"
-                    result = []
+                    // If the originating platform's playlist endpoint is unavailable,
+                    // look for the same real playlist on the other primary catalog.
+                    let alternatives = (try? await catalog.searchPlaylists(
+                        keyword: playlist.name,
+                        count: 30
+                    )) ?? []
+                    let normalizedName = playlist.name.folding(
+                        options: [.caseInsensitive, .diacriticInsensitive],
+                        locale: .current
+                    ).filter { $0.isLetter || $0.isNumber }
+                    let alternate = alternatives.first { candidate in
+                        let candidateName = candidate.name.folding(
+                            options: [.caseInsensitive, .diacriticInsensitive],
+                            locale: .current
+                        ).filter { $0.isLetter || $0.isNumber }
+                        return candidate.source != playlist.source
+                            && !normalizedName.isEmpty
+                            && candidateName == normalizedName
+                    }
+                    if let alternate {
+                        result = (try? await catalog.playlistTracks(
+                            playlistID: alternate.sourceID,
+                            source: alternate.source,
+                            count: 50
+                        )) ?? []
+                    } else {
+                        result = []
+                    }
+                    if result.isEmpty {
+                        playlistLoadError = "歌单暂时无法加载，请稍后重试"
+                    }
                     MusicSourceDiagnostics.shared.record(
                         event: "playlist-tracks",
                         source: playlist.source.rawValue,
-                        provider: "\(playlist.source.rawValue)-playlist-detail",
+                        provider: "cross-catalog-playlist-fallback",
                         duration: 0,
-                        result: "failed",
-                        detail: "\(playlist.name): \(error.localizedDescription)"
+                        result: result.isEmpty ? "failed" : "fallback_success",
+                        detail: playlist.name
                     )
                 }
             default:
