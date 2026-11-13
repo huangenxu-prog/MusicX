@@ -55,6 +55,15 @@ enum MusicQuality: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+/// Describes why a collection appeared in a platform catalog. Search results are
+/// deliberately distinct from editorial or platform-recommended collections.
+enum MusicPlaylistProvenance: String, Codable, Hashable, Sendable {
+    case officialEditorial
+    case platformRecommended
+    case categoryFeatured
+    case searchResult
+}
+
 /// A playlist returned by a provider. Playlist IDs are provider-specific.
 struct MusicPlaylist: Identifiable, Codable, Hashable, Sendable {
     let source: MusicSource
@@ -64,6 +73,7 @@ struct MusicPlaylist: Identifiable, Codable, Hashable, Sendable {
     let description: String?
     let artworkURL: URL?
     let trackCount: Int?
+    var provenance: MusicPlaylistProvenance? = nil
 
     var id: String { "\(source.rawValue):playlist:\(sourceID)" }
 }
