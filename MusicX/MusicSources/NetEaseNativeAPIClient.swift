@@ -201,21 +201,31 @@ struct NetEaseNativeAPIClient {
             throw MusicSourceError.invalidResponse("网易云歌词 ID 无效")
         }
 
-        let versioned = try await requestEAPI(
-            path: "/song/lyric/v1",
-            payload: [
-                "id": id,
-                "cp": false,
-                "lv": 0,
-                "kv": 0,
-                "tv": 0,
-                "rv": 0,
-                "yv": 0,
-                "ytv": 0,
-                "yrv": 0
-            ]
-        )
-        if let parsed = Self.parseLyrics(versioned) {
+        var versioned: Data?
+        do {
+            versioned = try await requestEAPI(
+                path: "/song/lyric/v1",
+                payload: [
+                    "id": id,
+                    "cp": false,
+                    "lv": 0,
+                    "kv": 0,
+                    "tv": 0,
+                    "rv": 0,
+                    "yv": 0,
+                    "ytv": 0,
+                    "yrv": 0
+                ]
+            )
+        } catch {
+            if Task.isCancelled || error is CancellationError
+                || (error as? URLError)?.code == .cancelled {
+                throw CancellationError()
+            }
+            // Older accounts or endpoints may not support lyric/v1; try the
+            // classic endpoint before the metadata service fallback is used.
+        }
+        if let versioned, let parsed = Self.parseLyrics(versioned) {
             return parsed
         }
 
