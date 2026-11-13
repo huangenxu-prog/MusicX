@@ -17,7 +17,7 @@ struct DomesticPlaylistDiscoveryService {
         let cacheKey = "domestic-playlist-search|\(query.lowercased())|\(limit)"
         if let cached = await MusicCatalogStore.shared.snapshot(for: cacheKey, as: [MusicPlaylist].self) {
             if cached.needsRefresh {
-                Task { _ = try? await self.refreshPlaylistSearch(keyword: query, count: limit, cacheKey: cacheKey) }
+                return (try? await refreshPlaylistSearch(keyword: query, count: limit, cacheKey: cacheKey)) ?? cached.value
             }
             return cached.value
         }
@@ -351,7 +351,7 @@ struct DomesticPlaylistDiscoveryService {
         let cacheKey = "kugou-platform-recommended-playlists|\(count)"
         if let cached = await MusicCatalogStore.shared.snapshot(for: cacheKey, as: [MusicPlaylist].self) {
             if cached.needsRefresh {
-                Task { _ = try? await self.refreshKugou(count: count, cacheKey: cacheKey) }
+                return (try? await refreshKugou(count: count, cacheKey: cacheKey)) ?? cached.value
             }
             return cached.value
         }
@@ -392,7 +392,7 @@ struct DomesticPlaylistDiscoveryService {
         let cacheKey = "kuwo-platform-recommended-playlists|\(count)"
         if let cached = await MusicCatalogStore.shared.snapshot(for: cacheKey, as: [MusicPlaylist].self) {
             if cached.needsRefresh {
-                Task { _ = try? await self.refreshKuwo(count: count, cacheKey: cacheKey) }
+                return (try? await refreshKuwo(count: count, cacheKey: cacheKey)) ?? cached.value
             }
             return cached.value
         }
@@ -445,7 +445,7 @@ struct DomesticPlaylistDiscoveryService {
         let cacheKey = "migu-category-featured-playlists|\(count)"
         if let cached = await MusicCatalogStore.shared.snapshot(for: cacheKey, as: [MusicPlaylist].self) {
             if cached.needsRefresh {
-                Task { _ = try? await self.refreshMigu(count: count, cacheKey: cacheKey) }
+                return (try? await refreshMigu(count: count, cacheKey: cacheKey)) ?? cached.value
             }
             return cached.value
         }
