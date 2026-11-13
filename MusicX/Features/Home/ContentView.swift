@@ -361,9 +361,9 @@ struct ContentView: View {
                     .init(color: Color(red: 30/255,  green: 42/255,  blue: 107/255), location: 0.00),
                     .init(color: Color(red: 75/255,  green: 52/255,  blue: 144/255), location: 0.25),
                     .init(color: Color(red: 154/255, green: 79/255,  blue: 143/255), location: 0.45),
-                    .init(color: Color(red: 232/255, green: 112/255, blue: 138/255), location: 0.62),
-                    .init(color: Color(red: 245/255, green: 165/255, blue: 90/255),  location: 0.72),
-                    .init(color: Color(red: 122/255, green: 74/255,  blue: 120/255), location: 0.82),
+                    .init(color: Color(red: 232/255, green: 112/255, blue: 138/255), location: 0.64),
+                    .init(color: Color(red: 248/255, green: 176/255, blue: 104/255), location: 0.75),
+                    .init(color: Color(red: 122/255, green: 74/255,  blue: 120/255), location: 0.85),
                     .init(color: navy,                                               location: 1.00)
                 ],
                 startPoint: .top,
