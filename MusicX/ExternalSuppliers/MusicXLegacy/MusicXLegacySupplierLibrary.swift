@@ -242,9 +242,15 @@ struct MusicXLegacySupplierLibrary: MusicResourceProvider, MusicCatalogSearchPro
     }
     func resolve(song: MusicSong, quality: MusicQuality) async throws -> ResolvedMusicResource? {
         let resolver = LXMusicURLResolver(session: session)
-        guard let url = try await resolver.resolveFromLegacyLibrary(song: song, quality: quality) else {
-            return nil
+        let resolvedURL: URL?
+        if song.source == .qq {
+            // QQ native endpoints are registered independently in the resource engine.
+            // The legacy adapter is retained only for cross-platform fallback here.
+            resolvedURL = try await resolver.resolveCrossPlatformFallback(song: song, quality: quality)
+        } else {
+            resolvedURL = try await resolver.resolveFromLegacyLibrary(song: song, quality: quality)
         }
+        guard let url = resolvedURL else { return nil }
         return ResolvedMusicResource(
             url: url,
             providerID: identifier,

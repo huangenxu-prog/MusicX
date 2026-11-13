@@ -145,6 +145,12 @@ struct MusicResourceEngine {
             (KumoneKugouAudioSourceProvider(session: session), kumoneFallbackTier, 20),
             (KumoneKuwoAudioSourceProvider(), kumoneFallbackTier, 20)
         ]
+        // QQ endpoints are independent providers so each has its own health,
+        // latency score, circuit breaker and diagnostic record.
+        if song.source == .qq {
+            providers.append((QQGDStudioAudioProvider(session: session), 0, 100))
+            providers.append((QQChkszAudioProvider(session: session), 1, 90))
+        }
         // Kumone's pyncmd endpoint resolves a NetEase-native song ID directly.
         // It must never receive QQ/Kugou/Kuwo IDs, which belong to other catalogs.
         if song.source == .netease {

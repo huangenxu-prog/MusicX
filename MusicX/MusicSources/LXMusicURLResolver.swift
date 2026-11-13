@@ -126,6 +126,13 @@ struct LXMusicURLResolver: MusicURLResolving, @unchecked Sendable {
         return nil
     }
 
+    /// QQ native endpoints are now independent resource-engine providers.
+    /// This entry point keeps only the cross-platform fallback inside the legacy adapter.
+    func resolveCrossPlatformFallback(song: MusicSong, quality: MusicQuality) async throws -> URL? {
+        try Task.checkCancellation()
+        return try await resolveAlternativeSource(song: song, quality: quality)
+    }
+
     /// Resolve only the source-native ID. IDs are never passed between providers.
     private struct BackendAttempt: Sendable {
         let name: String
