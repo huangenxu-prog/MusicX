@@ -165,9 +165,11 @@ struct NetEaseNativeAPIClient {
 
         let albums: [MusicSong] = rows.compactMap { row in
             guard let rawID = row["id"] else { return nil }
-            let artists = (row["artists"] as? [[String: Any]]
-                ?? row["artist"] as? [[String: Any]] ?? [])
-                .compactMap { $0["name"] as? String }
+            let artistRows = row["artists"] as? [[String: Any]]
+                ?? row["artist"] as? [[String: Any]] ?? []
+            let artistNames = artistRows.compactMap { $0["name"] as? String }
+            let singleArtist = (row["artist"] as? [String: Any])?["name"] as? String
+            let artists = (artistNames.isEmpty ? [singleArtist].compactMap { $0 } : artistNames)
                 .joined(separator: " / ")
             let name = row["name"] as? String ?? "未知专辑"
             let artwork = (row["picUrl"] as? String ?? row["blurPicUrl"] as? String)
