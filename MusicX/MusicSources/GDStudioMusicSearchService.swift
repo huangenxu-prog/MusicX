@@ -227,22 +227,30 @@ struct GDStudioMusicSearchService {
             return nil
         }
 
-        // A feed can contain duplicated copies of the same card in nested shelves.
-        // Select the unique current-day playlist rather than failing on duplicate nodes.
+        // Feeds may duplicate cards and timestamp fields vary between QQ clients.
+        // Prefer today's card, but do not reject a valid daily card just because
+        // QQ omitted its timestamp or returned milliseconds instead of seconds.
         var seenDailyIDs = Set<String>()
-        let todayCards = dailyCards.compactMap { card -> (id: String, timestamp: TimeInterval)? in
-            guard let id = cardID(card), seenDailyIDs.insert(id).inserted,
-                  let timestamp = cardTimestamp(card),
-                  timestamp >= 1_000_000_000, timestamp <= 9_999_999_999,
-                  calendar.isDate(Date(timeIntervalSince1970: timestamp), inSameDayAs: Date()) else {
-                return nil
+        let candidates = dailyCards.compactMap { card -> (id: String, timestamp: TimeInterval?)? in
+            guard let id = cardID(card), seenDailyIDs.insert(id).inserted else { return nil }
+            var timestamp = cardTimestamp(card)
+            if let value = timestamp, value > 9_999_999_999 {
+                timestamp = value / 1_000
             }
             return (id, timestamp)
         }
-        guard let selectedCard = todayCards.max(by: { $0.timestamp < $1.timestamp }) else {
-            throw MusicSourceError.invalidResponse("QQ 今日推荐暂未返回当天有效歌单，请稍后重试")
+        let todayCards = candidates.filter { item in
+            guard let timestamp = item.timestamp,
+                  timestamp >= 1_000_000_000,
+                  timestamp <= 9_999_999_999 else { return false }
+            return calendar.isDate(Date(timeIntervalSince1970: timestamp), inSameDayAs: Date())
         }
-        let playlistID = selectedCard.id
+        let selectedCard = todayCards.max { ($0.timestamp ?? 0) < ($1.timestamp ?? 0) }
+            ?? candidates.max { ($0.timestamp ?? 0) < ($1.timestamp ?? 0) }
+            ?? candidates.first
+        guard let playlistID = selectedCard?.id else {
+            throw MusicSourceError.invalidResponse("每日推荐暂时无法加载")
+        }
 
         let songs = try await playlistTracks(playlistID: playlistID, count: limit)
         guard !songs.isEmpty else {
