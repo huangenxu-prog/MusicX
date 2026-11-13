@@ -1187,17 +1187,24 @@ struct MusicDiscoveryPage: View {
             case .playlist(let name):
                 result = try await catalog.playlistTracks(keyword: name, count: 50)
             case .playlistByID(let playlist):
-                if playlist.source == .qq {
+                if playlist.source == .qq || playlist.source == .netease {
                     do {
-                        result = try await catalog.playlistTracks(playlistID: playlist.sourceID, count: 50)
+                        result = try await catalog.playlistTracks(
+                            playlistID: playlist.sourceID,
+                            source: playlist.source,
+                            count: 50
+                        )
                     } catch {
                         if Task.isCancelled { return }
                         playlistLoadError = "真实歌单曲目加载失败：\(error.localizedDescription)"
                         result = []
                         MusicSourceDiagnostics.shared.record(
-                            event: "playlist-tracks", source: playlist.source.rawValue,
-                            provider: "qq-playlist-detail", duration: 0,
-                            result: "failed", detail: "\(playlist.name): \(error.localizedDescription)"
+                            event: "playlist-tracks",
+                            source: playlist.source.rawValue,
+                            provider: "\(playlist.source.rawValue)-playlist-detail",
+                            duration: 0,
+                            result: "failed",
+                            detail: "\(playlist.name): \(error.localizedDescription)"
                         )
                     }
                 } else {
