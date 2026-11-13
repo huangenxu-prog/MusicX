@@ -1996,7 +1996,13 @@ struct ContentView: View {
         async let albumRows: [[MusicSong]] = withTaskGroup(of: [MusicSong].self) { group in
             for source in [MusicSource.netease, .qq, .kuwo, .kugou, .migu] {
                 group.addTask {
-                    (try? await MusicCatalogSearchEngine().search(keyword: "华语", source: source, count: 30, albumOnly: true)) ?? []
+                    (try? await MusicCatalogSearchEngine().search(
+                        keyword: "华语",
+                        source: source,
+                        count: 30,
+                        albumOnly: true,
+                        useNativeNetEase: source == .netease
+                    )) ?? []
                 }
             }
             var results: [[MusicSong]] = []
