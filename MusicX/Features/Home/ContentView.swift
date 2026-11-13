@@ -96,37 +96,9 @@ private enum PlayerDisplayMode: CaseIterable, Hashable {
 
 private struct MusicXPageBackground: View {
     var body: some View {
-        ZStack {
-            LinearGradient(
-                colors: [
-                    Color(red: 0.018, green: 0.040, blue: 0.095),
-                    Color(red: 0.025, green: 0.055, blue: 0.115),
-                    Color(red: 0.014, green: 0.030, blue: 0.075)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            RadialGradient(
-                colors: [Color(red: 0.48, green: 0.12, blue: 0.58).opacity(0.48), .clear],
-                center: UnitPoint(x: 0.52, y: 0.03),
-                startRadius: 8,
-                endRadius: 390
-            )
-            RadialGradient(
-                colors: [Color(red: 1.0, green: 0.34, blue: 0.36).opacity(0.24), .clear],
-                center: UnitPoint(x: 0.78, y: 0.15),
-                startRadius: 4,
-                endRadius: 280
-            )
-            RadialGradient(
-                colors: [Color(red: 0.16, green: 0.20, blue: 0.58).opacity(0.20), .clear],
-                center: .bottomTrailing,
-                startRadius: 8,
-                endRadius: 420
-            )
-        }
-        .ignoresSafeArea()
-        .allowsHitTesting(false)
+        Color(red: 10/255, green: 14/255, blue: 31/255)
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
     }
 }
 
@@ -390,7 +362,7 @@ struct ContentView: View {
                     .init(color: Color(red: 75/255,  green: 52/255,  blue: 144/255), location: 0.25),
                     .init(color: Color(red: 154/255, green: 79/255,  blue: 143/255), location: 0.50),
                     .init(color: Color(red: 232/255, green: 128/255, blue: 106/255), location: 0.70),
-                    .init(color: Color(red: 245/255, green: 165/255, blue: 90/255),  location: 0.825),
+                    .init(color: Color(red: 238/255, green: 149/255, blue: 102/255), location: 0.825),
                     .init(color: navy,                                               location: 1.00)
                 ],
                 startPoint: .top,
