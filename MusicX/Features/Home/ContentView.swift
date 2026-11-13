@@ -382,26 +382,41 @@ struct ContentView: View {
         .background(alignment: .top) {
             GeometryReader { proxy in
                 ZStack {
+                    Color(red: 0.039, green: 0.055, blue: 0.122)
                     LinearGradient(
                         stops: [
-                            .init(color: Color(red: 0.15, green: 0.20, blue: 0.43), location: 0),
-                            .init(color: Color(red: 0.34, green: 0.22, blue: 0.55), location: 0.38),
-                            .init(color: Color(red: 0.72, green: 0.36, blue: 0.57), location: 0.68),
-                            .init(color: Color(red: 0.98, green: 0.58, blue: 0.43), location: 0.86),
-                            .init(color: Color(red: 0.98, green: 0.58, blue: 0.43).opacity(0.0), location: 1)
+                            .init(color: Color(red: 0.15, green: 0.22, blue: 0.48), location: 0.00),
+                            .init(color: Color(red: 0.34, green: 0.23, blue: 0.57), location: 0.34),
+                            .init(color: Color(red: 0.63, green: 0.31, blue: 0.57), location: 0.58),
+                            .init(color: Color(red: 0.98, green: 0.56, blue: 0.39), location: 0.78),
+                            .init(color: Color(red: 1.0, green: 0.67, blue: 0.40).opacity(0.0), location: 1.00)
                         ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+                        startPoint: .top,
+                        endPoint: .bottom
                     )
                     RadialGradient(
-                        colors: [Color(red: 1.0, green: 0.67, blue: 0.48).opacity(0.78), .clear],
-                        center: UnitPoint(x: 0.70, y: 0.88),
+                        colors: [
+                            Color(red: 1.0, green: 0.68, blue: 0.39).opacity(0.88),
+                            Color(red: 1.0, green: 0.48, blue: 0.43).opacity(0.34),
+                            .clear
+                        ],
+                        center: UnitPoint(x: 0.56, y: 0.76),
                         startRadius: 2,
-                        endRadius: proxy.size.width * 0.72
+                        endRadius: proxy.size.width * 0.76
+                    )
+                    RadialGradient(
+                        colors: [Color(red: 0.78, green: 0.34, blue: 0.68).opacity(0.48), .clear],
+                        center: UnitPoint(x: 0.30, y: 0.40),
+                        startRadius: 2,
+                        endRadius: proxy.size.width * 0.82
                     )
                     LinearGradient(
-                        colors: [.clear, Color(red: 0.035, green: 0.055, blue: 0.13).opacity(0.98)],
-                        startPoint: .center,
+                        stops: [
+                            .init(color: .clear, location: 0.34),
+                            .init(color: Color(red: 0.039, green: 0.055, blue: 0.122).opacity(0.72), location: 0.72),
+                            .init(color: Color(red: 0.039, green: 0.055, blue: 0.122), location: 1.00)
+                        ],
+                        startPoint: .top,
                         endPoint: .bottom
                     )
                 }
@@ -423,12 +438,12 @@ struct ContentView: View {
     private var heroHeader: some View {
         VStack(alignment: .leading, spacing: 7) {
             Text("发现音乐")
-                .font(.system(size: 43, weight: .semibold, design: .rounded))
-                .tracking(0.4)
+                .font(.system(size: 36, weight: .bold))
+                .tracking(0.1)
                 .foregroundStyle(.white)
-            Text("—  好音乐，总在心里  —")
-                .font(.system(size: 17, weight: .medium))
-                .tracking(1.1)
+            Text("— 好音乐，总在心里 —")
+                .font(.system(size: 14, weight: .medium))
+                .tracking(1.25)
                 .foregroundStyle(.white.opacity(0.90))
         }
         .frame(maxWidth: .infinity)
@@ -570,12 +585,14 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 10) {
             homeSectionTitle("排行榜", action: nil).padding(.horizontal, 14)
             GeometryReader { proxy in
-                let width = max(0, (proxy.size.width - 44) / 3)
-                HStack(spacing: 8) {
-                    chartTile("热歌榜", subtitle: "Top 50", rank: "01", icon: "crown.fill", color: Color(red: 0.95, green: 0.47, blue: 0.38), width: width)
-                    chartTile("飙升榜", subtitle: "热度上升", rank: "02", icon: "flame.fill", color: Color(red: 0.61, green: 0.35, blue: 0.91), width: width)
-                    chartTile("新歌榜", subtitle: "最新 50 首", rank: "03", icon: "waveform", color: Color(red: 0.05, green: 0.70, blue: 0.83), width: width)
-                }.padding(.horizontal, 14)
+                let gap: CGFloat = 10
+                let horizontalInset: CGFloat = 16
+                let width = max(0, (proxy.size.width - horizontalInset * 2 - gap * 2) / 3)
+                HStack(spacing: gap) {
+                    chartTile("热歌榜", subtitle: "Top 50", rank: "01", icon: "crown.fill", color: Color(red: 0.98, green: 0.48, blue: 0.34), width: width)
+                    chartTile("飙升榜", subtitle: "热度上升", rank: "02", icon: "flame.fill", color: Color(red: 0.60, green: 0.37, blue: 0.98), width: width)
+                    chartTile("新歌榜", subtitle: "最新 50 首", rank: "03", icon: "waveform", color: Color(red: 0.08, green: 0.72, blue: 0.88), width: width)
+                }.padding(.horizontal, horizontalInset)
             }.frame(height: 104)
         }
         // The reference design leaves a distinct breathing space before New Releases.
@@ -593,7 +610,7 @@ struct ContentView: View {
         ]
         return VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 6) {
-                Capsule().fill(MusicXTheme.blue).frame(width: 4, height: 21)
+                Capsule().fill(MusicXTheme.blue).frame(width: 3, height: 21)
                 Text("精选歌单").font(.system(size: 20, weight: .bold)).foregroundStyle(.white)
                 Spacer()
                 Button { discoveryRoute = .featuredPlaylists } label: {
@@ -982,7 +999,7 @@ struct ContentView: View {
         if let action {
             Button(action: action) {
                 HStack(spacing: 10) {
-                    Capsule().fill(MusicXTheme.blue).frame(width: 4, height: 21)
+                    Capsule().fill(MusicXTheme.blue).frame(width: 3, height: 21)
                     Text(title).font(.system(size: 20, weight: .bold)).foregroundStyle(.white)
                     Spacer()
                     Text(actionTitle).font(.system(size: 12, weight: .medium)).foregroundStyle(MusicXTheme.muted)
@@ -993,7 +1010,7 @@ struct ContentView: View {
             .buttonStyle(.plain)
         } else {
             HStack(spacing: 10) {
-                Capsule().fill(MusicXTheme.blue).frame(width: 4, height: 21)
+                Capsule().fill(MusicXTheme.blue).frame(width: 3, height: 21)
                 Text(title).font(.system(size: 20, weight: .bold)).foregroundStyle(.white)
                 Spacer()
             }
@@ -1079,10 +1096,29 @@ struct ContentView: View {
     private func chartTile(_ title: String, subtitle: String, rank: String, icon: String, color: Color, width: CGFloat) -> some View {
         return Button { discoveryRoute = .chart(title) } label: {
             ZStack(alignment: .topLeading) {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(LinearGradient(colors: [color.opacity(0.88), color.opacity(0.50), Color(red: 0.055, green: 0.075, blue: 0.16)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                Circle().fill(.white.opacity(0.20)).frame(width: 68, height: 68).blur(radius: 22)
-                    .offset(x: width * 0.55, y: 4)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            stops: [
+                                .init(color: Color(red: 0.12, green: 0.13, blue: 0.23), location: 0.0),
+                                .init(color: Color(red: 0.075, green: 0.09, blue: 0.17), location: 0.62),
+                                .init(color: Color(red: 0.035, green: 0.05, blue: 0.11), location: 1.0)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                RadialGradient(
+                    colors: [color.opacity(0.88), color.opacity(0.36), .clear],
+                    center: UnitPoint(x: 0.82, y: 0.18),
+                    startRadius: 1,
+                    endRadius: width * 0.82
+                )
+                LinearGradient(
+                    colors: [.clear, Color(red: 0.025, green: 0.035, blue: 0.085).opacity(0.78)],
+                    startPoint: .center,
+                    endPoint: .bottom
+                )
                 VStack(alignment: .leading, spacing: 5) {
                     Text(rank).font(.system(size: 27, weight: .medium, design: .rounded)).foregroundStyle(.white)
                     Spacer(minLength: 0)
@@ -1091,9 +1127,9 @@ struct ContentView: View {
                 }.padding(12)
             }
             .frame(width: width, height: 104)
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(.white.opacity(0.26), lineWidth: 1))
-            .shadow(color: color.opacity(0.24), radius: 15, y: 7)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(color.opacity(0.48), lineWidth: 0.9))
+            .shadow(color: color.opacity(0.16), radius: 10, y: 4)
         }.buttonStyle(.plain)
     }
 
