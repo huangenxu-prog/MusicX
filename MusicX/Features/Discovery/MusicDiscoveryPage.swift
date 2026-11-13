@@ -418,7 +418,10 @@ struct MusicDiscoveryPage: View {
                 // use the first usable track list, so one slow/broken provider cannot
                 // leave this screen spinning through every remaining playlist.
                 let candidates = Array(featuredPlaylistResults.prefix(3))
-                let resolvedTracks = await withTaskGroup(of: [MusicSong]?.self) { group in
+                let resolvedTracks: [MusicSong]? = await withTaskGroup(
+                    of: [MusicSong]?.self,
+                    returning: [MusicSong]?.self
+                ) { group in
                     for playlist in candidates {
                         group.addTask {
                             do {
