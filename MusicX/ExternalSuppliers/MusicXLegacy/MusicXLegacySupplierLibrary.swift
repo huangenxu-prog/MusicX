@@ -48,7 +48,7 @@ struct MusicXLegacySupplierLibrary: MusicResourceProvider, MusicCatalogSearchPro
     }
 
     func toplist(_ chartName: String, count: Int) async throws -> [MusicSong] {
-        try await GDStudioMusicSearchService(session: session).toplist(chartName, count: count)
+        try await NetEaseNativeAPIClient(session: session).toplist(chartName, count: count)
     }
 
     func resolve(song: MusicSong, quality: MusicQuality) async throws -> ResolvedMusicResource? {
