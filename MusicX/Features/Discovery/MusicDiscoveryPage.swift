@@ -408,12 +408,36 @@ struct MusicDiscoveryPage: View {
             } else {
                 await loadFeaturedPlaylists()
                 guard !Task.isCancelled, songsLoadToken == requestToken else { return }
-                guard let playlist = featuredPlaylistResults.first else {
+                guard !featuredPlaylistResults.isEmpty else {
                     songs = []
                     errorMessage = "暂未获取到平台推荐歌单"
                     return
                 }
-                result = try await catalog.playlistTracks(playlistID: playlist.sourceID, source: playlist.source, count: 30)
+                var resolvedTracks: [MusicSong]?
+                var lastPlaylistError: String?
+                for playlist in featuredPlaylistResults {
+                    guard !Task.isCancelled else { return }
+                    do {
+                        let tracks = try await catalog.playlistTracks(
+                            playlistID: playlist.sourceID,
+                            source: playlist.source,
+                            count: 30
+                        )
+                        if !tracks.isEmpty {
+                            resolvedTracks = tracks
+                            break
+                        }
+                    } catch {
+                        if Task.isCancelled { return }
+                        lastPlaylistError = error.localizedDescription
+                    }
+                }
+                guard let resolvedTracks else {
+                    throw MusicSourceError.invalidResponse(
+                        lastPlaylistError ?? "推荐歌单暂时没有可加载的曲目"
+                    )
+                }
+                result = resolvedTracks
             }
             guard !Task.isCancelled, songsLoadToken == requestToken else { return }
             recommendationSongCache[tab] = result
