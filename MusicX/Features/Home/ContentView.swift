@@ -366,48 +366,39 @@ struct ContentView: View {
     }
 
     private var homePage: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 15) {
-                HomeScrollBounceDisabler().frame(width: 0, height: 0)
-                heroAndRecommendation
-                chartSection
-                newMusicSection
-                albumSection
-                editorialPlaylistSection
+        ZStack(alignment: .top) {
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 15) {
+                    HomeScrollBounceDisabler().frame(width: 0, height: 0)
+                    heroAndRecommendation
+                    chartSection
+                    newMusicSection
+                    albumSection
+                    editorialPlaylistSection
+                }
+                .padding(.top, 0)
+                .padding(.bottom, 8)
             }
-            .padding(.top, 0)
-            .padding(.bottom, 8)
+            .scrollBounceBehavior(.basedOnSize)
         }
-        .scrollBounceBehavior(.basedOnSize)
         .background {
-            let navy = Color(red: 10.0 / 255.0, green: 14.0 / 255.0, blue: 31.0 / 255.0)
-            VStack(spacing: 0) {
-                LinearGradient(
-                    stops: [
-                        .init(color: Color(red: 30.0 / 255.0, green: 42.0 / 255.0, blue: 107.0 / 255.0), location: 0.0),
-                        .init(color: Color(red: 75.0 / 255.0, green: 52.0 / 255.0, blue: 144.0 / 255.0), location: 1.0 / 3.0),
-                        .init(color: Color(red: 154.0 / 255.0, green: 79.0 / 255.0, blue: 143.0 / 255.0), location: 2.0 / 3.0),
-                        .init(color: Color(red: 232.0 / 255.0, green: 128.0 / 255.0, blue: 106.0 / 255.0), location: 14.0 / 15.0),
-                        .init(color: Color(red: 232.0 / 255.0, green: 128.0 / 255.0, blue: 106.0), location: 1.0)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: 150)
+            let navy = Color(red: 10/255, green: 14/255, blue: 31/255)
 
-                LinearGradient(
-                    colors: [
-                        Color(red: 232.0 / 255.0, green: 128.0 / 255.0, blue: 106.0 / 255.0),
-                        navy
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: 50)
-            }
+            LinearGradient(
+                stops: [
+                    .init(color: Color(red: 30/255,  green: 42/255,  blue: 107/255), location: 0.00),
+                    .init(color: Color(red: 75/255,  green: 52/255,  blue: 144/255), location: 0.25),
+                    .init(color: Color(red: 154/255, green: 79/255,  blue: 143/255), location: 0.50),
+                    .init(color: Color(red: 232/255, green: 128/255, blue: 106/255), location: 0.70),
+                    .init(color: Color(red: 245/255, green: 165/255, blue: 90/255),  location: 0.825),
+                    .init(color: navy,                                               location: 1.00)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 200)
             .frame(maxWidth: .infinity)
-            .frame(height: 200, alignment: .top)
-            .background(navy)
+            .frame(maxHeight: .infinity, alignment: .top)
             .ignoresSafeArea(edges: .top)
             .allowsHitTesting(false)
         }
