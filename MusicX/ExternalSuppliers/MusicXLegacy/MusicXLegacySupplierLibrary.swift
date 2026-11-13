@@ -134,9 +134,21 @@ struct MusicXLegacySupplierLibrary: MusicResourceProvider, MusicCatalogSearchPro
         let sourceOrder: [MusicSource] = [.netease, .qq, .kugou, .kuwo, .migu]
         var merged: [MusicPlaylist] = []
         var seenIDs = Set<String>()
-        for source in sourceOrder {
-            for playlist in sourceGroups[source] ?? [] where seenIDs.insert(playlist.id).inserted {
-                merged.append(playlist)
+        var cursors: [MusicSource: Int] = [:]
+        var madeProgress = true
+        while madeProgress && merged.count < max(count, 1) {
+            madeProgress = false
+            for source in sourceOrder {
+                let index = cursors[source, default: 0]
+                let candidates = sourceGroups[source] ?? []
+                guard index < candidates.count else { continue }
+                cursors[source] = index + 1
+                madeProgress = true
+                let playlist = candidates[index]
+                if seenIDs.insert(playlist.id).inserted {
+                    merged.append(playlist)
+                }
+                if merged.count >= max(count, 1) { break }
             }
         }
         guard !merged.isEmpty else {
