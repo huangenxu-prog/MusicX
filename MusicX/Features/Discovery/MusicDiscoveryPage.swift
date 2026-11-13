@@ -412,9 +412,12 @@ struct MusicDiscoveryPage: View {
         do {
             let result: [MusicSong]
             if tab == .daily {
-                // Temporary QQ-only test feed. Fetch the platform-native daily feed,
-                // request enough merged rows to retain the QQ batch, then display QQ tracks only.
-                result = try await catalog.qqDailyRecommendedSongs(count: 30)
+                // Temporary NetEase-only feed while other catalogs are disabled.
+                let dailyFeed = try await catalog.dailyRecommendedSongs(count: 100)
+                result = Array(dailyFeed.filter { $0.source == .netease }.prefix(30))
+                guard !result.isEmpty else {
+                    throw MusicSourceError.invalidResponse("网易云每日推荐没有返回歌曲")
+                }
                 guard !result.isEmpty else {
                     throw MusicSourceError.invalidResponse("QQ每日推荐没有返回歌曲，请检查QQ每日推荐接口")
                 }
