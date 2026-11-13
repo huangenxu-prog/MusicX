@@ -94,9 +94,23 @@ struct MusicXPlaybackAPI {
 
     private struct ReportFailureRequest: Encodable {
         let source: String
-        let trackID: String?
+        let trackID: String
 
         enum CodingKeys: String, CodingKey {
+            case source
+            case trackID = "track_id"
+        }
+    }
+
+    private struct ReportFailureResponse: Decodable {
+        let success: Bool
+        let cacheInvalidated: Bool
+        let source: String
+        let trackID: String
+
+        enum CodingKeys: String, CodingKey {
+            case success
+            case cacheInvalidated = "cache_invalidated"
             case source
             case trackID = "track_id"
         }
@@ -132,7 +146,8 @@ struct MusicXPlaybackAPI {
             path: "/api/v2/playback/report-failure",
             body: ReportFailureRequest(source: source, trackID: trackID)
         )
-        let _: [String: Bool] = try await send(request)
+        let response: ReportFailureResponse = try await send(request)
+        guard response.success else { throw APIError.invalidResponse }
     }
 
     func refresh(song: MusicSong, failedSource: String, failedTrackID: String? = nil,
