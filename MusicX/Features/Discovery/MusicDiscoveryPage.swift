@@ -1360,7 +1360,7 @@ struct MusicDiscoveryPage: View {
         }
         do {
             var playlistLoadError: String?
-            let result: [MusicSong]
+            var result: [MusicSong]
             switch route {
             case .charts, .chart:
                 result = []
@@ -1383,37 +1383,42 @@ struct MusicDiscoveryPage: View {
                     )
                 } catch {
                     if Task.isCancelled { return }
-                    // If the originating platform's playlist endpoint is unavailable,
-                    // look for the same real playlist on the other primary catalog.
-                    let alternatives = (try? await catalog.searchPlaylists(
-                        keyword: playlist.name,
-                        count: 30
-                    )) ?? []
-                    let normalizedName = playlist.name.folding(
+                    result = []
+                    MusicSourceDiagnostics.shared.record(
+                        event: "playlist-tracks",
+                        source: playlist.source.rawValue,
+                        provider: "\(playlist.source.rawValue)-playlist-detail",
+                        duration: 0,
+                        result: "failed",
+                        detail: playlist.name
+                    )
+                }
+            default:
+                result = try await catalog.search(keyword: query, source: .netease, count: 30)
+            }
+            if result.isEmpty, case .playlistByID(let playlist) = route {
+                let alternatives = (try? await catalog.searchPlaylists(
+                    keyword: playlist.name,
+                    count: 30
+                )) ?? []
+                let normalizedName = playlist.name.folding(
+                    options: [.caseInsensitive, .diacriticInsensitive],
+                    locale: .current
+                ).filter { $0.isLetter || $0.isNumber }
+                if let alternate = alternatives.first(where: { candidate in
+                    let candidateName = candidate.name.folding(
                         options: [.caseInsensitive, .diacriticInsensitive],
                         locale: .current
                     ).filter { $0.isLetter || $0.isNumber }
-                    let alternate = alternatives.first { candidate in
-                        let candidateName = candidate.name.folding(
-                            options: [.caseInsensitive, .diacriticInsensitive],
-                            locale: .current
-                        ).filter { $0.isLetter || $0.isNumber }
-                        return candidate.source != playlist.source
-                            && !normalizedName.isEmpty
-                            && candidateName == normalizedName
-                    }
-                    if let alternate {
-                        result = (try? await catalog.playlistTracks(
-                            playlistID: alternate.sourceID,
-                            source: alternate.source,
-                            count: 50
-                        )) ?? []
-                    } else {
-                        result = []
-                    }
-                    if result.isEmpty {
-                        playlistLoadError = "歌单暂时无法加载，请稍后重试"
-                    }
+                    return candidate.source != playlist.source
+                        && !normalizedName.isEmpty
+                        && candidateName == normalizedName
+                }) {
+                    result = (try? await catalog.playlistTracks(
+                        playlistID: alternate.sourceID,
+                        source: alternate.source,
+                        count: 50
+                    )) ?? []
                     MusicSourceDiagnostics.shared.record(
                         event: "playlist-tracks",
                         source: playlist.source.rawValue,
@@ -1423,8 +1428,6 @@ struct MusicDiscoveryPage: View {
                         detail: playlist.name
                     )
                 }
-            default:
-                result = try await catalog.search(keyword: query, source: .netease, count: 30)
             }
             guard !Task.isCancelled, songsLoadToken == requestToken else { return }
             songs = result
