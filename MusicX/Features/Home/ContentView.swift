@@ -195,6 +195,9 @@ struct ContentView: View {
     @State private var recommendationSongs: [AppSong] = []
     @State private var homeAlbums: [AppSong] = []
     @State private var homeAlbumPool: [AppSong] = []
+    @State private var homeOfficialCollections: [MusicPlaylist] = []
+    @State private var isLoadingOfficialCollections = false
+    @State private var officialCollectionsError: String?
     @State private var isLoadingHomeSongs = false
     @State private var homeLoadError: String?
     @State private var discoveryRoute: MusicDiscoveryRoute?
@@ -243,6 +246,7 @@ struct ContentView: View {
                 if oldValue == nil && newValue != nil { isDiscoveryPopping = false }
             }
             .task { await loadHomeSongs() }
+            .task { await loadOfficialCollections() }
     }
 
     private var presentationView: some View {
@@ -557,106 +561,135 @@ struct ContentView: View {
     }
 
     private var featuredCollectionSection: some View {
-        let editorialItems: [(title: String, subtitle: String, artwork: String)] = [
-            ("本周编辑精选", "本周精选", "album_07"),
-            ("华语流行精选", "宝藏好歌 · 优质华语流行歌曲合集", "album_08"),
-            ("经典金曲精选", "经久不衰的动人歌声", "album_09"),
-            ("独立音乐精选", "Indie Music｜独立音乐聚落", "album_10"),
-            ("影视原声精选", "影视原声与经典配乐", "album_11"),
-            ("通勤驾驶精选", "通勤路上｜有前行感的节奏", "album_12")
-        ]
-        return VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
                 Capsule().fill(MusicXTheme.blue).frame(width: 3, height: 21)
-                Text("精选歌单").font(.system(size: 20, weight: .bold)).foregroundStyle(.white)
+                Text("官方合集").font(.system(size: 20, weight: .bold)).foregroundStyle(.white)
                 Spacer()
-                Button(action: refreshFeaturedAlbums) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "arrow.clockwise").font(.system(size: 11, weight: .semibold))
-                        Text("换一批").font(.system(size: 12, weight: .medium))
-                    }
+                Text("\(homeOfficialCollections.count)/24")
+                    .font(.system(size: 12, weight: .medium, design: .rounded))
                     .foregroundStyle(MusicXTheme.muted)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .disabled(homeAlbumPool.count <= 6)
-                .opacity(homeAlbumPool.count <= 6 ? 0.45 : 1)
             }
             .padding(.horizontal, 14)
 
-            GeometryReader { proxy in
-                let gap: CGFloat = 12
-                let width = max(0, (proxy.size.width - 28 - gap * 2) / 3)
-                VStack(spacing: 14) {
-                    ForEach(0..<4, id: \.self) { row in
-                        HStack(alignment: .top, spacing: gap) {
-                            ForEach(0..<3, id: \.self) { column in
-                                let index = row * 3 + column
-                                if index < 6 {
-                                    if index < homeAlbums.count {
-                                        dynamicAlbumTile(album: homeAlbums[index], width: width)
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                    } else {
-                                        Color.clear.frame(maxWidth: .infinity)
-                                    }
-                                } else {
-                                    editorialCollectionTile(item: editorialItems[index - 6], width: width)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                }
-                            }
+            if isLoadingOfficialCollections && homeOfficialCollections.isEmpty {
+                HStack(spacing: 10) {
+                    ProgressView().tint(MusicXTheme.blue)
+                    Text("正在获取五大平台官方合集…")
+                        .font(.system(size: 13))
+                        .foregroundStyle(MusicXTheme.muted)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 30)
+            } else if homeOfficialCollections.isEmpty {
+                emptyState(
+                    icon: "square.grid.2x2",
+                    title: "官方合集暂时不可用",
+                    detail: officialCollectionsError ?? "请稍后重试"
+                )
+                .padding(.horizontal, 14)
+            } else {
+                GeometryReader { proxy in
+                    let gap: CGFloat = 12
+                    let width = max(0, (proxy.size.width - 28 - gap * 2) / 3)
+                    LazyVGrid(
+                        columns: Array(repeating: GridItem(.flexible(), spacing: gap, alignment: .top), count: 3),
+                        alignment: .center,
+                        spacing: 14
+                    ) {
+                        ForEach(homeOfficialCollections) { collection in
+                            officialCollectionTile(collection: collection, width: width)
                         }
                     }
+                    .padding(.horizontal, 14)
+                    .frame(maxWidth: .infinity, alignment: .top)
                 }
-                .padding(.horizontal, 14)
+                .frame(height: max(
+                    0,
+                    ((UIScreen.main.bounds.width - 28 - 24) / 3) * CGFloat((homeOfficialCollections.count + 2) / 3)
+                    + CGFloat(max(0, (homeOfficialCollections.count + 2) / 3 - 1)) * 14
+                    + CGFloat((homeOfficialCollections.count + 2) / 3) * 37
+                ))
             }
-            .frame(height: max(0, ((UIScreen.main.bounds.width - 28 - 24) / 3) * 4 + 4 * 37 + 3 * 14))
         }
     }
 
-    private func refreshFeaturedAlbums() {
-        guard homeAlbumPool.count > 6 else { return }
-        let currentIDs = Set(homeAlbums.map(\.id))
-        var nextBatch = Array(homeAlbumPool.shuffled().prefix(6))
-        if nextBatch.allSatisfy({ currentIDs.contains($0.id) }) {
-            nextBatch = Array(homeAlbumPool.filter { !currentIDs.contains($0.id) }.shuffled().prefix(6))
-        }
-        if nextBatch.count < 6 {
-            let remaining = homeAlbumPool.filter { candidate in !nextBatch.contains(where: { $0.id == candidate.id }) }
-            nextBatch.append(contentsOf: remaining.shuffled().prefix(6 - nextBatch.count))
-        }
-        homeAlbums = nextBatch
-    }
-
-    private func dynamicAlbumTile(album: AppSong, width: CGFloat) -> some View {
-        Button { discoveryRoute = .album(title: album.album, artist: album.artist) } label: {
-            VStack(alignment: .leading, spacing: 7) {
-                if let song = album.onlineSong {
-                    SongArtworkView(song: song, tint: MusicXTheme.blue, size: width)
-                        .overlay(RoundedRectangle(cornerRadius: 15, style: .continuous).stroke(.white.opacity(0.16), lineWidth: 0.8))
-                } else {
-                    Image("album_01").resizable().scaledToFill()
-                        .frame(width: width, height: width).clipped()
-                        .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
-                }
-                Text(album.album).font(.system(size: 13, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
-                Text(album.artist).font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
-            }.frame(width: width, alignment: .leading)
-        }.buttonStyle(.plain)
-    }
-
-    private func editorialCollectionTile(item: (title: String, subtitle: String, artwork: String), width: CGFloat) -> some View {
+    private func officialCollectionTile(collection: MusicPlaylist, width: CGFloat) -> some View {
         Button {
-            discoveryRoute = .playlist(item.title)
+            discoveryRoute = .playlistByID(collection)
         } label: {
             VStack(alignment: .leading, spacing: 7) {
-                Image(item.artwork).resizable().scaledToFill()
-                    .frame(width: width, height: width).clipped()
-                    .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 15, style: .continuous).stroke(.white.opacity(0.16), lineWidth: 0.8))
-                Text(item.title).font(.system(size: 13, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
-                Text(item.subtitle).font(.system(size: 11)).foregroundStyle(MusicXTheme.muted).lineLimit(1)
-            }.frame(width: width, alignment: .leading)
-        }.buttonStyle(.plain)
+                Group {
+                    if let url = collection.artworkURL {
+                        AsyncImage(url: url) { phase in
+                            if let image = phase.image {
+                                image.resizable().scaledToFill()
+                            } else {
+                                MusicArtworkPlaceholder(seed: collection.id, tint: searchTint(for: collection.source))
+                            }
+                        }
+                    } else {
+                        MusicArtworkPlaceholder(seed: collection.id, tint: searchTint(for: collection.source))
+                    }
+                }
+                .frame(width: width, height: width)
+                .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 15, style: .continuous).stroke(.white.opacity(0.16), lineWidth: 0.8))
+
+                Text(collection.name)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+
+                HStack(spacing: 4) {
+                    Text(collection.source.displayName)
+                    if let count = collection.trackCount, count > 0 {
+                        Text("·")
+                        Text("\(count)首")
+                    }
+                }
+                .font(.system(size: 11))
+                .foregroundStyle(MusicXTheme.muted)
+                .lineLimit(1)
+            }
+            .frame(width: width, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    @MainActor
+    private func loadOfficialCollections() async {
+        guard homeOfficialCollections.isEmpty, !isLoadingOfficialCollections else { return }
+        isLoadingOfficialCollections = true
+        officialCollectionsError = nil
+        defer { isLoadingOfficialCollections = false }
+
+        do {
+            let results = try await MusicCatalogSearchEngine().featuredPlaylists(count: 24)
+            guard !Task.isCancelled else { return }
+
+            // Only retain platform-fed collections; keyword search results are not
+            // promoted to "official" home content.
+            let platformCollections = results.filter { collection in
+                switch collection.provenance {
+                case .officialEditorial, .platformRecommended, .categoryFeatured:
+                    true
+                case .searchResult, .none:
+                    false
+                }
+            }
+            var seen = Set<String>()
+            homeOfficialCollections = Array(
+                platformCollections.filter { seen.insert($0.id).inserted }.prefix(24)
+            )
+            if homeOfficialCollections.isEmpty {
+                officialCollectionsError = "平台没有返回可确认来源的官方合集"
+            }
+        } catch {
+            guard !Task.isCancelled else { return }
+            officialCollectionsError = error.localizedDescription
+        }
     }
 
     private var chartSection: some View {
