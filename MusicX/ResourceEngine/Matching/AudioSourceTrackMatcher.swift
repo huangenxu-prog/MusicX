@@ -40,7 +40,13 @@ enum AudioSourceTrackMatcher {
     }
 
     private static func artistParts(_ value: String) -> [String] {
-        value.split(whereSeparator: { "/&、,，;；".contains($0) })
+        let withoutFeaturedCredits = value.replacingOccurrences(
+            of: #"(?i)\\s+(?:feat\\.?|ft\\.?|featuring|with)\\s+"#,
+            with: ";",
+            options: .regularExpression
+        )
+        return withoutFeaturedCredits
+            .split(whereSeparator: { "/&＆、,，;；".contains($0) })
             .map { normalized(String($0)) }
             .filter { !$0.isEmpty }
     }
@@ -48,7 +54,7 @@ enum AudioSourceTrackMatcher {
     private static func normalized(_ value: String) -> String {
         value.folding(
             options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive],
-            locale: .current
+            locale: Locale(identifier: "en_US_POSIX")
         )
         .unicodeScalars
         .filter(CharacterSet.alphanumerics.contains)
@@ -58,7 +64,7 @@ enum AudioSourceTrackMatcher {
 
     private static func versionMarkers(in value: String) -> Set<String> {
         let text = value.lowercased()
-            .folding(options: [.diacriticInsensitive, .widthInsensitive], locale: .current)
+            .folding(options: [.diacriticInsensitive, .widthInsensitive], locale: Locale(identifier: "en_US_POSIX"))
 
         // English version labels must be complete tokens. Substring matching
         // incorrectly classifies ordinary titles such as "Believe" as "Live"
