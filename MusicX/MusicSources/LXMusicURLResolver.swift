@@ -160,6 +160,7 @@ struct LXMusicURLResolver: MusicURLResolving {
         async let kugou = captureSearch { try await service.search(keyword: song.title, source: .kugou, count: 12) }
         async let migu = captureSearch { try await service.search(keyword: song.title, source: .migu, count: 12) }
         let results = await [netease, qq, kuwo, kugou, migu]
+        try Task.checkCancellation()
         let groups = results.map { (try? $0.get()) ?? [] }
         let searchFailures = results.compactMap { result -> String? in
             guard case .failure(let error) = result else { return nil }
