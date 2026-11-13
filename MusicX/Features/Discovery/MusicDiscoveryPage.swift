@@ -454,7 +454,7 @@ struct MusicDiscoveryPage: View {
     }
 
     private var featuredPlaylistsIntro: some View {
-        playlistCategoryIntro(title: "编辑精选", subtitle: "从不同风格与场景中，发现值得收藏的歌单")
+        playlistCategoryIntro(title: "推荐歌单", subtitle: "来自网易云音乐与 QQ 音乐的真实歌单")
     }
 
     private func playlistCategoryIntro(title: String, subtitle: String) -> some View {
@@ -1141,7 +1141,7 @@ struct MusicDiscoveryPage: View {
             if isLoading {
                 ProgressView().tint(MusicXTheme.blue).frame(maxWidth: .infinity).padding(.vertical, 28)
             } else if let errorMessage, songs.isEmpty {
-                Text(errorMessage).font(.system(size: 13)).foregroundStyle(MusicXTheme.muted).frame(maxWidth: .infinity).padding(.vertical, 24)
+                Text("内容暂时无法加载，请稍后重试").font(.system(size: 13)).foregroundStyle(MusicXTheme.muted).frame(maxWidth: .infinity).padding(.vertical, 24)
             } else if songs.isEmpty {
                 Text("暂时没有找到曲目").font(.system(size: 13)).foregroundStyle(MusicXTheme.muted).frame(maxWidth: .infinity).padding(.vertical, 24)
             } else {
