@@ -1,4 +1,6 @@
 import Foundation
+import CryptoKit
+import CommonCrypto
 
 struct GDStudioMusicSearchService {
     private let session: URLSession
@@ -8,26 +10,55 @@ struct GDStudioMusicSearchService {
         self.session = session
     }
 
-    /// Native NetEase web search, following Kumone's cloudsearch song-search contract.
+    /// Native NetEase eAPI search, following Kumone's cloudsearch request contract.
     func searchNetEase(keyword: String, count: Int = 100, offset: Int = 0) async throws -> [MusicSong] {
         let query = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return [] }
         let limit = min(max(count, 1), 100)
         let cacheKey = "netease-native-search|\(query.lowercased())|\(limit)|\(max(0, offset))"
         if let cached: [MusicSong] = await MusicCache.shared.value(for: cacheKey) { return cached }
-        let endpoints = ["https://music.163.com/api/search/get/web", "https://interface.music.163.com/api/search/get/web"]
+        let now = Date().timeIntervalSince1970
+        let deviceID = Self.netEaseDeviceID
+        let header: [String: Any] = [
+            "osver": "iOS 27.0.1", "deviceId": deviceID, "os": "pc",
+            "appver": "3.1.17.204416", "versioncode": "140", "mobilename": "",
+            "buildver": String(Int(now)), "resolution": "1920x1080", "channel": "netease",
+            "requestId": String(format: "%lld_%04d", Int64(now * 1000), Int(now * 1_000_000) % 1000),
+            "__csrf": ""
+        ]
+        let payload: [String: Any] = ["s": query, "type": 1, "limit": limit, "offset": max(0, offset), "total": true, "header": header, "e_r": false]
+        let json = try JSONSerialization.data(withJSONObject: payload)
+        let apiPath = "/api/cloudsearch/pc"
+        let text = String(decoding: json, as: UTF8.self)
+        let message = "nobody\(apiPath)use\(text)md5forencrypt"
+        let digest = Insecure.MD5.hash(data: Data(message.utf8)).map { String(format: "%02x", $0) }.joined()
+        let plain = Data("\(apiPath)-36cd479b6b5-\(text)-36cd479b6b5-\(digest)".utf8)
+        let key = Data("e82ckenh8dichen8".utf8)
+        var encrypted = Data(count: plain.count + kCCBlockSizeAES128)
+        var written = 0
+        let status = encrypted.withUnsafeMutableBytes { out in
+            plain.withUnsafeBytes { input in
+                key.withUnsafeBytes { keyBytes in
+                    CCCrypt(CCOperation(kCCEncrypt), CCAlgorithm(kCCAlgorithmAES),
+                        CCOptions(kCCOptionPKCS7Padding | kCCOptionECBMode),
+                        keyBytes.baseAddress, key.count, nil, input.baseAddress, plain.count,
+                        out.baseAddress, out.count, &written)
+                }
+            }
+        }
+        guard status == kCCSuccess else { throw MusicSourceError.invalidResponse("网易云搜索请求加密失败：\(status)") }
+        let params = encrypted.prefix(written).map { String(format: "%02X", $0) }.joined()
+        let endpoints = ["https://interface.music.163.com/eapi/cloudsearch/pc", "https://music.163.com/eapi/cloudsearch/pc"]
         var lastError: Error?
         for endpoint in endpoints {
             guard let url = URL(string: endpoint) else { continue }
-            var form = URLComponents()
-            form.queryItems = [URLQueryItem(name: "s", value: query), URLQueryItem(name: "type", value: "1"), URLQueryItem(name: "limit", value: String(limit)), URLQueryItem(name: "offset", value: String(max(0, offset))), URLQueryItem(name: "total", value: "true")]
             var request = URLRequest(url: url)
             request.httpMethod = "POST"
             request.timeoutInterval = 12
-            request.httpBody = form.percentEncodedQuery?.data(using: .utf8)
-            request.setValue("application/x-www-form-urlencoded; charset=UTF-8", forHTTPHeaderField: "Content-Type")
+            request.httpBody = Data("params=\(params)".utf8)
+            request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
             request.setValue("application/json", forHTTPHeaderField: "Accept")
-            request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148", forHTTPHeaderField: "User-Agent")
+            request.setValue("NeteaseMusic 9.0.90/5038 (iPhone; iOS 16.2; zh_CN)", forHTTPHeaderField: "User-Agent")
             request.setValue("https://music.163.com/", forHTTPHeaderField: "Referer")
             do {
                 let (data, response) = try await session.data(for: request)
@@ -35,8 +66,11 @@ struct GDStudioMusicSearchService {
                     lastError = MusicSourceError.invalidResponse("网易云搜索 HTTP \((response as? HTTPURLResponse)?.statusCode ?? -1)")
                     continue
                 }
-                guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any], let result = root["result"] as? [String: Any], let rows = result["songs"] as? [[String: Any]] else {
-                    lastError = MusicSourceError.invalidResponse("网易云搜索响应缺少 result.songs")
+                guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      (root["code"] as? Int ?? 200) == 200,
+                      let result = root["result"] as? [String: Any],
+                      let rows = result["songs"] as? [[String: Any]] else {
+                    lastError = MusicSourceError.invalidResponse("网易云搜索响应格式或业务状态异常")
                     continue
                 }
                 let songs: [MusicSong] = rows.compactMap { row in
@@ -53,13 +87,22 @@ struct GDStudioMusicSearchService {
                 }
                 guard !songs.isEmpty else { lastError = MusicSourceError.invalidResponse("网易云没有返回匹配歌曲"); continue }
                 await MusicCache.shared.insert(songs, for: cacheKey, ttl: 5 * 60)
-                MusicSourceDiagnostics.shared.record(event: "search", source: MusicSource.netease.rawValue, provider: "netease-native-cloudsearch", duration: 0, result: "success", detail: "count=\(songs.count)")
+                MusicSourceDiagnostics.shared.record(event: "search", source: MusicSource.netease.rawValue, provider: "netease-eapi-cloudsearch", duration: 0, result: "success", detail: "count=\(songs.count)")
                 return songs
             } catch { lastError = error }
         }
-        MusicSourceDiagnostics.shared.record(event: "search", source: MusicSource.netease.rawValue, provider: "netease-native-cloudsearch", duration: 0, result: "failed", detail: lastError?.localizedDescription ?? "unknown")
+        MusicSourceDiagnostics.shared.record(event: "search", source: MusicSource.netease.rawValue, provider: "netease-eapi-cloudsearch", duration: 0, result: "failed", detail: lastError?.localizedDescription ?? "unknown")
         throw lastError ?? MusicSourceError.invalidResponse("网易云搜索暂时不可用")
     }
+
+    private static let netEaseDeviceID: String = {
+        let key = "musicx.netease.device-id"
+        if let stored = UserDefaults.standard.string(forKey: key), stored.count == 52 { return stored }
+        let chars = Array("0123456789ABCDEF")
+        let generated = String((0..<52).map { _ in chars.randomElement()! })
+        UserDefaults.standard.set(generated, forKey: key)
+        return generated
+    }()
     func search(keyword: String, source: MusicSource, page: Int = 1, count: Int = 20, albumOnly: Bool = false) async throws -> [MusicSong] {
         let query = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return [] }

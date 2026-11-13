@@ -342,6 +342,9 @@ struct ContentView: View {
         }
         .animation(.easeInOut(duration: 0.28), value: isPlayerPresented)
         .animation(.easeInOut(duration: 0.28), value: selectedTab)
+        .onChange(of: discoveryRoute?.id) { oldValue, newValue in
+            if oldValue == nil && newValue != nil { isDiscoveryPopping = false }
+        }
         .task { await loadHomeSongs() }
     }
 
