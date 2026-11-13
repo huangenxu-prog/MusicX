@@ -168,7 +168,7 @@ struct NetEaseNativeAPIClient {
             let artistRows = row["artists"] as? [[String: Any]]
                 ?? row["artist"] as? [[String: Any]] ?? []
             let artistNames = artistRows.compactMap { $0["name"] as? String }
-            let singleArtist = (row["artist"] as? [String: Any])?["name"] as? String
+            let singleArtist = (row["artist"] as? [String: Any])?["name"] as? String ?? row["artist"] as? String
             let artists = (artistNames.isEmpty ? [singleArtist].compactMap { $0 } : artistNames)
                 .joined(separator: " / ")
             let name = row["name"] as? String ?? "未知专辑"
