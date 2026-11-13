@@ -344,8 +344,8 @@ struct NetEaseNativeAPIClient {
         try Task.checkCancellation()
         let now = Date().timeIntervalSince1970
         var body = payload
-        body["header"] = [
-            "osver": "iOS \(Self.iOSVersion)",
+        let header: [String: String] = [
+            "osver": Self.eapiOSVersion,
             "deviceId": Self.deviceID,
             "os": "pc",
             "appver": "3.1.17.204416",
@@ -361,6 +361,7 @@ struct NetEaseNativeAPIClient {
             ),
             "__csrf": ""
         ]
+        body["header"] = header
         body["e_r"] = false
 
         let json = try JSONSerialization.data(withJSONObject: body)
@@ -415,11 +416,12 @@ struct NetEaseNativeAPIClient {
             request.httpBody = Data("params=\(params)".utf8)
             request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
             request.setValue("application/json", forHTTPHeaderField: "Accept")
-            request.setValue(
-                "NeteaseMusic 9.0.90/5038 (iPhone; iOS \(Self.iOSVersion); zh_CN)",
-                forHTTPHeaderField: "User-Agent"
-            )
+            request.setValue(Self.eapiUserAgent, forHTTPHeaderField: "User-Agent")
             request.setValue("https://music.163.com/", forHTTPHeaderField: "Referer")
+            request.setValue(
+                header.map { "\($0.key)=\($0.value)" }.joined(separator: "; "),
+                forHTTPHeaderField: "Cookie"
+            )
 
             do {
                 let (data, response) = try await session.data(for: request)
@@ -441,10 +443,10 @@ struct NetEaseNativeAPIClient {
         throw lastError ?? MusicSourceError.invalidResponse("网易云 EAPI 接口暂时不可用")
     }
 
-    private static let iOSVersion: String = {
-        let version = ProcessInfo.processInfo.operatingSystemVersion
-        return "\(version.majorVersion).\(version.minorVersion).\(version.patchVersion)"
-    }()
+    // Match Kumone's known-good desktop eAPI identity: the service checks
+    // these values in both the encrypted payload header and the Cookie header.
+    private static let eapiOSVersion = "Microsoft-Windows-10-Professional-build-19045-64bit"
+    private static let eapiUserAgent = "NeteaseMusic 9.0.90/5038 (iPhone; iOS 16.2; zh_CN)"
 
     private static let deviceID: String = {
         let key = "musicx.netease.device-id"
