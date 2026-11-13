@@ -25,7 +25,7 @@ struct GDStudioMusicSearchService {
                 detail: "count=\(diagnosticCount)"
             )
         }
-        if source == .migu {
+        if source == .migu && !albumOnly {
             let songs = try await searchMigu(keyword: query, page: page, count: count)
             diagnosticCount = songs.count
             diagnosticResult = "success"
