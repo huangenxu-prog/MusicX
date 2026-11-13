@@ -185,7 +185,8 @@ struct GDStudioMusicSearchService {
                 creator: creator,
                 description: description,
                 artworkURL: rawArtwork.flatMap(URL.init(string:)),
-                trackCount: trackCount
+                trackCount: trackCount,
+                provenance: .searchResult
             )
         }
         guard !playlists.isEmpty else {
