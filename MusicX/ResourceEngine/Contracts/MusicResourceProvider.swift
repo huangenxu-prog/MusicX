@@ -1,7 +1,7 @@
 import Foundation
 
 /// A normalized playable resource returned by an external supplier library.
-struct ResolvedMusicResource: Sendable {
+struct ResolvedMusicResource: Codable, Sendable {
     let url: URL
     let providerID: String
     let providerName: String
