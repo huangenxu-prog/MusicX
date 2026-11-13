@@ -58,6 +58,10 @@ struct MusicXLegacySupplierLibrary: MusicResourceProvider, MusicCatalogSearchPro
         )
     }
 
+    func dailyRecommendedSongs(count: Int) async throws -> [MusicSong] {
+        try await GDStudioMusicSearchService(session: session).dailyRecommendedSongs(count: count)
+    }
+
     func featuredPlaylists(count: Int) async throws -> [MusicPlaylist] {
         let limit = min(max(count, 1), 60)
         async let netease: [MusicPlaylist]? = try? await NetEaseNativeAPIClient(session: session).recommendedPlaylists(count: limit)
