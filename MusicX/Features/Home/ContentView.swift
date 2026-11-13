@@ -192,9 +192,6 @@ struct ContentView: View {
     }
 
     @State private var songs: [AppSong] = []
-    @State private var recommendationSongs: [AppSong] = []
-    @State private var homeAlbums: [AppSong] = []
-    @State private var homeAlbumPool: [AppSong] = []
     @State private var homeOfficialCollections: [MusicPlaylist] = []
     @State private var isLoadingOfficialCollections = false
     @State private var officialCollectionsError: String?
@@ -325,7 +322,7 @@ struct ContentView: View {
         if let route = discoveryRoute {
             MusicDiscoveryPage(
                 route: route,
-                featuredAlbums: homeAlbums.compactMap(\.onlineSong),
+                featuredAlbums: [],
                 selectedMainTab: selectedTab.rawValue,
                 onSelectMainTab: { title in
                     isDiscoveryPopping = true
@@ -2008,65 +2005,25 @@ struct ContentView: View {
         homeLoadError = nil
         defer { isLoadingHomeSongs = false }
 
-        async let latestResult: Result<[MusicSong], Error> = {
-            do { return .success(try await MusicCatalogSearchEngine().toplist("新歌榜", count: 50)) }
-            catch { return .failure(error) }
-        }()
-        async let albumRows: [[MusicSong]] = withTaskGroup(of: [MusicSong].self) { group in
-            for source in [MusicSource.netease, .qq, .kuwo, .kugou, .migu] {
-                group.addTask {
-                    (try? await MusicCatalogSearchEngine().search(
-                        keyword: "华语",
-                        source: source,
-                        count: 30,
-                        albumOnly: true,
-                        useNativeNetEase: source == .netease
-                    )) ?? []
-                }
-            }
-            var results: [[MusicSong]] = []
-            for await rows in group where !rows.isEmpty { results.append(rows) }
-            return results
-        }
-
-        let chart = await latestResult
-        let albumResults = await albumRows
-        guard !Task.isCancelled else { return }
-
-        switch chart {
-        case .success(let latestTracks):
+        do {
+            let latestTracks = try await MusicCatalogSearchEngine().toplist("新歌榜", count: 50)
+            guard !Task.isCancelled else { return }
             songs = latestTracks.map { item in
-                AppSong(id: stableSongID(item), title: item.title, artist: item.artist,
-                        album: item.album ?? "", tint: MusicXTheme.blue, onlineSong: item)
+                AppSong(
+                    id: stableSongID(item),
+                    title: item.title,
+                    artist: item.artist,
+                    album: item.album ?? "",
+                    tint: MusicXTheme.blue,
+                    onlineSong: item
+                )
             }
             homeLoadError = nil
-        case .failure(let error):
+        } catch {
+            guard !Task.isCancelled else { return }
             songs = []
-            homeLoadError = "新歌榜暂时不可用：\(error.localizedDescription)"
+            homeLoadError = "内容暂时无法加载，请稍后重试"
         }
-
-        var seenAlbums = Set<String>()
-        let discoveredAlbums = albumResults.flatMap { $0 }.compactMap { item -> AppSong? in
-            let title = (item.album ?? item.title).trimmingCharacters(in: .whitespacesAndNewlines)
-            let artist = item.artist.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !title.isEmpty, !artist.isEmpty, title != "未知专辑", artist != "未知歌手" else { return nil }
-            let key = "\(title.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current))|\(artist.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current))"
-            guard seenAlbums.insert(key).inserted else { return nil }
-            return AppSong(id: stableSongID(item), title: title, artist: artist, album: title,
-                           tint: MusicXTheme.blue, onlineSong: item)
-        }
-
-        // If album-specific endpoints return nothing, derive genuine album entries from the live chart tracks.
-        let chartAlbumFallback = songs.compactMap { song -> AppSong? in
-            guard !song.album.isEmpty, song.album != "未知专辑" else { return nil }
-            let key = "\(song.album.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current))|\(song.artist.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current))"
-            guard seenAlbums.insert(key).inserted else { return nil }
-            return AppSong(id: song.id, title: song.title, artist: song.artist, album: song.album,
-                           tint: song.tint, onlineSong: song.onlineSong)
-        }
-        homeAlbumPool = discoveredAlbums.isEmpty ? chartAlbumFallback : discoveredAlbums
-        homeAlbums = Array(homeAlbumPool.shuffled().prefix(6))
-        recommendationSongs = Array(songs.shuffled().prefix(6))
     }
 
     private func openSearch(query: String) {
