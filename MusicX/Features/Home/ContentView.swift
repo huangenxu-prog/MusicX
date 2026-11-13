@@ -1961,7 +1961,14 @@ struct ContentView: View {
                     if playbackRequestID == requestID { isResolvingSong = false }
                 }
                 do {
-                    let url = try await LXMusicURLResolver().resolve(song: onlineSong, quality: selectedMusicQuality)
+                    let resolver = LXMusicURLResolver()
+                    if !isFailureFallback {
+                        await resolver.resetPlaybackFallbackState(
+                            for: onlineSong,
+                            quality: selectedMusicQuality
+                        )
+                    }
+                    let url = try await resolver.resolve(song: onlineSong, quality: selectedMusicQuality)
                     try Task.checkCancellation()
                     guard playbackRequestID == requestID else { return }
                     let resolutionDuration = Date().timeIntervalSince(playbackStartedAt)
