@@ -66,56 +66,31 @@ struct MusicXLegacySupplierLibrary: MusicResourceProvider, MusicCatalogSearchPro
         let limit = min(max(count, 1), 60)
         async let netease: [MusicPlaylist]? = try? await NetEaseNativeAPIClient(session: session).recommendedPlaylists(count: limit)
         async let qq: [MusicPlaylist]? = try? await GDStudioMusicSearchService(session: session).recommendedPlaylists(count: limit)
-        async let other: [MusicPlaylist]? = try? await DomesticPlaylistDiscoveryService(session: session).featuredPlaylists(count: limit)
-        let neteaseResults = await netease
-        let qqResults = await qq
-        let otherResults = await other
-        let groups = [neteaseResults ?? [], qqResults ?? [], otherResults ?? []]
+        let neteaseResults = await netease ?? []
+        let qqResults = await qq ?? []
         try Task.checkCancellation()
-        if neteaseResults == nil {
-            MusicSourceDiagnostics.shared.record(
-                event: "playlist-discovery", source: MusicSource.netease.rawValue,
-                provider: "netease-recommendations", duration: 0, result: "failed",
-                detail: "网易云推荐歌单接口未返回有效结果"
-            )
-        }
-        if qqResults == nil {
-            MusicSourceDiagnostics.shared.record(
-                event: "playlist-discovery", source: MusicSource.qq.rawValue,
-                provider: "qq-recommendations", duration: 0, result: "failed",
-                detail: "QQ音乐推荐歌单接口未返回有效结果"
-            )
-        }
 
-        let bySource = Dictionary(grouping: groups.flatMap { $0 }, by: \.source)
-        let sourceOrder: [MusicSource] = [.netease, .qq, .kugou, .kuwo, .migu]
         var merged: [MusicPlaylist] = []
-        var seenIDs = Set<String>()
-        var seenContentKeys = Set<String>()
-        let maximumPerSource = max(1, Int(ceil(Double(limit) / Double(sourceOrder.count))))
-        for source in sourceOrder {
-            let candidates = Array((bySource[source] ?? []).prefix(maximumPerSource * 3))
-            var added = 0
-            for playlist in candidates {
-                let normalizedName = playlist.name
-                    .folding(options: String.CompareOptions.caseInsensitive.union(.diacriticInsensitive), locale: Locale.current)
-                    .filter { $0.isLetter || $0.isNumber }
-                let normalizedCreator = (playlist.creator ?? "")
-                    .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
-                    .filter { $0.isLetter || $0.isNumber }
-                let contentKey = normalizedCreator.isEmpty
-                    ? "\(source.rawValue)|\(normalizedName)"
-                    : "\(normalizedName)|\(normalizedCreator)"
-                guard !normalizedName.isEmpty,
-                      seenIDs.insert(playlist.id).inserted,
-                      seenContentKeys.insert(contentKey).inserted else { continue }
+        var seen = Set<String>()
+        // Alternate the two catalog sources without introducing Kugou, Kuwo,
+        // or Migu into recommendation discovery.
+        let groups = [neteaseResults, qqResults]
+        let rounds = (0..<max(groups.map(\.count).max() ?? 0, 0))
+        for index in rounds {
+            for group in groups where index < group.count {
+                let playlist = group[index]
+                let key = playlist.name.folding(
+                    options: [.caseInsensitive, .diacriticInsensitive],
+                    locale: .current
+                ).filter { $0.isLetter || $0.isNumber }
+                guard !key.isEmpty, seen.insert(key).inserted else { continue }
                 merged.append(playlist)
-                added += 1
-                if added >= maximumPerSource { break }
+                if merged.count >= limit { break }
             }
+            if merged.count >= limit { break }
         }
         guard !merged.isEmpty else {
-            throw MusicSourceError.invalidResponse("五个平台均未返回可用推荐或分类歌单")
+            throw MusicSourceError.invalidResponse("推荐歌单暂时无法加载")
         }
         return Array(merged.prefix(limit))
     }
@@ -125,38 +100,25 @@ struct MusicXLegacySupplierLibrary: MusicResourceProvider, MusicCatalogSearchPro
             .searchPlaylists(keyword: keyword, count: count)
         async let netease: [MusicPlaylist]? = try? await NetEaseNativeAPIClient(session: session)
             .searchPlaylists(keyword: keyword, count: count)
-        async let domestic: [MusicPlaylist]? = try? await DomesticPlaylistDiscoveryService(session: session)
-            .searchPlaylists(keyword: keyword, count: count)
-
-        let qqResults = await qq
-        let neteaseResults = await netease
-        let domesticResults = await domestic
-        let groups = [qqResults ?? [], neteaseResults ?? [], domesticResults ?? []]
+        let groups = [await netease ?? [], await qq ?? []]
         try Task.checkCancellation()
 
-        let sourceGroups = Dictionary(grouping: groups.flatMap { $0 }, by: \.source)
-        let sourceOrder: [MusicSource] = [.netease, .qq, .kugou, .kuwo, .migu]
         var merged: [MusicPlaylist] = []
-        var seenIDs = Set<String>()
-        var cursors: [MusicSource: Int] = [:]
-        var madeProgress = true
-        while madeProgress && merged.count < max(count, 1) {
-            madeProgress = false
-            for source in sourceOrder {
-                let index = cursors[source, default: 0]
-                let candidates = sourceGroups[source] ?? []
-                guard index < candidates.count else { continue }
-                cursors[source] = index + 1
-                madeProgress = true
-                let playlist = candidates[index]
-                if seenIDs.insert(playlist.id).inserted {
-                    merged.append(playlist)
-                }
+        var seen = Set<String>()
+        for group in groups {
+            for playlist in group {
+                let key = playlist.name.folding(
+                    options: [.caseInsensitive, .diacriticInsensitive],
+                    locale: .current
+                ).filter { $0.isLetter || $0.isNumber }
+                guard !key.isEmpty, seen.insert(key).inserted else { continue }
+                merged.append(playlist)
                 if merged.count >= max(count, 1) { break }
             }
+            if merged.count >= max(count, 1) { break }
         }
         guard !merged.isEmpty else {
-            throw MusicSourceError.invalidResponse("五个平台均未返回匹配歌单")
+            throw MusicSourceError.invalidResponse("暂时无法获取匹配的歌单")
         }
         return Array(merged.prefix(max(count, 1)))
     }
