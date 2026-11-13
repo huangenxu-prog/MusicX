@@ -288,7 +288,15 @@ struct ContentView: View {
         }
         .overlay {
             if let route = discoveryRoute {
-                MusicDiscoveryPage(route: route, onClose: { isSwipeBack in
+                MusicDiscoveryPage(route: route,
+                    selectedMainTab: selectedTab.rawValue,
+                    onSelectMainTab: { title in
+                        withAnimation(.easeInOut(duration: 0.20)) {
+                            selectedTab = MainTab.allCases.first(where: { $0.rawValue == title }) ?? .home
+                            discoveryRoute = nil
+                        }
+                    },
+                    onClose: { isSwipeBack in
                     if isSwipeBack {
                         var transaction = Transaction()
                         transaction.disablesAnimations = true
