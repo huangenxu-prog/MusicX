@@ -1907,12 +1907,12 @@ struct ContentView: View {
                     }
                 }
             }
-            for await result in group {
+            for await (_, rows, _) in group {
                 guard !Task.isCancelled,
                       searchRequestID == requestID,
                       searchText.trimmingCharacters(in: .whitespacesAndNewlines) == query else { continue }
-                if !result.isEmpty {
-                    received.append(result)
+                if !rows.isEmpty {
+                    received.append(rows)
                     var merged: [MusicSong] = []
                     let maxCount = received.map(\.count).max() ?? 0
                     for index in 0..<maxCount {
