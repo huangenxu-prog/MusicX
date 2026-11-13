@@ -15,6 +15,6 @@
         <string>audio</string>
     </array>
     <key>MusicXAPIBaseURL</key>
-    <string></string>
+    <string>https://66.245.217.28:8443</string>
 </dict>
 </plist>
