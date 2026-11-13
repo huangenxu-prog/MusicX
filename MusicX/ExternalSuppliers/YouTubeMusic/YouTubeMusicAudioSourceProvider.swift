@@ -49,6 +49,8 @@ struct YouTubeMusicAudioSourceProvider: MusicResourceProvider {
         request.setValue("com.google.ios.youtube/\(clientVersion) (iPhone; CPU iPhone OS 18_0 like Mac OS X)", forHTTPHeaderField: "User-Agent")
         request.setValue("https://www.youtube.com", forHTTPHeaderField: "Origin")
         request.setValue("https://www.youtube.com/", forHTTPHeaderField: "Referer")
+        request.setValue("5", forHTTPHeaderField: "X-YouTube-Client-Name")
+        request.setValue(clientVersion, forHTTPHeaderField: "X-YouTube-Client-Version")
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
         let startedAt = Date()
@@ -136,8 +138,12 @@ struct YouTubeMusicAudioSourceProvider: MusicResourceProvider {
             + (streaming["formats"] as? [[String: Any]] ?? [])
 
         let candidates: [(URL, Int)] = formats.compactMap { format in
-            guard let mimeType = format["mimeType"] as? String,
-                  mimeType.lowercased().hasPrefix("audio/"),
+            guard let mimeType = format["mimeType"] as? String else { return nil }
+            let normalizedMIME = mimeType.lowercased()
+            guard normalizedMIME.hasPrefix("audio/mp4")
+                || normalizedMIME.hasPrefix("audio/mpeg")
+                || normalizedMIME.hasPrefix("audio/aac")
+                || normalizedMIME.hasPrefix("audio/x-m4a"),
                   let rawURL = format["url"] as? String,
                   let url = URL(string: rawURL),
                   isHTTPURL(url) else { return nil }
