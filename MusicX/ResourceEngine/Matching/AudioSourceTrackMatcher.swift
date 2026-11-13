@@ -59,12 +59,34 @@ enum AudioSourceTrackMatcher {
     private static func versionMarkers(in value: String) -> Set<String> {
         let text = value.lowercased()
             .folding(options: [.diacriticInsensitive, .widthInsensitive], locale: .current)
-        let markers = [
-            "live", "remix", "instrumental", "伴奏", "纯音乐", "现场", "演唱会",
-            "翻唱", "cover", "acoustic", "不插电", "demo", "示范", "合唱",
-            "remaster", "重制", "sped up", "slowed", "加速", "降速", "dj",
-            "karaoke"
+
+        // English version labels must be complete tokens. Substring matching
+        // incorrectly classifies ordinary titles such as "Believe" as "Live"
+        // and "Discover" as "Cover".
+        let tokens = text.split(whereSeparator: { !$0.isLetter && !$0.isNumber }).map(String.init)
+        let tokenSet = Set(tokens)
+        var markers = Set<String>()
+
+        let englishMarkers = [
+            "live", "remix", "instrumental", "cover", "acoustic", "demo",
+            "remaster", "slowed", "dj", "karaoke"
         ]
-        return Set(markers.filter { text.contains($0) })
+        markers.formUnion(englishMarkers.filter { tokenSet.contains($0) })
+
+        if tokens.count >= 2 {
+            for index in 0..<(tokens.count - 1) {
+                let phrase = tokens[index] + " " + tokens[index + 1]
+                if phrase == "sped up" { markers.insert("sped up") }
+            }
+        }
+
+        // Chinese labels do not have whitespace-delimited word boundaries,
+        // so retain substring matching for these explicit version terms.
+        let chineseMarkers = [
+            "伴奏", "纯音乐", "现场", "演唱会", "翻唱", "不插电",
+            "示范", "合唱", "重制", "加速", "降速"
+        ]
+        markers.formUnion(chineseMarkers.filter { text.contains($0) })
+        return markers
     }
 }
