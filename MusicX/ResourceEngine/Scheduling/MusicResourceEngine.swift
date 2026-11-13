@@ -138,11 +138,17 @@ struct MusicResourceEngine {
             ? 1
             : (song.source == .netease || song.source == .migu
                 || song.source == .youtubeMusic || song.source == .youtube ? 1 : 0)
-        let kumoneTier = song.source == .kugou ? 0 : 2
+        let kumoneFallbackTier = song.source == .kugou ? 0 : 2
         var providers: [(provider: any MusicResourceProvider, tier: Int, baseline: Int)] = [
             (MusicXLegacySupplierLibrary(session: session), legacyTier, 30),
-            (KumoneKugouAudioSourceProvider(session: session), kumoneTier, 20)
+            (KumoneKugouAudioSourceProvider(session: session), kumoneFallbackTier, 20),
+            (KumoneKuwoAudioSourceProvider(), kumoneFallbackTier, 20)
         ]
+        // Kumone's pyncmd endpoint resolves a NetEase-native song ID directly.
+        // It must never receive QQ/Kugou/Kuwo IDs, which belong to other catalogs.
+        if song.source == .netease {
+            providers.append((KumonePyncmdAudioSourceProvider(), 1, 45))
+        }
         if song.source == .netease {
             providers.append((NetEaseNativeAudioProvider(session: session), 0, 1_000))
         }
