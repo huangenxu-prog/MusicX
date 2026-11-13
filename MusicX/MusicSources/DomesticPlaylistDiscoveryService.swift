@@ -17,6 +17,17 @@ struct DomesticPlaylistDiscoveryService {
         async let migu = categoryFeaturedMigu(count: min(limit, 18))
         let groups = await [try? kugou, try? kuwo, try? migu]
         try Task.checkCancellation()
+        let sources: [MusicSource] = [.kugou, .kuwo, .migu]
+        for (index, result) in groups.enumerated() where result == nil {
+            MusicSourceDiagnostics.shared.record(
+                event: "playlist-discovery",
+                source: sources[index].rawValue,
+                provider: "\(sources[index].rawValue)-playlist-feed",
+                duration: 0,
+                result: "failed",
+                detail: "平台推荐/分类歌单接口未返回有效结果"
+            )
+        }
         let results = groups.compactMap { $0 }.flatMap { $0 }
         guard !results.isEmpty else {
             throw MusicSourceError.invalidResponse("酷狗、酷我和咪咕暂时均未返回可用歌单")
@@ -286,48 +297,14 @@ struct DomesticPlaylistDiscoveryService {
     }
 
     private func refreshMigu(count: Int, cacheKey: String) async throws -> [MusicPlaylist] {
-        let categories = ["华语", "欧美", "摇滚", "影视", "轻音乐", "治愈"]
-        let perCategory = max(2, Int(ceil(Double(count) / Double(categories.count))))
-        var collected: [MusicPlaylist] = []
-        for category in categories {
-            try Task.checkCancellation()
-            var components = URLComponents(string: "https://pd.musicapp.migu.cn/MIGUM2.0/v1.0/content/search_all.do")
-            components?.queryItems = [
-                URLQueryItem(name: "ua", value: "Android_migu"),
-                URLQueryItem(name: "version", value: "5.0.1"),
-                URLQueryItem(name: "text", value: category),
-                URLQueryItem(name: "pageNo", value: "1"),
-                URLQueryItem(name: "pageSize", value: String(perCategory)),
-                URLQueryItem(name: "searchSwitch", value: #"{"song":0,"album":0,"singer":0,"tagSong":0,"mvSong":0,"songlist":1,"bestShow":1}"#)
-            ]
-            guard let url = components?.url else { continue }
-            let root: [String: Any]
-            do {
-                root = try await getJSON(url, referer: "https://music.migu.cn/")
-            } catch {
-                if Task.isCancelled { throw CancellationError() }
-                continue
-            }
-            let resultData = root["songListResultData"] as? [String: Any]
-            let rows = resultData?["result"] as? [[String: Any]] ?? []
-            let items: [MusicPlaylist] = rows.compactMap { row in
-                guard let rawID = row["id"] as? String, !rawID.isEmpty,
-                      let name = row["name"] as? String, !name.isEmpty else { return nil }
-                let artwork = (row["musicListPicUrl"] as? String)
-                    ?? ((row["imgItems"] as? [[String: Any]])?.compactMap { $0["img"] as? String }.first)
-                return MusicPlaylist(
-                    source: .migu,
-                    sourceID: rawID,
-                    name: name,
-                    creator: (row["userName"] as? String) ?? (row["ownerName"] as? String),
-                    description: category,
-                    artworkURL: artwork.flatMap(URL.init(string:)),
-                    trackCount: integer(row["musicNum"]),
-                    provenance: .categoryFeatured
-                )
-            }
-            collected.append(contentsOf: items)
-        }
+        let perCategory = max(2, Int(ceil(Double(count) / 4.0)))
+        async let chinese = try? miguCategoryPlaylists("华语", count: perCategory)
+        async let western = try? miguCategoryPlaylists("欧美", count: perCategory)
+        async let soundtrack = try? miguCategoryPlaylists("影视", count: perCategory)
+        async let light = try? miguCategoryPlaylists("轻音乐", count: perCategory)
+        let groups = await [chinese, western, soundtrack, light]
+        try Task.checkCancellation()
+        let collected = groups.compactMap { $0 }.flatMap { $0 }
         var seen = Set<String>()
         let unique = collected.filter { seen.insert($0.id).inserted }
         guard !unique.isEmpty else {
@@ -335,6 +312,41 @@ struct DomesticPlaylistDiscoveryService {
         }
         await MusicCatalogStore.shared.save(unique, for: cacheKey, refreshAfter: 12 * 60 * 60)
         return Array(unique.prefix(count))
+    }
+
+    private func miguCategoryPlaylists(_ category: String, count: Int) async throws -> [MusicPlaylist] {
+        var components = URLComponents(string: "https://pd.musicapp.migu.cn/MIGUM2.0/v1.0/content/search_all.do")
+        components?.queryItems = [
+            URLQueryItem(name: "ua", value: "Android_migu"),
+            URLQueryItem(name: "version", value: "5.0.1"),
+            URLQueryItem(name: "text", value: category),
+            URLQueryItem(name: "pageNo", value: "1"),
+            URLQueryItem(name: "pageSize", value: String(count)),
+            URLQueryItem(name: "searchSwitch", value: #"{"song":0,"album":0,"singer":0,"tagSong":0,"mvSong":0,"songlist":1,"bestShow":1}"#)
+        ]
+        guard let url = components?.url else {
+            throw MusicSourceError.invalidResponse("咪咕分类歌单接口地址无效")
+        }
+        let root = try await getJSON(url, referer: "https://music.migu.cn/")
+        let resultData = root["songListResultData"] as? [String: Any]
+        let rows = resultData?["result"] as? [[String: Any]] ?? []
+        let playlists: [MusicPlaylist] = rows.compactMap { row in
+            guard let rawID = row["id"] as? String, !rawID.isEmpty,
+                  let name = row["name"] as? String, !name.isEmpty else { return nil }
+            let artwork = (row["musicListPicUrl"] as? String)
+                ?? ((row["imgItems"] as? [[String: Any]])?.compactMap { $0["img"] as? String }.first)
+            return MusicPlaylist(
+                source: .migu,
+                sourceID: rawID,
+                name: name,
+                creator: (row["userName"] as? String) ?? (row["ownerName"] as? String),
+                description: category,
+                artworkURL: artwork.flatMap(URL.init(string:)),
+                trackCount: integer(row["musicNum"]),
+                provenance: .categoryFeatured
+            )
+        }
+        return playlists
     }
 
     private func getJSON(_ url: URL, referer: String) async throws -> [String: Any] {
