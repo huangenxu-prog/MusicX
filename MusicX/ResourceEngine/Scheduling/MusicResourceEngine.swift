@@ -287,7 +287,8 @@ struct MusicResourceEngine {
         }
 
         if let mimeType = http.mimeType?.lowercased() {
-            let isHLSPlaylist = mimeType == "text/plain" && (prefixText?.hasPrefix("#extm3u") ?? false)
+            let isHLSPlaylist = mimeType.contains("mpegurl")
+                || (prefixText?.hasPrefix("#extm3u") ?? false)
             if mimeType == "text/html" || mimeType == "application/json"
                 || (mimeType.hasPrefix("text/") && !isHLSPlaylist) {
                 throw MusicSourceError.invalidResponse("播放地址返回了非音频内容（\(mimeType)）")
