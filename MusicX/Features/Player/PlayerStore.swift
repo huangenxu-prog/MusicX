@@ -99,7 +99,20 @@ final class PlayerStore: ObservableObject {
                 self.isBuffering = shouldBeBuffering
                 if self.isPlaying != shouldBePlaying {
                     self.isPlaying = shouldBePlaying
-                    if shouldBePlaying { self.errorMessage = nil }
+                    if shouldBePlaying {
+                        self.errorMessage = nil
+                        if !self.didRecordPlaybackStart,
+                           let diagnosticID = self.activePlaybackDiagnosticID,
+                           let requestedAt = self.activePlaybackRequestedAt {
+                            self.didRecordPlaybackStart = true
+                            MusicSourceDiagnostics.shared.record(
+                                event: "playback-started", source: self.activePlaybackDiagnosticSource,
+                                provider: "avplayer", duration: Date().timeIntervalSince(requestedAt),
+                                result: "playing",
+                                detail: "playback_id=\(diagnosticID); marker=timeControlStatus.playing"
+                            )
+                        }
+                    }
                     self.updateNowPlayingInfo()
                 }
             }
@@ -273,9 +286,20 @@ final class PlayerStore: ObservableObject {
         else { MPNowPlayingInfoCenter.default().nowPlayingInfo = nil }
     }
 
+    private var activePlaybackDiagnosticID: String?
+    private var activePlaybackRequestedAt: Date?
+    private var activePlaybackDiagnosticSource = "unknown"
+    private var didRecordPlaybackStart = false
+
     func play(url: URL, title: String, artist: String, album: String? = nil,
-              artworkURL: URL? = nil, artworkSong: MusicSong? = nil) {
+              artworkURL: URL? = nil, artworkSong: MusicSong? = nil,
+              diagnosticID: String? = nil, requestedAt: Date? = nil,
+              diagnosticSource: String? = nil) {
         errorMessage = nil
+        activePlaybackDiagnosticID = diagnosticID
+        activePlaybackRequestedAt = requestedAt
+        activePlaybackDiagnosticSource = diagnosticSource ?? "unknown"
+        didRecordPlaybackStart = false
         seekRequestID = UUID()
         trackTitle = title
         trackArtist = artist

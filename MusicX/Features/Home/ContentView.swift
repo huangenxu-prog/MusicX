@@ -1918,6 +1918,13 @@ struct ContentView: View {
             playbackTask?.cancel()
             playbackRequestID = UUID()
             let requestID = playbackRequestID
+            let playbackStartedAt = Date()
+            let playbackDiagnosticID = requestID.uuidString
+            MusicSourceDiagnostics.shared.record(
+                event: "playback-click", source: onlineSong.source.rawValue,
+                provider: "playback-pipeline", duration: 0,
+                result: "started", detail: "playback_id=\(playbackDiagnosticID)"
+            )
             // Pause the old stream but retain its AVPlayer item and Now Playing
             // ownership while the next stream URL resolves.
             playerStore.pauseForTrackChange()
@@ -1929,11 +1936,19 @@ struct ContentView: View {
                 }
                 do {
                     let url = try await LXMusicURLResolver().resolve(song: onlineSong, quality: selectedMusicQuality)
+                    let resolutionDuration = Date().timeIntervalSince(playbackStartedAt)
+                    MusicSourceDiagnostics.shared.record(
+                        event: "playback-url-ready", source: onlineSong.source.rawValue,
+                        provider: "playback-pipeline", duration: resolutionDuration,
+                        result: "success", detail: "playback_id=\(playbackDiagnosticID)"
+                    )
                     try Task.checkCancellation()
                     guard playbackRequestID == requestID else { return }
                     currentSong = song
                     playerStore.play(url: url, title: onlineSong.title, artist: onlineSong.artist,
-                                     album: onlineSong.album, artworkURL: onlineSong.artworkURL, artworkSong: onlineSong)
+                                     album: onlineSong.album, artworkURL: onlineSong.artworkURL,
+                                     artworkSong: onlineSong, diagnosticID: playbackDiagnosticID,
+                                     requestedAt: playbackStartedAt, diagnosticSource: onlineSong.source.rawValue)
                     prefetchUpcomingTracks(after: song)
                 } catch is CancellationError {
                     return
