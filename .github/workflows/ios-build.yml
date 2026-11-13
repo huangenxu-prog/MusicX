@@ -9,6 +9,7 @@ on:
       - home/final-design-asset-pass
       - feature/qqmusic-playlist-integration
       - redesign/home-search-library-review
+      - architecture/three-layer-resource-engine
   workflow_dispatch:
 
 permissions:
