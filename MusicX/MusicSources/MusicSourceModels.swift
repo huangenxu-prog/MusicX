@@ -93,6 +93,7 @@ struct MusicSong: Identifiable, Codable, Hashable, Sendable {
     var albumID: String?
     var pictureID: String?
     var lyricID: String?
+    var copyrightID: String? = nil
 }
 
 enum MusicSourceError: LocalizedError {
