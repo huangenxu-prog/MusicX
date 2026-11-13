@@ -1948,42 +1948,60 @@ struct ContentView: View {
         isLoadingHomeSongs = true
         homeLoadError = nil
         defer { isLoadingHomeSongs = false }
-        do {
-            async let latestRequest = GDStudioMusicSearchService().toplist("新歌榜", count: 50)
-            async let albumRequests: [[MusicSong]] = withThrowingTaskGroup(of: [MusicSong].self) { group in
-                for source in [MusicSource.netease, .qq, .kuwo, .kugou, .migu] {
-                    group.addTask {
-                        try await GDStudioMusicSearchService().search(keyword: "华语", source: source, count: 30, albumOnly: true)
-                    }
+
+        async let latestResult: Result<[MusicSong], Error> = {
+            do { return .success(try await GDStudioMusicSearchService().toplist("新歌榜", count: 50)) }
+            catch { return .failure(error) }
+        }()
+        async let albumRows: [[MusicSong]] = withTaskGroup(of: [MusicSong].self) { group in
+            for source in [MusicSource.netease, .qq, .kuwo, .kugou, .migu] {
+                group.addTask {
+                    (try? await GDStudioMusicSearchService().search(keyword: "华语", source: source, count: 30, albumOnly: true)) ?? []
                 }
-                var results: [[MusicSong]] = []
-                for try await rows in group { results.append(rows) }
-                return results
             }
-            let (latestTracks, albumRows) = try await (latestRequest, albumRequests)
-            guard !Task.isCancelled else { return }
+            var results: [[MusicSong]] = []
+            for await rows in group where !rows.isEmpty { results.append(rows) }
+            return results
+        }
+
+        let chart = await latestResult
+        let albumResults = await albumRows
+        guard !Task.isCancelled else { return }
+
+        switch chart {
+        case .success(let latestTracks):
             songs = latestTracks.map { item in
                 AppSong(id: stableSongID(item), title: item.title, artist: item.artist,
                         album: item.album ?? "", tint: MusicXTheme.blue, onlineSong: item)
             }
-            var seenAlbums = Set<String>()
-            homeAlbumPool = albumRows.flatMap { $0 }.compactMap { item in
-                let title = (item.album ?? item.title).trimmingCharacters(in: .whitespacesAndNewlines)
-                let artist = item.artist.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !title.isEmpty, !artist.isEmpty, title != "未知专辑", artist != "未知歌手" else { return nil }
-                let key = "\(title.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current))|\(artist.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current))"
-                guard seenAlbums.insert(key).inserted else { return nil }
-                return AppSong(id: stableSongID(item), title: title, artist: artist, album: title,
-                               tint: MusicXTheme.blue, onlineSong: item)
-            }
-            homeAlbums = Array(homeAlbumPool.shuffled().prefix(6))
-            recommendationSongs = Array(songs.shuffled().prefix(6))
-            if songs.isEmpty {
-                homeLoadError = "网易云新歌榜暂时没有返回歌曲，请稍后重试"
-            }
-        } catch {
-            homeLoadError = "新歌榜加载失败：\(error.localizedDescription)"
+            homeLoadError = nil
+        case .failure(let error):
+            songs = []
+            homeLoadError = "新歌榜暂时不可用：\\(error.localizedDescription)"
         }
+
+        var seenAlbums = Set<String>()
+        let discoveredAlbums = albumResults.flatMap { $0 }.compactMap { item -> AppSong? in
+            let title = (item.album ?? item.title).trimmingCharacters(in: .whitespacesAndNewlines)
+            let artist = item.artist.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !title.isEmpty, !artist.isEmpty, title != "未知专辑", artist != "未知歌手" else { return nil }
+            let key = "\\(title.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current))|\\(artist.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current))"
+            guard seenAlbums.insert(key).inserted else { return nil }
+            return AppSong(id: stableSongID(item), title: title, artist: artist, album: title,
+                           tint: MusicXTheme.blue, onlineSong: item)
+        }
+
+        // If album-specific endpoints return nothing, derive genuine album entries from the live chart tracks.
+        let chartAlbumFallback = songs.compactMap { song -> AppSong? in
+            guard !song.album.isEmpty, song.album != "未知专辑" else { return nil }
+            let key = "\\(song.album.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current))|\\(song.artist.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current))"
+            guard seenAlbums.insert(key).inserted else { return nil }
+            return AppSong(id: song.id, title: song.title, artist: song.artist, album: song.album,
+                           tint: song.tint, onlineSong: song.onlineSong)
+        }
+        homeAlbumPool = discoveredAlbums.isEmpty ? chartAlbumFallback : discoveredAlbums
+        homeAlbums = Array(homeAlbumPool.shuffled().prefix(6))
+        recommendationSongs = Array(songs.shuffled().prefix(6))
     }
 
     private func openSearch(query: String) {
