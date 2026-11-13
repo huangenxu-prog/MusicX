@@ -40,16 +40,23 @@ struct DomesticPlaylistDiscoveryService {
         guard !id.isEmpty, count > 0 else {
             throw MusicSourceError.invalidResponse("歌单编号或曲目数量无效")
         }
+        let cacheKey = "domestic-playlist-tracks|\(source.rawValue)|\(id)|\(count)"
+        if let cached: [MusicSong] = await MusicCache.shared.value(for: cacheKey) {
+            return cached
+        }
+        let tracks: [MusicSong]
         switch source {
         case .kugou:
-            return try await kugouPlaylistTracks(id: id, count: count)
+            tracks = try await kugouPlaylistTracks(id: id, count: count)
         case .kuwo:
-            return try await kuwoPlaylistTracks(id: id, count: count)
+            tracks = try await kuwoPlaylistTracks(id: id, count: count)
         case .migu:
-            return try await miguPlaylistTracks(id: id, count: count)
+            tracks = try await miguPlaylistTracks(id: id, count: count)
         default:
             throw MusicSourceError.unsupportedSource(source)
         }
+        await MusicCache.shared.insert(tracks, for: cacheKey, ttl: 10 * 60)
+        return tracks
     }
 
     private func kugouPlaylistTracks(id: String, count: Int) async throws -> [MusicSong] {
