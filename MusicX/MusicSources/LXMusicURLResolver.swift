@@ -1,5 +1,37 @@
 import Foundation
 
+private final class PlaybackProviderFallbackState {
+    static let shared = PlaybackProviderFallbackState()
+
+    private let lock = NSLock()
+    private var failedProviders: [String: Set<String>] = [:]
+
+    private init() {}
+
+    private func key(for song: MusicSong, quality: MusicQuality) -> String {
+        "\(song.source.rawValue)|\(song.sourceID)|\(quality.rawValue)"
+    }
+
+    func recordFailure(providerID: String, song: MusicSong, quality: MusicQuality) {
+        lock.lock()
+        failedProviders[key(for: song, quality: quality), default: []].insert(providerID)
+        lock.unlock()
+    }
+
+    func excludedProviders(for song: MusicSong, quality: MusicQuality) -> Set<String> {
+        lock.lock()
+        defer { lock.unlock() }
+        return failedProviders[key(for: song, quality: quality)] ?? []
+    }
+
+    /// Returns true when a previous failed-provider session was cleared.
+    func reset(song: MusicSong, quality: MusicQuality) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return failedProviders.removeValue(forKey: key(for: song, quality: quality)) != nil
+    }
+}
+
 private final class MusicSourcePerformance {
     static let shared = MusicSourcePerformance()
 
@@ -353,6 +385,14 @@ struct LXMusicURLResolver: MusicURLResolving, @unchecked Sendable {
             .filter { $0.isLetter || $0.isNumber }
     }
 
+    /// Clear per-track provider exclusions when the user explicitly starts
+    /// that track again. Keep a valid prefetch cache when no failure was recorded.
+    func resetPlaybackFallbackState(for song: MusicSong, quality: MusicQuality = .high) async {
+        if PlaybackProviderFallbackState.shared.reset(song: song, quality: quality) {
+            await MusicCache.shared.removeValue(for: resourceCacheKey(for: song, quality: quality))
+        }
+    }
+
     /// Continue with the next provider after AVPlayer rejects the previously
     /// resolved stream. The cached resource carries its provider identity, so a
     /// fresh lookup cannot return the same provider's failing URL again.
@@ -363,10 +403,17 @@ struct LXMusicURLResolver: MusicURLResolving, @unchecked Sendable {
         )
         await MusicCache.shared.removeValue(for: cacheKey)
 
-        var excludedProviders = Set<String>()
         if let previousResource {
-            excludedProviders.insert(previousResource.providerID)
+            PlaybackProviderFallbackState.shared.recordFailure(
+                providerID: previousResource.providerID,
+                song: song,
+                quality: quality
+            )
         }
+        let excludedProviders = PlaybackProviderFallbackState.shared.excludedProviders(
+            for: song,
+            quality: quality
+        )
         let resource = try await MusicResourceEngine(session: session).resolveResource(
             song: song,
             quality: quality,
