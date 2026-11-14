@@ -165,17 +165,7 @@ struct MusicXPlaybackAPI {
     func resolve(song: MusicSong) async throws -> Resolution {
         let request = try makeRequest(path: "/api/v2/playback/resolve", body: ResolveRequest(song: song))
         let data = try await sendData(request)
-        let result: Resolution
-        if let envelope = try? JSONDecoder().decode(ResolutionEnvelope.self, from: data),
-           envelope.result != nil || envelope.data != nil {
-            guard envelope.success != false,
-                  let nested = envelope.result ?? envelope.data else {
-                throw APIError.noPlayableURL
-            }
-            result = nested
-        } else {
-            result = try decode(Resolution.self, from: data)
-        }
+        let result = try decodeResolution(from: data)
         guard result.url != nil else { throw APIError.noPlayableURL }
         return result
     }
@@ -201,12 +191,8 @@ struct MusicXPlaybackAPI {
             )
         )
         let data = try await sendData(request)
-        let response = try decode(ResolutionEnvelope.self, from: data)
-        guard response.success != false,
-              let result = response.result ?? response.data,
-              result.url != nil else {
-            throw APIError.noPlayableURL
-        }
+        let result = try decodeResolution(from: data)
+        guard result.url != nil else { throw APIError.noPlayableURL }
         return result
     }
 
@@ -240,6 +226,18 @@ struct MusicXPlaybackAPI {
             throw APIError.invalidResponse
         }
         return data
+    }
+
+    private func decodeResolution(from data: Data) throws -> Resolution {
+        if let envelope = try? JSONDecoder().decode(ResolutionEnvelope.self, from: data),
+           envelope.result != nil || envelope.data != nil {
+            guard envelope.success != false,
+                  let result = envelope.result ?? envelope.data else {
+                throw APIError.noPlayableURL
+            }
+            return result
+        }
+        return try decode(Resolution.self, from: data)
     }
 
     private func decode<Response: Decodable>(_ type: Response.Type, from data: Data) throws -> Response {
