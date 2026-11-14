@@ -1768,9 +1768,11 @@ struct ContentView: View {
                     guard api.isConfigured else { throw error }
                     let resolution = try await api.refresh(
                         song: onlineSong,
-                        failedSource: vpsResolvedSource ?? onlineSong.source.rawValue,
-                        failedTrackID: vpsResolvedTrackID,
-                        failedTrackMID: vpsResolvedTrackMID
+                        failedSource: vpsResolvedSongID == song.id
+                            ? (vpsResolvedSource ?? onlineSong.source.rawValue)
+                            : onlineSong.source.rawValue,
+                        failedTrackID: vpsResolvedSongID == song.id ? vpsResolvedTrackID : nil,
+                        failedTrackMID: vpsResolvedSongID == song.id ? vpsResolvedTrackMID : nil
                     )
                     guard let vpsURL = resolution.url else { throw MusicXPlaybackAPI.APIError.noPlayableURL }
                     vpsResolvedSongID = song.id
@@ -1967,6 +1969,11 @@ struct ContentView: View {
             playbackTask?.cancel()
             playbackRequestID = UUID()
             let requestID = playbackRequestID
+            // Do not carry VPS track metadata from a previously selected song.
+            vpsResolvedSongID = nil
+            vpsResolvedSource = nil
+            vpsResolvedTrackID = nil
+            vpsResolvedTrackMID = nil
             let playbackStartedAt = Date()
             let playbackDiagnosticID = requestID.uuidString
             MusicSourceDiagnostics.shared.record(
