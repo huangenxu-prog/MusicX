@@ -26,10 +26,15 @@ struct MusicXPlaybackAPI {
             url = try values.decodeIfPresent(URL.self, forKey: .url)
             resolvedSource = try values.decodeIfPresent(String.self, forKey: .resolvedSource)
                 ?? values.decodeIfPresent(String.self, forKey: .source)
-            trackID = try values.decodeIfPresent(String.self, forKey: .trackID)
-                ?? values.decodeIfPresent(String.self, forKey: .id)
-            trackMID = try values.decodeIfPresent(String.self, forKey: .trackMID)
-                ?? values.decodeIfPresent(String.self, forKey: .mid)
+            func stringValue(_ keys: [CodingKeys]) -> String? {
+                for key in keys {
+                    if let value = try? values.decode(String.self, forKey: key) { return value }
+                    if let value = try? values.decode(Int.self, forKey: key) { return String(value) }
+                }
+                return nil
+            }
+            trackID = stringValue([.trackID, .id])
+            trackMID = stringValue([.trackMID, .mid])
             fallback = try values.decodeIfPresent(Bool.self, forKey: .fallback)
         }
     }
@@ -119,6 +124,12 @@ struct MusicXPlaybackAPI {
         }
     }
 
+    private struct ResolutionEnvelope: Decodable {
+        let success: Bool?
+        let result: Resolution?
+        let data: Resolution?
+    }
+
     private struct ReportFailureResponse: Decodable {
         let success: Bool
         let cacheInvalidated: Bool
@@ -153,7 +164,18 @@ struct MusicXPlaybackAPI {
 
     func resolve(song: MusicSong) async throws -> Resolution {
         let request = try makeRequest(path: "/api/v2/playback/resolve", body: ResolveRequest(song: song))
-        let result: Resolution = try await send(request)
+        let data = try await sendData(request)
+        let result: Resolution
+        if let envelope = try? JSONDecoder().decode(ResolutionEnvelope.self, from: data),
+           envelope.result != nil || envelope.data != nil {
+            guard envelope.success != false,
+                  let nested = envelope.result ?? envelope.data else {
+                throw APIError.noPlayableURL
+            }
+            result = nested
+        } else {
+            result = try decode(Resolution.self, from: data)
+        }
         guard result.url != nil else { throw APIError.noPlayableURL }
         return result
     }
@@ -178,15 +200,14 @@ struct MusicXPlaybackAPI {
                 failedTrackMID: failedTrackMID
             )
         )
-        struct RefreshResponse: Decodable {
-            let success: Bool
-            let result: Resolution
-        }
-        let response: RefreshResponse = try await send(request)
-        guard response.success, response.result.url != nil else {
+        let data = try await sendData(request)
+        let response = try decode(ResolutionEnvelope.self, from: data)
+        guard response.success != false,
+              let result = response.result ?? response.data,
+              result.url != nil else {
             throw APIError.noPlayableURL
         }
-        return response.result
+        return result
     }
 
     private func makeRequest<Body: Encodable>(path: String, body: Body) throws -> URLRequest {
@@ -208,13 +229,22 @@ struct MusicXPlaybackAPI {
     }
 
     private func send<Response: Decodable>(_ request: URLRequest) async throws -> Response {
+        let data = try await sendData(request)
+        return try decode(Response.self, from: data)
+    }
+
+    private func sendData(_ request: URLRequest) async throws -> Data {
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse,
               (200..<300).contains(http.statusCode) else {
             throw APIError.invalidResponse
         }
+        return data
+    }
+
+    private func decode<Response: Decodable>(_ type: Response.Type, from data: Data) throws -> Response {
         do {
-            return try JSONDecoder().decode(Response.self, from: data)
+            return try JSONDecoder().decode(type, from: data)
         } catch {
             throw APIError.invalidResponse
         }
