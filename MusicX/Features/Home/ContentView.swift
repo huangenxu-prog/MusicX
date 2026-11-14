@@ -130,6 +130,10 @@ struct ContentView: View {
     @State private var isResolvingSong = false
     @State private var failedPlaybackSongIDs: Set<Int> = []
     @State private var playbackRetryCounts: [Int: Int] = [:]
+    @State private var vpsResolvedSongID: Int?
+    @State private var vpsResolvedSource: String?
+    @State private var vpsResolvedTrackID: String?
+    @State private var vpsResolvedTrackMID: String?
     @AppStorage("musicx.favoriteIDs") private var favoriteIDs = "1,3"
     @AppStorage("musicx.recentIDs") private var recentIDs = ""
     @AppStorage("musicx.recentSongs") private var recentSongsJSON = "[]"
@@ -1755,7 +1759,26 @@ struct ContentView: View {
             }
             do {
                 let resolver = LXMusicURLResolver()
-                let url = try await resolver.resolveFresh(song: onlineSong, quality: selectedMusicQuality)
+                let url: URL
+                do {
+                    url = try await resolver.resolveFresh(song: onlineSong, quality: selectedMusicQuality)
+                } catch {
+                    try Task.checkCancellation()
+                    let api = MusicXPlaybackAPI()
+                    guard api.isConfigured else { throw error }
+                    let resolution = try await api.refresh(
+                        song: onlineSong,
+                        failedSource: vpsResolvedSource ?? onlineSong.source.rawValue,
+                        failedTrackID: vpsResolvedTrackID,
+                        failedTrackMID: vpsResolvedTrackMID
+                    )
+                    guard let vpsURL = resolution.url else { throw MusicXPlaybackAPI.APIError.noPlayableURL }
+                    vpsResolvedSongID = song.id
+                    vpsResolvedSource = resolution.resolvedSource
+                    vpsResolvedTrackID = resolution.trackID
+                    vpsResolvedTrackMID = resolution.trackMID
+                    url = vpsURL
+                }
                 try Task.checkCancellation()
                 guard playbackRequestID == requestID else { return }
                 MusicSourceDiagnostics.shared.record(
@@ -1968,7 +1991,21 @@ struct ContentView: View {
                             quality: selectedMusicQuality
                         )
                     }
-                    let url = try await resolver.resolve(song: onlineSong, quality: selectedMusicQuality)
+                    let url: URL
+                    do {
+                        url = try await resolver.resolve(song: onlineSong, quality: selectedMusicQuality)
+                    } catch {
+                        try Task.checkCancellation()
+                        let api = MusicXPlaybackAPI()
+                        guard api.isConfigured else { throw error }
+                        let resolution = try await api.resolve(song: onlineSong)
+                        guard let vpsURL = resolution.url else { throw MusicXPlaybackAPI.APIError.noPlayableURL }
+                        vpsResolvedSongID = song.id
+                        vpsResolvedSource = resolution.resolvedSource
+                        vpsResolvedTrackID = resolution.trackID
+                        vpsResolvedTrackMID = resolution.trackMID
+                        url = vpsURL
+                    }
                     try Task.checkCancellation()
                     guard playbackRequestID == requestID else { return }
                     let resolutionDuration = Date().timeIntervalSince(playbackStartedAt)
