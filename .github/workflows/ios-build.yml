@@ -10,6 +10,7 @@ on:
       - feature/qqmusic-playlist-integration
       - redesign/home-search-library-review
       - architecture/three-layer-resource-engine
+      - restore/ui-build-461-preserve-playback
   workflow_dispatch:
 
 permissions:
